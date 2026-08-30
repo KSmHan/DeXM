@@ -69,7 +69,7 @@ if (rvEls.length) {
         return;
       }
 
-      const recipient = 'kas031099@gmail.com';
+      const recipient = 'info@dexm-m.com';
       const subject = 'Portfolio situation inquiry — DeXM Management website';
       const bodyLines = [
         'New inquiry from the DeXM Management website:',
