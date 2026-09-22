@@ -10,15 +10,15 @@
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",
-    "next": "16.3.6",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "next": "15.5.26",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "uuid": "^14.0.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "eslint": "^9",
-    "eslint-config-next": "16.3.6",
+    "eslint-config-next": "15.5.26",
     "tailwindcss": "^4"
   }
 }

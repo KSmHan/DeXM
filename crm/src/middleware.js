@@ -3,7 +3,7 @@ import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
 
 const PUBLIC_PATHS = ["/login", "/api/auth/login"];
 
-export async function proxy(req) {
+export async function middleware(req) {
   const { pathname } = req.nextUrl;
 
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
