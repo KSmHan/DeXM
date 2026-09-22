@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { listCompanies, createCompany } from "@/lib/db";
 
 export async function GET() {
-  const companies = await listCompanies();
-  return NextResponse.json(companies);
+  try {
+    const companies = await listCompanies();
+    return NextResponse.json(companies);
+  } catch (err) {
+    return NextResponse.json({ error: `Ошибка чтения из хранилища: ${err.message}` }, { status: 500 });
+  }
 }
 
 export async function POST(req) {
@@ -16,6 +20,10 @@ export async function POST(req) {
   if (!data.name || !data.name.trim()) {
     return NextResponse.json({ error: "Название компании обязательно" }, { status: 400 });
   }
-  const company = await createCompany(data);
-  return NextResponse.json(company, { status: 201 });
+  try {
+    const company = await createCompany(data);
+    return NextResponse.json(company, { status: 201 });
+  } catch (err) {
+    return NextResponse.json({ error: `Ошибка записи в хранилище: ${err.message}` }, { status: 500 });
+  }
 }
