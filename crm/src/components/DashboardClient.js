@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import CompanyCard from "./CompanyCard";
+import SeedImportButton from "./SeedImportButton";
 
 export default function DashboardClient() {
   const [companies, setCompanies] = useState([]);
@@ -68,6 +69,8 @@ export default function DashboardClient() {
 
   return (
     <div>
+      {!loading && companies.length === 0 && !error && <SeedImportButton onDone={load} />}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <StatTile label="Всего компаний" value={stats.total} />
         <StatTile label="Приоритет A" value={stats.A} accent />
