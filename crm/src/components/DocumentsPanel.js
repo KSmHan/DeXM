@@ -115,7 +115,18 @@ export default function DocumentsPanel({ companyId, documents = [], onChange }) 
           Перетащите файлы сюда или нажмите, чтобы выбрать
         </p>
         <p className="text-xs text-muted mt-1">PDF, Word, Excel, изображения и любые другие форматы</p>
-        {uploading && <p className="text-xs text-navy mt-2">{progress || "Загрузка…"}</p>}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            inputRef.current?.click();
+          }}
+          disabled={uploading}
+          className="mt-3 inline-flex items-center gap-2 rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy-light disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {uploading ? "Загрузка…" : "Загрузить файлы"}
+        </button>
+        {uploading && <p className="text-xs text-navy mt-2">{progress}</p>}
       </div>
 
       {error && (
