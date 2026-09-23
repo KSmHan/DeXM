@@ -21,7 +21,9 @@ export default function SeedImportButton({ onDone }) {
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || `Ошибка на компании ${i + 1}`);
+          if (!(res.status === 409 && data.duplicate)) {
+            throw new Error(data.error || `Ошибка на компании ${i + 1}`);
+          }
         }
         setProgress(i + 1);
       }

@@ -53,12 +53,14 @@ export default function BulkImportButton({ onDone }) {
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [duplicates, setDuplicates] = useState([]);
 
   async function handleFile(file) {
     if (!file) return;
     setBusy(true);
     setError("");
     setSuccess("");
+    setDuplicates([]);
     setProgress({ done: 0, total: 0 });
     try {
       const buf = await file.arrayBuffer();
@@ -70,19 +72,26 @@ export default function BulkImportButton({ onDone }) {
         throw new Error("В файле не найдено ни одной компании с заполненным названием");
       }
       setProgress({ done: 0, total: companies.length });
+      let added = 0;
+      const skipped = [];
       for (let i = 0; i < companies.length; i++) {
         const res = await fetch("/api/companies", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(companies[i]),
         });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 409 && data.duplicate) {
+          skipped.push(companies[i].name);
+        } else if (!res.ok) {
           throw new Error(data.error || `Ошибка на строке ${i + 1} («${companies[i].name}»)`);
+        } else {
+          added++;
         }
         setProgress({ done: i + 1, total: companies.length });
       }
-      setSuccess(`Добавлено компаний: ${companies.length}`);
+      setSuccess(`Добавлено новых компаний: ${added}`);
+      setDuplicates(skipped);
       onDone?.();
     } catch (e) {
       setError(e.message || "Не удалось загрузить файл");
@@ -119,6 +128,14 @@ export default function BulkImportButton({ onDone }) {
       </div>
       {error && <p className="text-sm text-danger mt-3">{error}</p>}
       {success && !error && <p className="text-sm text-emerald-600 mt-3">{success}</p>}
+      {duplicates.length > 0 && (
+        <div className="mt-3 text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+          <p className="text-amber-800 font-medium">
+            Пропущено как дубли ({duplicates.length}) — уже есть в базе:
+          </p>
+          <p className="text-amber-700 mt-1">{duplicates.join(", ")}</p>
+        </div>
+      )}
     </div>
   );
 }

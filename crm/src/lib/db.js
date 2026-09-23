@@ -53,6 +53,20 @@ export async function listCompanies() {
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 }
 
+function normalizeName(name) {
+  return String(name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+export async function findCompanyByName(name) {
+  const target = normalizeName(name);
+  if (!target) return null;
+  const all = await listCompanies();
+  return all.find((c) => normalizeName(c.name) === target) || null;
+}
+
 export async function getCompany(id) {
   const path = companyPath(id);
   const { blobs } = await list({ prefix: path, limit: 1 });
