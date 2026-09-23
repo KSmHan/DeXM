@@ -16,6 +16,7 @@ export async function POST(request, { params }) {
           throw new Error("Компания не найдена");
         }
         return {
+          access: "private",
           addRandomSuffix: true,
           allowedContentTypes: undefined,
           maximumSizeInBytes: 200 * 1024 * 1024,

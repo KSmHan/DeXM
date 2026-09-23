@@ -6,7 +6,10 @@ async function loadRaw() {
   const { blobs } = await list({ prefix: DB_PATH, limit: 1 });
   const match = blobs.find((b) => b.pathname === DB_PATH);
   if (!match) return [];
-  const res = await fetch(match.url, { cache: "no-store" });
+  const res = await fetch(match.url, {
+    cache: "no-store",
+    headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+  });
   if (!res.ok) return [];
   try {
     return await res.json();
@@ -17,7 +20,7 @@ async function loadRaw() {
 
 async function saveRaw(companies) {
   await put(DB_PATH, JSON.stringify(companies, null, 2), {
-    access: "public",
+    access: "private",
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: "application/json",

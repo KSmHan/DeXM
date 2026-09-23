@@ -48,7 +48,7 @@ export default function DocumentsPanel({ companyId, documents = [], onChange }) 
       for (const file of files) {
         setProgress(`Загрузка «${file.name}»…`);
         const blob = await upload(file.name, file, {
-          access: "public",
+          access: "private",
           handleUploadUrl: `/api/companies/${companyId}/documents/upload`,
           multipart: file.size > 8 * 1024 * 1024,
         });
@@ -141,7 +141,7 @@ export default function DocumentsPanel({ companyId, documents = [], onChange }) 
                 {icon.label}
               </span>
               <a
-                href={doc.url}
+                href={`/api/companies/${companyId}/documents/${doc.id}/download`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 min-w-0 truncate text-sm text-navy hover:underline"
