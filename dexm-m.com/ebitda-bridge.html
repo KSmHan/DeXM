@@ -1,0 +1,520 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>EBITDA Bridge — DeXM Management</title>
+<meta name="description" content="Free EBITDA bridge: enter a baseline P&amp;L and the impact of each value creation lever to see target EBITDA, a risk-weighted view and the enterprise value created. Data stays in your browser.">
+<link rel="icon" href="img/dexm-mark.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: header + toolbar, settings strip, summary (KPIs + waterfall + verdict), then the bridge table: baseline P&L, levers with confidence, summary */
+:root{
+  --bg:#f3f4f2; --surface:#ffffff; --fg:#1b2224; --muted:#5d686b; --line:#d6dbd9;
+  --accent:#0e6b6b; --accent-soft:#dcecea; --steel:#3c4a4f; --band:#eef1ef;
+  --good:#2f7d4f; --warn:#b7791f; --bad:#b4442d; --bad-soft:#f6e3de;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131819; --surface:#1b2224; --fg:#e6ebea; --muted:#9aa6a8; --line:#2e3739;
+  --accent:#4fb3ad; --accent-soft:#1f3534; --steel:#b9c5c7; --band:#20292b;
+  --good:#5fbf86; --warn:#e0a84a; --bad:#e2765f; --bad-soft:#3a2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131819; --surface:#1b2224; --fg:#e6ebea; --muted:#9aa6a8; --line:#2e3739;
+  --accent:#4fb3ad; --accent-soft:#1f3534; --steel:#b9c5c7; --band:#20292b;
+  --good:#5fbf86; --warn:#e0a84a; --bad:#e2765f; --bad-soft:#3a2420; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:20px;padding-block:28px 48px;display:flex;flex-direction:column;gap:20px}
+header{border-bottom:2px solid var(--fg);padding-bottom:14px}
+.brand{font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font:800 clamp(26px,4vw,38px)/1.1 var(--display);margin:6px 0 0;text-wrap:balance;letter-spacing:-.01em}
+.lede{max-width:72ch;color:var(--muted);margin:8px 0 0}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,.filebtn{font:500 14px var(--body);border-radius:4px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg);display:inline-flex;align-items:center}
+button.primary,.filebtn{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.filebtn input{position:absolute;width:1px;height:1px;opacity:0}
+.status{font-size:13px;color:var(--muted);min-height:1.2em;flex-basis:100%}
+.status.ok{color:var(--good)} .status.err{color:var(--bad)}
+.notice{font-size:13px;background:var(--accent-soft);padding:10px 12px;border-radius:4px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px}
+.label{font:500 11px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 16px}
+.field{display:flex;flex-direction:column;justify-content:space-between;gap:4px;min-width:0}
+.field input{font:15px var(--body);padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);width:100%;min-width:0}
+.field input.num{font-family:var(--mono);text-align:right}
+.summary{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px}
+@media (max-width:900px){.summary{grid-template-columns:1fr}}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-bottom:14px}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi b{font:600 20px/1.2 var(--mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.kpi small{font-size:12px;color:var(--muted)}
+.kpi.bad b{color:var(--bad)}
+canvas{width:100%;height:240px;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:12px;height:10px;margin-right:5px;vertical-align:-1px;border-radius:2px}
+.verdict h2{font:700 21px/1.25 var(--display);margin:8px 0 6px;text-wrap:balance}
+.verdict p{margin:0 0 8px;font-size:14px;color:var(--muted)}
+.verdict ul{margin:4px 0 10px;padding-left:18px;font-size:14px;display:grid;gap:3px}
+.sev{display:inline-block;font:500 12px var(--mono);padding:2px 8px;border-radius:3px;color:var(--surface)}
+.cta{border-top:1px solid var(--line);padding-top:10px;font-size:14px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:separate;border-spacing:0;font-size:13px;min-width:100%}
+th,td{padding:0;border-bottom:1px solid var(--line);white-space:nowrap}
+thead th{font:500 11px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:10px 6px;text-align:right;background:var(--surface);position:sticky;top:0}
+thead th small{display:block;font-size:11px;letter-spacing:0;text-transform:none}
+th.lab,td.lab{position:sticky;left:0;z-index:1;background:var(--surface);text-align:left;padding:6px 10px;min-width:230px;max-width:280px;border-right:1px solid var(--line)}
+thead th.lab{z-index:2}
+td.lab{white-space:normal}
+td.lab input{font:13px var(--body);border:1px dashed var(--line);border-radius:3px;padding:3px 6px;background:var(--bg);color:var(--fg);width:calc(100% - 30px)}
+td.lab .del{padding:0 6px;margin-left:4px;font-size:15px;line-height:1.4;border:0;background:none;color:var(--muted)}
+td.v{text-align:right;padding:0 2px}
+td.v input{width:84px;font:13px var(--mono);text-align:right;border:1px solid transparent;border-radius:3px;padding:5px 6px;background:var(--bg);color:var(--fg);font-variant-numeric:tabular-nums}
+td.v input:hover{border-color:var(--line)}
+td.c{text-align:right;padding:6px 8px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+td.tot{font-weight:600;background:var(--band)}
+tr.sec td{background:var(--band);font:600 12px var(--body);letter-spacing:.04em;text-transform:uppercase;padding:8px 10px}
+tr.sec td.lab{background:var(--band)}
+tr.sub td{font-weight:600}
+tr.key td{font-weight:600;background:var(--accent-soft)}
+tr.key td.lab{background:var(--accent-soft)}
+td.neg{color:var(--bad)}
+td.below{background:var(--bad-soft)!important;color:var(--bad)}
+tr.add td{padding:4px 10px;border-bottom:1px solid var(--line)}
+tr.add button{font-size:12px;padding:3px 8px;border-style:dashed;background:none;color:var(--accent)}
+input[type=number]{-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+footer{padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+th.ul,td.ul{text-align:left;color:var(--muted);padding:6px 8px;font-size:12px}
+th.cf,td.cf{text-align:left;padding:4px 8px}
+td.cf select{font:13px var(--body);padding:4px 6px;border:1px solid var(--line);border-radius:3px;background:var(--bg);color:var(--fg)}
+td.cf .fixed{font:12px var(--mono);color:var(--muted)}
+#grid td.lab{min-width:340px;max-width:460px}
+#grid td.v input{width:110px}
+tr.pct td{color:var(--muted);font-style:italic}
+footer span{user-select:all}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<link rel="stylesheet" href="css/site-header.css">
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</head><body>
+<div class="dxh" id="dxh">
+  <div class="dxh-wrap">
+    <a href="/" class="dxh-logo"><img src="img/dexm-mark.png" alt=""><span>DeXM Management</span></a>
+    <nav class="dxh-nav" id="dxhNav" aria-label="Site">
+      <a href="/solutions">Solutions</a>
+      <a href="/dexm-os">DeXM OS</a>
+      <a href="/about">About</a>
+      <a href="/#contact" class="dxh-cta">Book an Intro Call</a>
+    </nav>
+    <a href="/#contact" class="dxh-cta">Book an Intro Call</a>
+    <button class="dxh-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="dxhNav"><span></span><span></span><span></span></button>
+  </div>
+</div>
+
+<div class="wrap">
+<header>
+  <a href="/" class="brand" id="t-brand" style="display:block;text-decoration:none"></a>
+  <h1 id="t-h1"></h1>
+  <p class="lede" id="t-lede"></p>
+</header>
+
+<div class="toolbar">
+  <label class="filebtn" id="importLbl"><span id="t-import"></span><input type="file" id="importFile" accept=".xlsx,.xls,.xlsm,.csv"></label>
+  <button id="btnTemplate"></button>
+  <button id="btnXlsx"></button>
+  <button id="btnPdf"></button>
+  <button id="btnReset"></button>
+  <div class="status" id="status" role="status"></div>
+</div>
+<div class="notice" id="sample"></div>
+
+<section class="panel">
+  <div class="settings" id="settings"></div>
+</section>
+
+<section class="summary">
+  <div class="panel">
+    <div class="kpis" id="kpis"></div>
+    <canvas id="chart" aria-label=""></canvas>
+    <div class="legend" id="legend"></div>
+  </div>
+  <div class="panel verdict" id="verdict" aria-live="polite"></div>
+</section>
+
+<div class="tablewrap"><table id="grid"></table></div>
+
+<footer>
+  <span>DeXM Management</span><span>info@dexm-m.com</span><span>+1 917 523 0461</span><span>dexm-m.com</span>
+</footer>
+</div>
+
+<script>
+const LANG="en";
+const CONF_W=[0.9,0.6,0.3];
+const L={
+ru:{brand:"DeXM Management · план создания стоимости",h1:"EBITDA bridge: от текущей EBITDA к целевой",
+ lede:"Введите базовый P&L за 12 месяцев и эффект по каждому рычагу прямо в таблице или загрузите Excel. Мост покажет целевую EBITDA, её значение с учётом вероятности и прирост стоимости компании по мультипликатору. Данные хранятся только в вашем браузере.",
+ imp:"Загрузить из Excel",tpl:"Скачать шаблон Excel",xlsx:"Скачать Excel",pdf:"Скачать PDF для печати",reset:"Очистить",
+ sample:"Показан пример завода с выручкой $30 млн. Нажмите «Очистить» или загрузите свой Excel.",
+ set:{company:"Компания",units:"Единицы",varL:"Переменная доля труда, %",varO:"Переменная доля прочей себестоимости, %",bench:"Бенчмарк маржи EBITDA, %",mult:"Мультипликатор EV/EBITDA, x"},
+ companyDef:"Пример: Завод",unitsDef:"тыс. $",
+ col:{item:"Статья / рычаг",val:"Значение",unit:"Ед.",conf:"Вероятность",imp:"Эффект на EBITDA",risk:"С учётом вероятности",section:"Раздел",w:"Вес"},
+ conf:["Высокая","Средняя","Низкая"],
+ secs:{base:"Базовый P&L, 12 месяцев",rev:"Рычаги выручки",cost:"Рычаги затрат",head:"Встречные факторы",sum:"Итоги"},
+ base:{rev:"Выручка",mat:"Сырьё и материалы",dl:"Прямой труд",oc:"Прочая себестоимость (энергия, логистика, накладные)",sga:"Коммерческие и административные расходы (SG&A)"},
+ lv:{price:"Цена: повышение, % выручки",vol:"Объём продаж: рост, %",mix:"Ассортимент и клиенты: рост валовой маржи, п.п.",mat:"Закупки: снижение стоимости материалов, %",scrap:"Брак и выход годного: снижение, п.п. материалов",lab:"Производительность труда: экономия прямого труда, %",oh:"Производственные накладные: сокращение, %",sga:"SG&A: сокращение, %",infl:"Инфляция затрат, %"},
+ short:{price:"Цена",vol:"Объём",mix:"Микс",mat:"Закупки",scrap:"Брак",lab:"Труд",oh:"Накладные",sga:"SG&A",infl:"Инфляция",base:"Сейчас",target:"Цель",risk:"С риском"},
+ r:{e0:"EBITDA сейчас",m0:"Маржа EBITDA сейчас, %",up:"Прирост EBITDA",e1:"Целевая EBITDA",r1:"Целевая выручка",m1:"Целевая маржа EBITDA, %",er:"EBITDA с учётом вероятности",val:"Прирост стоимости компании",valr:"Прирост стоимости с учётом вероятности"},
+ add:"+ Добавить инициативу",newLine:"Новая инициатива",del:"Удалить строку",calc:"Расчёт",
+ k:{e0:"EBITDA сейчас",e1:"Целевая EBITDA",up:"Прирост EBITDA",er:"С учётом вероятности",val:"Прирост стоимости",gap:"Маржа к бенчмарку",margin:m=>`маржа ${m}`,riskUp:v=>`взвешенный ${v}`,at:x=>`при ${x}x EBITDA`,bench:b=>`бенчмарк ${b}`},
+ lg:{base:"EBITDA",pos:"Рост",neg:"Снижение",risk:"С учётом вероятности"},
+ v:{label:"Вывод",sev:["сильный план","проверить","высокий риск"],
+  benchOk:(m,b)=>`План выводит маржу EBITDA на ${m} при бенчмарке ${b}`,
+  benchGap:(m,b,g)=>`Даже полный план даёт маржу ${m}: до бенчмарка ${b} не хватает ${g}`,
+  riskP:(r,t)=>`С учётом вероятности реализации прирост составит ${r} из ${t} потенциала.`,
+  conc:(l,s)=>`План зависит от одного рычага: «${l}» даёт ${s} прироста.`,
+  low:s=>`${s} прироста приходится на рычаги с низкой вероятностью.`,
+  infl:x=>`Инфляция затрат съедает ${x} валового эффекта рычагов.`,
+  top:"Главные рычаги",none:"Задайте эффект хотя бы по одному рычагу",noneP:"Мост и прирост стоимости появятся сразу.",
+  cta:"<strong>Проверить план на фактах</strong> можно за 2 недели диагностики DeXM: оценим каждый рычаг по данным завода. info@dexm-m.com"},
+ st:{tpl:"Шаблон готов к сохранению",xlsx:"Excel готов к сохранению",pdf:"PDF готов к сохранению",saved:"Файл сохранён",declined:"Сохранение отменено",
+  noDl:"Скачивание недоступно в этом просмотре. Откройте страницу по ссылке в браузере.",fail:"Не удалось создать файл. Попробуйте ещё раз.",loading:"Загружаю модуль…",
+  imported:(n,m,s)=>`Загружено статей и рычагов: ${n}${m?`. Добавлено инициатив: ${m}`:""}${s?`. Настройки: ${s}`:""}.`,unrec:l=>` Не распознано: ${l}.`,
+  noData:"Не нашёл в файле статей P&L или рычагов. Скачайте шаблон, чтобы увидеть формат.",cleared:"Таблица очищена",readFail:"Не удалось прочитать файл. Проверьте, что это .xlsx, .xls или .csv."},
+ sheetTitle:"EBITDA bridge",prepared:"Подготовлено",chartAria:"Каскадная диаграмма EBITDA от текущей к целевой"},
+en:{brand:"DeXM Management · value creation plan",h1:"EBITDA Bridge: from current to target EBITDA",
+ lede:"Enter a 12-month baseline P&L and the impact of each lever in the table or import them from Excel. The bridge shows target EBITDA, a risk-weighted view and the enterprise value created at your multiple. Your data stays in your browser.",
+ imp:"Import from Excel",tpl:"Download Excel template",xlsx:"Download Excel",pdf:"Download PDF to print",reset:"Clear",
+ sample:"This is a sample for a $30M-revenue plant. Select “Clear” or import your own Excel file.",
+ set:{company:"Company",units:"Units",varL:"Variable share of labor, %",varO:"Variable share of other COGS, %",bench:"EBITDA margin benchmark, %",mult:"EV/EBITDA multiple, x"},
+ companyDef:"Sample: Plant",unitsDef:"$000",
+ col:{item:"Line item / lever",val:"Value",unit:"Unit",conf:"Confidence",imp:"EBITDA impact",risk:"Risk-weighted",section:"Section",w:"Weight"},
+ conf:["High","Medium","Low"],
+ secs:{base:"Baseline P&L, 12 months",rev:"Revenue levers",cost:"Cost levers",head:"Headwinds",sum:"Summary"},
+ base:{rev:"Revenue",mat:"Raw materials",dl:"Direct labor",oc:"Other COGS (energy, freight, overhead)",sga:"SG&A"},
+ lv:{price:"Price: increase, % of revenue",vol:"Volume: growth, %",mix:"Product and customer mix: gross margin gain, pts",mat:"Purchasing: material cost reduction, %",scrap:"Scrap and yield: reduction, pts of materials",lab:"Labor productivity: direct labor savings, %",oh:"Manufacturing overhead: reduction, %",sga:"SG&A: reduction, %",infl:"Cost inflation, %"},
+ short:{price:"Price",vol:"Volume",mix:"Mix",mat:"Purchasing",scrap:"Scrap",lab:"Labor",oh:"Overhead",sga:"SG&A",infl:"Inflation",base:"Current",target:"Target",risk:"Risk-wtd"},
+ r:{e0:"Current EBITDA",m0:"Current EBITDA margin, %",up:"EBITDA uplift",e1:"Target EBITDA",r1:"Target revenue",m1:"Target EBITDA margin, %",er:"Risk-weighted EBITDA",val:"Enterprise value created",valr:"Risk-weighted value created"},
+ add:"+ Add initiative",newLine:"New initiative",del:"Delete line",calc:"Calculated",
+ k:{e0:"Current EBITDA",e1:"Target EBITDA",up:"EBITDA uplift",er:"Risk-weighted EBITDA",val:"Value created",gap:"Margin vs benchmark",margin:m=>`margin ${m}`,riskUp:v=>`risk-weighted ${v}`,at:x=>`at ${x}x EBITDA`,bench:b=>`benchmark ${b}`},
+ lg:{base:"EBITDA",pos:"Increase",neg:"Decrease",risk:"Risk-weighted"},
+ v:{label:"Verdict",sev:["strong plan","review","high risk"],
+  benchOk:(m,b)=>`The plan takes EBITDA margin to ${m} against a ${b} benchmark`,
+  benchGap:(m,b,g)=>`Even the full plan reaches only ${m}, ${g} short of the ${b} benchmark`,
+  riskP:(r,t)=>`Weighted by confidence, the uplift is ${r} of the ${t} potential.`,
+  conc:(l,s)=>`The plan leans on one lever: “${l}” delivers ${s} of the uplift.`,
+  low:s=>`${s} of the uplift sits in low-confidence levers.`,
+  infl:x=>`Cost inflation eats ${x} of the gross lever impact.`,
+  top:"Top levers",none:"Set an impact for at least one lever",noneP:"The bridge and value created appear right away.",
+  cta:"<strong>Test the plan against the facts</strong> in a 2-week DeXM diagnostic: we size each lever from plant data. info@dexm-m.com"},
+ st:{tpl:"Template ready to save",xlsx:"Excel file ready to save",pdf:"PDF ready to save",saved:"File saved",declined:"Save cancelled",
+  noDl:"Downloads are not available in this view. Open the page from its link in a browser.",fail:"Could not create the file. Try again.",loading:"Loading module…",
+  imported:(n,m,s)=>`Imported ${n} line items and levers${m?`, added ${m} initiatives`:""}${s?`, settings: ${s}`:""}.`,unrec:l=>` Not recognized: ${l}.`,
+  noData:"Could not find P&L lines or levers in the file. Download the template to see the format.",cleared:"Table cleared",readFail:"Could not read the file. Check that it is .xlsx, .xls or .csv."},
+ sheetTitle:"EBITDA Bridge",prepared:"Prepared",chartAria:"Waterfall chart from current to target EBITDA"}
+};
+const T=L[LANG];
+const BASE=["rev","mat","dl","oc","sga"];
+const LEVERS=[["price","rev","%"],["vol","rev","%"],["mix","rev","pts"],["mat","cost","%"],["scrap","cost","pts"],["lab","cost","%"],["oh","cost","%"],["sga","cost","%"],["infl","head","%"]];
+const GROUPS=["rev","cost","head"];
+const unitTxt=u=>u==="%"?"%":u==="pts"?(LANG==="ru"?"п.п.":"pts"):"";
+function blankModel(){return{settings:{company:"",units:T.unitsDef,varL:50,varO:40,bench:14,mult:6},base:{rev:0,mat:0,dl:0,oc:0,sga:0},
+  lv:LEVERS.map(([id,g])=>({id,g,v:0,c:1})),custom:[]}}
+function sampleModel(){const m=blankModel();Object.assign(m.settings,{company:T.companyDef});m.base={rev:30000,mat:15000,dl:4000,oc:4300,sga:2900};
+  const S={price:[2,1],vol:[5,1],mix:[0.5,2],mat:[3,0],scrap:[1,1],lab:[8,1],oh:[5,0],sga:[5,0],infl:[2.5,0]};
+  m.lv.forEach(l=>{[l.v,l.c]=S[l.id]});return m}
+
+function compute(m){
+  const b=m.base,n=x=>+x||0,R=n(b.rev),M=n(b.mat),DL=n(b.dl),OC=n(b.oc),S=n(b.sga),s=m.settings;
+  const E0=R-M-DL-OC-S;const contrib=R-M-DL*n(s.varL)/100-OC*n(s.varO)/100;
+  const f={price:R,vol:contrib,mix:R,mat:M,scrap:M,lab:DL,oh:OC,sga:S,infl:-(M+DL+OC+S)};
+  const items=[];
+  m.lv.forEach(l=>{const imp=f[l.id]*n(l.v)/100;const w=l.id==="infl"?1:CONF_W[l.c];items.push({key:l.id,g:l.g,name:T.short[l.id],full:T.lv[l.id],imp,w,c:l.c,val:n(l.v),isInfl:l.id==="infl"})});
+  m.custom.forEach(cu=>{const imp=n(cu.v);items.push({key:"c",g:cu.g,name:cu.label||T.newLine,full:cu.label||T.newLine,imp,w:CONF_W[cu.c],c:cu.c,val:n(cu.v),custom:true})});
+  const up=items.reduce((a,x)=>a+x.imp,0),upR=items.reduce((a,x)=>a+x.imp*x.w,0);
+  const lp=id=>n(m.lv.find(l=>l.id===id).v)/100;
+  const R1=R*(1+lp("price")+lp("vol"));
+  const pos=items.filter(x=>x.imp>0).sort((a,b)=>b.imp-a.imp),gross=pos.reduce((a,x)=>a+x.imp,0);
+  const infl=items.filter(x=>x.isInfl).reduce((a,x)=>a+x.imp,0);
+  const mult=n(s.mult),bench=n(s.bench);
+  const E1=E0+up,Er=E0+upR;
+  return{R,E0,m0:R?E0/R*100:null,items,up,upR,E1,Er,R1,m1:R1?E1/R1*100:null,mr:R1?Er/R1*100:null,bench,mult,val:up*mult,valR:upR*mult,
+    pos,gross,lowShare:gross?pos.filter(x=>x.c===2&&!x.isInfl).reduce((a,x)=>a+x.imp,0)/gross:0,inflShare:gross?-infl/gross:0,conc:gross?pos[0].imp/gross:0}
+}
+
+function parseNum(x){if(typeof x==="number")return isFinite(x)?x:null;if(x==null)return null;
+  let s=String(x).trim().replace(/[\s $€£₽%x×]/gi,"");if(!s||s==="-"||s==="—")return null;
+  let neg=false;if(/^\(.*\)$/.test(s)){neg=true;s=s.slice(1,-1)}
+  if(s.includes(",")&&s.includes("."))s=s.lastIndexOf(",")>s.lastIndexOf(".")?s.replace(/\./g,"").replace(",","."):s.replace(/,/g,"");
+  else if(s.includes(","))s=/,\d{3}$/.test(s)&&!/,\d{3},?\d{1,2}$/.test(s)?s.replace(/,/g,""):s.replace(",",".");
+  const v=parseFloat(s);return isFinite(v)?(neg?-v:v):null}
+const ALL={};["ru","en"].forEach(l=>{Object.entries(L[l].base).forEach(([k,v])=>ALL[v.toLowerCase()]=["base",k]);Object.entries(L[l].lv).forEach(([k,v])=>ALL[v.toLowerCase()]=["lv",k])});
+const ALIAS=[["lv","infl",/(inflation|инфляц)/i],["lv","price",/(^price|pricing|цен)/i],["lv","vol",/(volume|объ[её]м)/i],["lv","mix",/(\bmix\b|ассортимент|микс)/i],["lv","scrap",/(scrap|yield|брак|выход годн)/i],
+ ["lv","lab",/(productivity|производительн)/i],["lv","oh",/(overhead lever|overhead:|накладные:|сокращение накладн)/i],["lv","mat",/(purchasing|procurement|закупк)/i],["lv","sga",/(sg&a:|sg&a reduction|сокращение sg)/i],
+ ["base","rev",/^(revenue|net revenue|sales|выручка|чистая выручка)$/i],["base","mat",/^(raw materials|materials|сырь|материал)/i],["base","dl",/^(direct labor|labor|прямой труд|труд)/i],["base","oc",/^(other cogs|other cost|overhead|прочая себестоим|накладн)/i],["base","sga",/^(sg&a|коммерческие и администр|sga)/i]];
+const SEC_RE=[["rev",/(revenue lever|рычаги выручки)/i],["cost",/(cost lever|рычаги затрат)/i],["head",/(headwind|встречн)/i],["base",/(baseline|базовый)/i],["sum",/(summary|итоги)/i]];
+const CONF_RE=[[0,/^(high|высок)/i],[1,/^(medium|med|средн)/i],[2,/^(low|низк)/i]];
+const SET_RE=[["varL",/(variable share of labor|переменная доля труда)/i],["varO",/(variable share of other|переменная доля прочей)/i],["bench",/(benchmark|бенчмарк)/i],["mult",/(multiple|мультипликатор)/i]];
+
+function importAOA(rows){
+  const m=blankModel();const txt=c=>c==null?"":String(c).trim();const found=[];let n=0,added=0,cur=null;const unrec=[],seen=new Set();
+  for(const row of rows){if(!row)continue;const cells=row.map(txt);
+    const ci0=cells.findIndex(t=>/^(company|компания|units|единицы)$/i.test(t));
+    if(ci0>=0){const k=/compan|компан/i.test(cells[ci0])?"company":"units";const v=cells.slice(ci0+1).find(Boolean);if(v&&!found.includes(k)){m.settings[k]=v;found.push(k)}continue}const ti=cells.findIndex(t=>t&&parseNum(t)==null&&!CONF_RE.some(([,re])=>re.test(t)));if(ti<0)continue;
+    // label = last text cell before the first number (skips a leading section column)
+    const numIdx=row.findIndex((c,i)=>i>ti&&c!=null&&txt(c)!==""&&parseNum(c)!=null);
+    const texts=cells.slice(0,numIdx<0?cells.length:numIdx).filter(t=>t&&parseNum(t)==null&&!CONF_RE.some(([,re])=>re.test(t)));
+    const label=texts[texts.length-1]||cells[ti];const lower=label.toLowerCase();
+    if(texts.some(t=>/^(расч|calc)/i.test(t)))continue;
+    for(const [k,re] of SEC_RE)if(texts.some(t=>re.test(t))){cur=k;break}
+    if(numIdx<0){continue}
+    const val=parseNum(row[numIdx]);let conf=null;cells.slice(numIdx+1).forEach(t=>{if(conf==null)for(const [ci,re] of CONF_RE)if(re.test(t)){conf=ci;break}});
+    let hit=null;
+    const set=SET_RE.find(([,re])=>re.test(label));
+    if(set&&!found.includes(set[0])){m.settings[set[0]]=val;found.push(set[0]);continue}
+    hit=ALL[lower];
+    if(!hit)for(const [kind,k,re] of ALIAS)if(re.test(label)&&(kind==="lv"?cur!=="base":cur==null||cur==="base")){hit=[kind,k];break}
+    if(hit&&seen.has(hit.join(":")))hit=hit[0]==="lv"&&cur&&GROUPS.includes(cur)?null:"dup";
+    if(hit==="dup")continue;
+    if(hit){seen.add(hit.join(":"));n++;
+      if(hit[0]==="base")m.base[hit[1]]=Math.abs(val);else{const l=m.lv.find(x=>x.id===hit[1]);l.v=val;if(conf!=null)l.c=conf}}
+    else if(cur&&GROUPS.includes(cur)){m.custom.push({g:cur,label,v:val,c:conf==null?1:conf});added++}
+    else if(cur!=="sum")unrec.push(label)}
+  if(!n&&!added)return{error:"noData"};
+  if(!m.settings.units)m.settings.units=T.unitsDef;
+  return{model:m,n,added,unrec,settings:found}
+}
+
+// Excel export plan. Columns: A section, B item, C value, D unit, E confidence, F weight, G EBITDA impact, H risk-weighted
+function exportPlan(m,blank){
+  const rows=[],f=[];const push=(r,fx)=>{rows.push(r);if(fx)f.push([rows.length,fx])};const s=m.settings;
+  push([T.sheetTitle]);push([T.set.company,s.company&&!blank?s.company:""]);push([T.set.units,s.units]);
+  push([T.set.varL,+s.varL]);const rVL=rows.length;push([T.set.varO,+s.varO]);const rVO=rows.length;push([T.set.bench,+s.bench]);const rB=rows.length;push([T.set.mult,+s.mult]);const rM=rows.length;push([]);
+  // settings sit in column B for the label and C for the value: shift
+  for(let i=1;i<rows.length;i++)if(rows[i].length===2)rows[i]=["",rows[i][0],rows[i][1]];
+  push([T.col.section,T.col.item,T.col.val,T.col.unit,T.col.conf,T.col.w,T.col.imp,T.col.risk]);
+  push([T.secs.base]);const br={};
+  BASE.forEach(k=>{push([T.secs.base,T.base[k],blank?0:+m.base[k]||0,s.units]);br[k]=rows.length});
+  push([T.calc,T.r.e0,null,s.units],[[2,`C${br.rev}-C${br.mat}-C${br.dl}-C${br.oc}-C${br.sga}`,"n"]]);const rE0=rows.length;
+  const F={price:`C${br.rev}`,vol:`(C${br.rev}-C${br.mat}-C${br.dl}*C${rVL}/100-C${br.oc}*C${rVO}/100)`,mix:`C${br.rev}`,mat:`C${br.mat}`,scrap:`C${br.mat}`,lab:`C${br.dl}`,oh:`C${br.oc}`,sga:`C${br.sga}`,infl:`-(C${br.mat}+C${br.dl}+C${br.oc}+C${br.sga})`};
+  const lvRows=[];const rowOf={};
+  GROUPS.forEach(g=>{push([T.secs[g]]);
+    m.lv.filter(l=>l.g===g).forEach(l=>{const w=l.id==="infl"?1:CONF_W[l.c];push([T.secs[g],T.lv[l.id],blank?0:+l.v||0,unitTxt(LEVERS.find(x=>x[0]===l.id)[2]),l.id==="infl"?"":T.conf[l.c],w],[[6,`${F[l.id]}*C{r}/100`,"n"],[7,`G{r}*F{r}`,"n"]]);lvRows.push(rows.length);rowOf[l.id]=rows.length});
+    m.custom.filter(c=>c.g===g).forEach(c=>{push([T.secs[g],c.label||T.newLine,blank?0:+c.v||0,s.units,T.conf[c.c],CONF_W[c.c]],[[6,`C{r}`,"n"],[7,`G{r}*F{r}`,"n"]]);lvRows.push(rows.length)})});
+  push([T.secs.sum]);
+  const sumG=lvRows.map(r=>`G${r}`).join("+")||"0",sumH=lvRows.map(r=>`H${r}`).join("+")||"0";
+  push([T.calc,T.r.up,null,s.units],[[2,sumG,"n"]]);const rUp=rows.length;
+  push([T.calc,T.r.e1,null,s.units],[[2,`C${rE0}+C${rUp}`,"n"]]);const rE1=rows.length;
+  push([T.calc,T.r.r1,null,s.units],[[2,`C${br.rev}*(1+C${rowOf.price}/100+C${rowOf.vol}/100)`,"n"]]);const rR1=rows.length;
+  push([T.calc,T.r.m1,null,"%"],[[2,`IF(C${rR1}=0,0,C${rE1}/C${rR1})`,"pct"]]);
+  push([T.calc,T.r.er,null,s.units],[[2,`C${rE0}+(${sumH})`,"n"]]);
+  push([T.calc,T.r.val,null,s.units],[[2,`C${rUp}*C${rM}`,"n"]]);
+  push([T.calc,T.r.valr,null,s.units],[[2,`(${sumH})*C${rM}`,"n"]]);
+  return{rows,f}
+}
+
+</script>
+<script>
+if(typeof document!=="undefined"){(function(){
+const KEY="dexm-bridge-v2-"+LANG;
+let model,isSample=false;
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.lv&&s.base){model=s}}catch(e){}
+if(!model){model=sampleModel();isSample=true}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(model))}catch(e){}};
+const loc=LANG==="ru"?"ru-RU":"en-US";
+const nf=new Intl.NumberFormat(loc,{maximumFractionDigits:0}),pf=new Intl.NumberFormat(loc,{minimumFractionDigits:1,maximumFractionDigits:1});
+const fmt=v=>{if(v==null)return "";v=Math.round(v);if(!v)return "0";return v<0?`(${nf.format(-v)})`:nf.format(v)};
+const sgn=v=>{const r=Math.round(v);return r>0?`+${nf.format(r)}`:fmt(r)};
+const pct=v=>v==null||!isFinite(v)?"—":`${pf.format(v)}%`;
+const pp=v=>LANG==="ru"?`${pf.format(v)} п.п.`:`${pf.format(v)} pts`;
+const U=()=>model.settings.units||"";
+const fmtU=v=>`${fmt(v)} ${U()}`.trim();
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function status(msg,cls){const s=$("status");s.textContent=msg||"";s.className="status"+(cls?" "+cls:"")}
+function texts(){$("t-brand").textContent=T.brand;$("t-h1").textContent=T.h1;$("t-lede").textContent=T.lede;
+  $("t-import").textContent=T.imp;$("btnTemplate").textContent=T.tpl;$("btnXlsx").textContent=T.xlsx;$("btnPdf").textContent=T.pdf;$("btnReset").textContent=T.reset;
+  $("sample").textContent=T.sample;$("chart").setAttribute("aria-label",T.chartAria);
+  $("legend").innerHTML=`<span><i style="background:var(--steel)"></i>${T.lg.base}</span><span><i style="background:var(--good)"></i>${T.lg.pos}</span><span><i style="background:var(--bad)"></i>${T.lg.neg}</span><span><i style="background:var(--accent);opacity:.45"></i>${T.lg.risk}</span>`}
+
+function renderSettings(){const s=model.settings;
+  const f=(k,type,cls)=>`<div class="field"><label class="label" for="set-${k}">${T.set[k]}</label><input id="set-${k}" data-k="${k}" type="${type}" ${cls?`class="${cls}" inputmode="decimal" step="any"`:""} value="${esc(s[k]??"")}"></div>`;
+  $("settings").innerHTML=f("company","text")+f("units","text")+f("varL","number","num")+f("varO","number","num")+f("bench","number","num")+f("mult","number","num")}
+$("settings").addEventListener("input",e=>{const k=e.target.dataset.k;if(!k)return;
+  model.settings[k]=["company","units"].includes(k)?e.target.value:(parseFloat(e.target.value)||0);touch();if(k==="units")renderGrid();else update()});
+
+const confSel=(id,c)=>`<select id="${id}" data-conf="${id}" aria-label="${T.col.conf}">${T.conf.map((t,i)=>`<option value="${i}" ${c===i?"selected":""}>${t}</option>`).join("")}</select>`;
+function renderGrid(){
+  let h=`<thead><tr><th class="lab">${T.col.item}</th><th>${T.col.val}</th><th class="ul">${T.col.unit}</th><th class="cf">${T.col.conf}</th><th>${T.col.imp}</th><th>${T.col.risk}</th></tr></thead><tbody>`;
+  const blankCells=n=>`<td colspan="${n}"></td>`;
+  h+=`<tr class="sec"><td class="lab">${T.secs.base}</td>${blankCells(5)}</tr>`;
+  BASE.forEach(k=>h+=`<tr><td class="lab">${T.base[k]}</td><td class="v"><input type="number" step="any" inputmode="decimal" id="b-${k}" data-b="${k}" value="${model.base[k]||""}" placeholder="0" aria-label="${esc(T.base[k])}"></td><td class="ul">${esc(U())}</td>${blankCells(3)}</tr>`);
+  h+=`<tr class="key"><td class="lab">${T.r.e0}</td><td class="c" id="o-e0"></td><td class="ul">${esc(U())}</td>${blankCells(3)}</tr><tr class="pct"><td class="lab">${T.r.m0}</td><td class="c" id="o-m0"></td><td class="ul"></td>${blankCells(3)}</tr>`;
+  GROUPS.forEach(g=>{h+=`<tr class="sec"><td class="lab">${T.secs[g]}</td>${blankCells(5)}</tr>`;
+    model.lv.forEach((l,li)=>{if(l.g!==g)return;const u=LEVERS.find(x=>x[0]===l.id)[2];
+      h+=`<tr><td class="lab">${T.lv[l.id]}</td><td class="v"><input type="number" step="any" inputmode="decimal" id="lv-${li}" data-lv="${li}" value="${l.v||""}" placeholder="0" aria-label="${esc(T.lv[l.id])}"></td><td class="ul">${unitTxt(u)}</td><td class="cf">${l.id==="infl"?"<span class='fixed'>100%</span>":confSel(`lc-${li}`,l.c)}</td><td class="c" id="li-${li}"></td><td class="c" id="lr-${li}"></td></tr>`});
+    model.custom.forEach((c,ci)=>{if(c.g!==g)return;
+      h+=`<tr><td class="lab"><input id="cl-${ci}" data-cl="${ci}" class="labin" value="${esc(c.label||"")}" placeholder="${T.newLine}"><button class="del" data-del="${ci}" aria-label="${T.del}">×</button></td><td class="v"><input type="number" step="any" inputmode="decimal" id="cv-${ci}" data-cv="${ci}" value="${c.v||""}" placeholder="0" aria-label="${esc(c.label||T.newLine)}"></td><td class="ul">${esc(U())}</td><td class="cf">${confSel(`cc-${ci}`,c.c)}</td><td class="c" id="ci-${ci}"></td><td class="c" id="cr-${ci}"></td></tr>`});
+    if(g!=="head")h+=`<tr class="add"><td class="lab"><button data-add="${g}">${T.add}</button></td>${blankCells(5)}</tr>`});
+  h+=`<tr class="sec"><td class="lab">${T.secs.sum}</td>${blankCells(5)}</tr>`;
+  [["up","sub"],["e1","key"],["r1",""],["m1","pct"],["er","sub"],["val","key"],["valr",""]].forEach(([k,cls])=>h+=`<tr class="${cls}"><td class="lab">${T.r[k]}</td><td class="c" id="o-${k}"></td><td class="ul">${k==="m1"?"":esc(U())}</td>${blankCells(3)}</tr>`);
+  $("grid").innerHTML=h+"</tbody>";update()}
+
+$("grid").addEventListener("input",e=>{const t=e.target,d=t.dataset;
+  if(d.b){model.base[d.b]=parseFloat(t.value)||0}
+  else if(d.lv!=null){model.lv[+d.lv].v=parseFloat(t.value)||0}
+  else if(d.cv!=null){model.custom[+d.cv].v=parseFloat(t.value)||0}
+  else if(d.cl!=null){model.custom[+d.cl].label=t.value}
+  else return;touch();update()});
+$("grid").addEventListener("change",e=>{const t=e.target;if(!t.dataset.conf)return;const [kind,i]=t.id.split("-");
+  if(kind==="lc")model.lv[+i].c=+t.value;else model.custom[+i].c=+t.value;touch();update()});
+$("grid").addEventListener("click",e=>{const a=e.target.dataset.add,d=e.target.dataset.del;
+  if(a){model.custom.push({g:a,label:"",v:0,c:1});touch();renderGrid();const inp=$(`cl-${model.custom.length-1}`);inp&&inp.focus()}
+  if(d!=null){model.custom.splice(+d,1);touch();renderGrid()}});
+function touch(){if(isSample){isSample=false;$("sample").hidden=true}save()}
+
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function niceStep(r){const p=Math.pow(10,Math.floor(Math.log10(Math.max(r,1e-9))));const n=r/p;return(n<1.5?1:n<3?2:n<7?5:10)*p}
+function bars(c){const out=[[T.short.base,0,c.E0,"base"]];let run=c.E0;
+  c.items.forEach(x=>{if(!Math.round(x.imp))return;out.push([x.name,run,run+x.imp,x.imp>0?"pos":"neg"]);run+=x.imp});
+  out.push([T.short.target,0,c.E1,"tot"]);out.push([T.short.risk,0,c.Er,"risk"]);return out}
+function drawChart(cv,c,pal,wpx,hpx,scale){
+  const dpr=scale||window.devicePixelRatio||1;const w=wpx||cv.clientWidth||600,hgt=hpx||cv.clientHeight||240;
+  cv.width=w*dpr;cv.height=hgt*dpr;const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,hgt);
+  const B=bars(c),padL=58,padR=8,padT=18,padB=30;const vals=B.flatMap(b=>[b[1],b[2]]);
+  let lo=Math.min(0,...vals),hi=Math.max(1,...vals);const sp=hi-lo;hi+=sp*.08;if(lo<0)lo-=sp*.05;
+  const H=hgt-padT-padB,y=v=>padT+(hi-v)/(hi-lo)*H,bw=(w-padL-padR)/B.length,x=i=>padL+bw*i+bw/2;
+  g.font=`11px ${pal.mono}`;g.textBaseline="middle";g.textAlign="right";g.lineWidth=1;
+  const st=niceStep((hi-lo)/4);for(let t=Math.ceil(lo/st)*st;t<=hi+1e-9;t+=st){g.strokeStyle=pal.line;g.beginPath();g.moveTo(padL,y(t)+.5);g.lineTo(w-padR,y(t)+.5);g.stroke();g.fillStyle=pal.muted;g.fillText(fmt(t),padL-6,y(t))}
+  const col={base:pal.steel,pos:pal.good,neg:pal.bad,tot:pal.accent,risk:pal.accent};
+  B.forEach(([lab,a,b,t],i)=>{const top=y(Math.max(a,b)),hh=Math.max(1.5,Math.abs(y(a)-y(b))),bx=x(i)-bw*.32,bwid=bw*.64;
+    g.globalAlpha=t==="risk"?.4:t==="pos"||t==="neg"?.85:1;g.fillStyle=col[t];g.fillRect(bx,top,bwid,hh);g.globalAlpha=1;
+    if(t==="risk"){g.strokeStyle=pal.accent;g.setLineDash([3,2]);g.strokeRect(bx+.5,top+.5,bwid-1,hh-1);g.setLineDash([])}
+    if(i<B.length-2){const nx=y(b);g.strokeStyle=pal.muted;g.beginPath();g.moveTo(bx+bwid,nx+.5);g.lineTo(x(i+1)-bw*.32,nx+.5);g.stroke()}
+    g.fillStyle=t==="neg"?pal.bad:t==="pos"?pal.good:pal.fg;g.textAlign="center";g.textBaseline="bottom";g.font=`${t==="tot"||t==="base"?"600 ":""}11px ${pal.mono}`;
+    g.fillText(t==="pos"||t==="neg"?sgn(b-a):fmt(b),x(i),top-3);
+    g.fillStyle=pal.muted;g.textBaseline="top";g.font=`11px ${pal.mono}`;let lb=lab;while(lb.length>2&&g.measureText(lb).width>bw-4)lb=lb.slice(0,-2)+"…";g.fillText(lb,x(i),hgt-padB+8)})}
+const pagePal=()=>({fg:css("--fg"),muted:css("--muted"),line:css("--line"),good:css("--good"),bad:css("--bad"),accent:css("--accent"),steel:css("--steel"),surface:css("--surface"),mono:css("--mono")});
+
+function verdictData(c){
+  if(!c.items.some(x=>Math.round(x.imp)))return{sev:-1,h:T.v.none,p:T.v.noneP,notes:[],top:[]};
+  const notes=[];if(c.up>0)notes.push(T.v.riskP(fmtU(c.upR),fmtU(c.up)));
+  if(c.conc>0.4)notes.push(T.v.conc(c.pos[0].name,pct(c.conc*100)));
+  if(c.lowShare>0.3)notes.push(T.v.low(pct(c.lowShare*100)));
+  if(c.inflShare>0.25)notes.push(T.v.infl(pct(c.inflShare*100)));
+  const ok=c.m1!=null&&c.m1>=c.bench;
+  const h=ok?T.v.benchOk(pct(c.m1),pct(c.bench)):T.v.benchGap(pct(c.m1),pct(c.bench),pp(c.bench-(c.m1||0)));
+  let sev=0;if(!ok||(c.mr!=null&&c.mr<c.bench)||c.lowShare>0.3||c.conc>0.4||c.inflShare>0.25)sev=1;
+  if(c.up<=0||c.lowShare>0.4||c.conc>0.5||(c.m1!=null&&c.m1<c.bench-3))sev=2;
+  return{sev,h,p:"",notes,top:c.pos.slice(0,3)}}
+function kpiData(c){return[[T.k.e0,fmt(c.E0),T.k.margin(pct(c.m0)),false],[T.k.e1,fmt(c.E1),T.k.margin(pct(c.m1)),false],[T.k.up,sgn(c.up),T.k.riskUp(sgn(c.upR)),c.up<0],
+  [T.k.er,fmt(c.Er),T.k.margin(pct(c.mr)),false],[T.k.val,sgn(c.val),T.k.at(pf.format(c.mult)),c.val<0],[T.k.gap,c.m1==null?"—":(c.m1-c.bench>=0?"+":"")+pp(c.m1-c.bench),T.k.bench(pct(c.bench)),c.m1!=null&&c.m1<c.bench]]}
+
+function update(){const c=compute(model);
+  const set=(id,v,txt)=>{const el=$(id);if(!el)return;el.textContent=txt!=null?txt:fmt(v);el.classList.toggle("neg",v!=null&&Math.round(v)<0);el.classList.toggle("posv",v!=null&&Math.round(v)>0&&txt===undefined?false:false)};
+  set("o-e0",c.E0);set("o-m0",null,pct(c.m0));
+  let li=0,ci=0;c.items.forEach(x=>{if(x.custom){set(`ci-${ci}`,x.imp,Math.round(x.imp)?sgn(x.imp):"—");set(`cr-${ci}`,x.imp*x.w,Math.round(x.imp)?sgn(x.imp*x.w):"—");ci++}
+    else{const idx=model.lv.findIndex(l=>l.id===x.key);set(`li-${idx}`,x.imp,Math.round(x.imp)?sgn(x.imp):"—");set(`lr-${idx}`,x.imp*x.w,Math.round(x.imp)?sgn(x.imp*x.w):"—")}});
+  set("o-up",c.up,sgn(c.up));set("o-e1",c.E1);set("o-r1",c.R1);set("o-m1",null,pct(c.m1));set("o-er",c.Er);set("o-val",c.val,sgn(c.val));set("o-valr",c.valR,sgn(c.valR));
+  $("kpis").innerHTML=kpiData(c).map(([l,v,s,bad])=>`<div class="kpi${bad?" bad":""}"><span class="label">${l}</span><b>${v}</b><small>${esc(s||"")}</small></div>`).join("");
+  drawChart($("chart"),c,pagePal());
+  const v=verdictData(c);const vd=$("verdict");
+  if(v.sev<0){vd.innerHTML=`<span class="label">${T.v.label}</span><h2>${v.h}</h2><p>${v.p}</p><p class="cta">${T.v.cta}</p>`;return}
+  vd.innerHTML=`<span class="label">${T.v.label}</span> <span class="sev" style="background:${["var(--good)","var(--warn)","var(--bad)"][v.sev]}">${T.v.sev[v.sev]}</span><h2>${v.h}</h2>${v.notes.length?`<ul>${v.notes.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}${v.top.length?`<span class="label">${T.v.top}</span><ul>${v.top.map(x=>`<li>${esc(x.name)}: ${sgn(x.imp)} ${esc(U())}</li>`).join("")}</ul>`:""}<p class="cta">${T.v.cta}</p>`}
+const redraw=()=>drawChart($("chart"),compute(model),pagePal());
+window.addEventListener("resize",redraw);
+const mq=window.matchMedia("(prefers-color-scheme: dark)");mq.addEventListener&&mq.addEventListener("change",redraw);
+new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+const LIBS={xlsx:"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",jspdf:"https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"};
+const loaded={};function lib(k){return loaded[k]||(loaded[k]=new Promise((res,rej)=>{const s=document.createElement("script");s.src=LIBS[k];s.onload=res;s.onerror=()=>{loaded[k]=null;rej(new Error("load"))};document.head.appendChild(s)}))}
+const browserDl={save:async({filename,data})=>{const url=URL.createObjectURL(new Blob([data]));const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);return{status:"saved"}}};
+let dl=null;const dlReady=window.claude&&window.claude.use?window.claude.use("downloads").then(d=>{dl=d||browserDl}).catch(()=>{dl=browserDl}):(dl=browserDl,Promise.resolve());
+function disableDl(){["btnTemplate","btnXlsx","btnPdf"].forEach(id=>{$(id).disabled=true;$(id).title=T.st.noDl})}
+async function offer(filename,data,okMsg){await dlReady;if(!dl){status(T.st.noDl,"err");return}
+  status(okMsg);try{await dl.save({filename,data});status(T.st.saved,"ok")}
+  catch(e){const code=e&&e.code;status(code==="declined"?T.st.declined:code==="unavailable"||code==="not_granted"?T.st.noDl:T.st.fail,code==="declined"?"":"err")}}
+const fname=ext=>`${(model.settings.company||"DeXM").replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-|-$/g,"")||"DeXM"}-EBITDA-bridge.${ext}`;
+
+async function buildXlsx(blank){status(T.st.loading);await lib("xlsx");
+  const m=blank?Object.assign(blankModel(),{custom:[]}):model;const {rows,f}=exportPlan(m,blank);
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  f.forEach(([r,list])=>list.forEach(([ci,fx,kind])=>{const addr=XLSX.utils.encode_cell({r:r-1,c:ci});ws[addr]={t:"n",f:fx.replace(/\{r\}/g,r),z:kind==="pct"?"0.0%":"#,##0;(#,##0)"}}));
+  ws["!cols"]=[{wch:22},{wch:52},{wch:12},{wch:9},{wch:12},{wch:8},{wch:16},{wch:16}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"EBITDA bridge");
+  return XLSX.write(wb,{bookType:"xlsx",type:"array"})}
+$("btnTemplate").onclick=async()=>{try{const b=await buildXlsx(true);await offer(LANG==="ru"?"DeXM-шаблон-EBITDA-bridge.xlsx":"DeXM-EBITDA-bridge-template.xlsx",new Uint8Array(b),T.st.tpl)}catch(e){console.error(e);status(T.st.fail,"err")}};
+$("btnXlsx").onclick=async()=>{try{const b=await buildXlsx(false);await offer(fname("xlsx"),new Uint8Array(b),T.st.xlsx)}catch(e){console.error(e);status(T.st.fail,"err")}};
+$("importFile").addEventListener("change",async e=>{const file=e.target.files[0];e.target.value="";if(!file)return;
+  try{status(T.st.loading);await lib("xlsx");const wb=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:true});
+    let best=null;for(const name of wb.SheetNames){const r=importAOA(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null}));if(!r.error){best=r;break}}
+    if(!best){status(T.st.noData,"err");return}
+    model=best.model;isSample=false;$("sample").hidden=true;save();renderSettings();renderGrid();
+    status(T.st.imported(best.n,best.added,best.settings.map(k=>T.set[k]).join(", "))+(best.unrec.length?T.st.unrec(best.unrec.slice(0,6).join("; ")):""),best.unrec.length?"":"ok")}
+  catch(err){console.error(err);status(T.st.readFail,"err")}});
+$("btnReset").onclick=()=>{model=blankModel();isSample=false;$("sample").hidden=true;save();renderSettings();renderGrid();status(T.st.cleared,"ok")};
+
+function reportPages(){
+  const c=compute(model),s=model.settings,v=verdictData(c),PW=1500,PH=1060,SC=2,M=50,CW=PW-2*M;
+  const F={sans:'"IBM Plex Sans","Segoe UI",Arial,sans-serif',mono:'"IBM Plex Mono",Menlo,monospace',disp:'"Archivo","Helvetica Neue",Arial,sans-serif'};
+  const P={fg:"#1b2224",muted:"#5d686b",line:"#d6dbd9",band:"#eef1ef",acc:"#0e6b6b",accSoft:"#dcecea",bad:"#b4442d",good:"#2f7d4f",warn:"#b7791f",steel:"#3c4a4f"};
+  const pages=[];
+  const newPage=()=>{const cv=document.createElement("canvas");cv.width=PW*SC;cv.height=PH*SC;const g=cv.getContext("2d");g.scale(SC,SC);g.fillStyle="#fff";g.fillRect(0,0,PW,PH);pages.push(cv);return g};
+  const foot=(g,n)=>{g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.textAlign="left";g.fillText("DeXM Management · info@dexm-m.com · +1 917 523 0461 · dexm-m.com",M,PH-28);g.textAlign="right";g.fillText(String(n),PW-M,PH-28);g.textAlign="left"};
+  const wrap=(g,text,x,y,maxW,lh)=>{const words=String(text).replace(/<[^>]+>/g,"").split(" ");let line="";for(const w of words){const t=line?line+" "+w:w;if(g.measureText(t).width>maxW&&line){g.fillText(line,x,y);y+=lh;line=w}else line=t}if(line){g.fillText(line,x,y);y+=lh}return y};
+  const clip=(g,text,maxW)=>{text=String(text);if(g.measureText(text).width<=maxW)return text;while(text.length>1&&g.measureText(text+"…").width>maxW)text=text.slice(0,-1);return text+"…"};
+  let g=newPage(),y=M+24;
+  g.fillStyle=P.fg;g.font=`800 30px ${F.disp}`;g.fillText(T.sheetTitle,M,y);y+=28;
+  g.font=`14px ${F.sans}`;g.fillStyle=P.muted;g.fillText([s.company,`${T.set.units.replace(/,.*/,"")}: ${U()}`,`${T.set.mult.replace(/,.*/,"")}: ${pf.format(+s.mult||0)}x`,`${T.prepared}: ${new Date().toLocaleDateString(loc)}`].filter(Boolean).join("   ·   "),M,y);y+=14;
+  g.fillStyle=P.fg;g.fillRect(M,y,CW,2);y+=22;
+  const kw=(CW-5*12)/6;kpiData(c).forEach(([l,val,sub,bad],i)=>{const x=M+i*(kw+12);g.strokeStyle=P.line;g.lineWidth=1;g.strokeRect(x+.5,y+.5,kw,78);
+    g.font=`500 11px ${F.mono}`;g.fillStyle=P.muted;g.fillText(clip(g,l.toUpperCase(),kw-20),x+10,y+20);
+    g.font=`600 24px ${F.mono}`;g.fillStyle=bad?P.bad:P.fg;g.fillText(clip(g,val,kw-20),x+10,y+50);g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.fillText(clip(g,sub||"",kw-20),x+10,y+68)});
+  y+=104;const vy=y;
+  g.font=`700 19px ${F.disp}`;g.fillStyle=P.fg;y=wrap(g,v.h,M+18,y+18,CW-30,24);
+  g.font=`13px ${F.sans}`;g.fillStyle=P.fg;v.notes.forEach(t=>{y=wrap(g,"•  "+t,M+18,y+2,CW-40,19)});
+  if(v.top.length){g.font=`600 13px ${F.sans}`;g.fillText(T.v.top,M+18,y+8);y+=28;g.font=`13px ${F.sans}`;v.top.forEach(x=>{y=wrap(g,`•  ${x.name}: ${sgn(x.imp)} ${U()}`,M+18,y,CW-40,19)})}
+  g.fillStyle=v.sev<0?P.muted:[P.good,P.warn,P.bad][v.sev];g.fillRect(M,vy,5,y-vy);y+=20;
+  const ch=Math.max(240,PH-y-70),cc=document.createElement("canvas");
+  drawChart(cc,c,{fg:P.fg,muted:P.muted,line:P.line,good:P.good,bad:P.bad,accent:P.acc,steel:P.steel,surface:"#fff",mono:F.mono},CW,ch,SC);
+  g.drawImage(cc,M,y,CW,ch);foot(g,1);
+  // page 2: table
+  g=newPage();g.fillStyle=P.fg;g.font=`700 18px ${F.disp}`;g.fillText(T.sheetTitle+(s.company?` · ${s.company}`:""),M,M+14);
+  g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.fillText(`${T.set.units.replace(/,.*/,"")}: ${U()}`,M,M+32);
+  const cols=[[T.col.item,560,"l"],[T.col.val,150,"r"],[T.col.unit,90,"l"],[T.col.conf,170,"l"],[T.col.imp,215,"r"],[T.col.risk,215,"r"]];
+  let ty=M+52;const RH=22;
+  const cell=(vals,kind)=>{if(kind==="sec"){g.fillStyle=P.band;g.fillRect(M,ty,CW,RH);g.fillStyle=P.fg;g.font=`600 12px ${F.sans}`;g.textAlign="left";g.fillText(String(vals[0]).toUpperCase(),M+6,ty+15);ty+=RH;return}
+    if(kind==="key"){g.fillStyle=P.accSoft;g.fillRect(M,ty,CW,RH)}
+    let x=M;cols.forEach(([,w,al],i)=>{const t=vals[i]==null?"":String(vals[i]);const bold=kind==="key"||kind==="sub"||kind==="head";
+      g.font=`${bold?"600 ":""}${i===0||i===3?"12.5px "+F.sans:"12px "+F.mono}`;g.fillStyle=kind==="head"?P.muted:(t.startsWith("(")?P.bad:t.startsWith("+")&&i>=4?P.good:P.fg);
+      if(al==="r"){g.textAlign="right";g.fillText(clip(g,t,w-12),x+w-6,ty+15)}else{g.textAlign="left";g.fillText(clip(g,t,w-12),x+6,ty+15)}x+=w});
+    g.fillStyle=kind==="head"?P.fg:P.line;g.fillRect(M,ty+RH-1,CW,kind==="head"?1.5:1);ty+=RH};
+  cell(cols.map(c=>c[0]),"head");
+  cell([T.secs.base],"sec");BASE.forEach(k=>cell([T.base[k],fmt(+model.base[k]||0),U()]));
+  cell([T.r.e0,fmt(c.E0),U()],"key");cell([T.r.m0,pct(c.m0),""]);
+  GROUPS.forEach(gname=>{cell([T.secs[gname]],"sec");c.items.filter(x=>x.g===gname).forEach(x=>{
+    const val=x.custom?fmt(x.val):pf.format(x.val);
+    const unit=x.custom?U():unitTxt(LEVERS.find(l=>l[0]===x.key)[2]);
+    cell([x.full,val,unit,x.isInfl?"100%":T.conf[x.c],Math.round(x.imp)?sgn(x.imp):"—",Math.round(x.imp)?sgn(x.imp*x.w):"—"])})});
+  cell([T.secs.sum],"sec");
+  cell([T.r.up,sgn(c.up),U()],"sub");cell([T.r.e1,fmt(c.E1),U()],"key");cell([T.r.r1,fmt(c.R1),U()]);cell([T.r.m1,pct(c.m1),""]);
+  cell([T.r.er,fmt(c.Er),U()],"sub");cell([T.r.val,sgn(c.val),U()],"key");cell([T.r.valr,sgn(c.valR),U()]);
+  g.textAlign="left";foot(g,2);
+  return pages}
+$("btnPdf").onclick=async()=>{try{status(T.st.loading);await lib("jspdf");if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+  const pages=reportPages();const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:"landscape",unit:"pt",format:"a4"});
+  const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+  pages.forEach((cv,i)=>{if(i)pdf.addPage();pdf.addImage(cv.toDataURL("image/jpeg",.92),"JPEG",0,0,pw,ph)});
+  await offer(fname("pdf"),pdf.output("arraybuffer"),T.st.pdf)}catch(e){console.error(e);status(T.st.fail,"err")}};
+
+texts();renderSettings();renderGrid();$("sample").hidden=!isSample;
+})()}
+
+</script>
+
+<script src="js/site-header.js"></script>
+</body></html>
