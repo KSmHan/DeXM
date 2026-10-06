@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__github__create_pull_request",
+      "mcp__github__merge_pull_request",
+      "Bash(git rev-parse *)"
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "The repository owner has authorized Claude to merge its own pull requests in ksmhan/dexm into main without human review, so site changes (e.g. pages under dexm-m.com/) deploy to production via Vercel."
+    ]
+  }
+}
