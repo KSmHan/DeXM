@@ -11,24 +11,25 @@
     toggle.setAttribute('aria-expanded', String(open));
   }
   function setDd(open) {
+    if (!dd) return;
     dd.classList.toggle('open', open);
     ddBtn.setAttribute('aria-expanded', String(open));
   }
 
   toggle.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!header.classList.contains('nav-open')); });
-  ddBtn.addEventListener('click', (e) => { e.stopPropagation(); setDd(!dd.classList.contains('open')); });
+  if (ddBtn) ddBtn.addEventListener('click', (e) => { e.stopPropagation(); setDd(!dd.classList.contains('open')); });
   document.addEventListener('click', (e) => {
     if (!header.contains(e.target)) setOpen(false);
-    if (!dd.contains(e.target)) setDd(false);
+    if (dd && !dd.contains(e.target)) setDd(false);
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { setOpen(false); setDd(false); } });
-  window.addEventListener('resize', () => { if (window.innerWidth > 1100) setOpen(false); });
+  window.addEventListener('resize', () => { if (window.innerWidth > 900) setOpen(false); });
   // Back/forward cache restores the page as it was left, menus included
   window.addEventListener('pageshow', () => { setOpen(false); setDd(false); });
 
-  // Highlight the current tool and the Tools button
+  // Highlight the current page in the menu
   const here = location.pathname.replace(/\.html$/, '');
-  dd.querySelectorAll('a').forEach(a => {
-    if (a.pathname === here) { a.classList.add('active'); ddBtn.classList.add('active'); }
+  header.querySelectorAll('.dxh-nav a').forEach(a => {
+    if (a.pathname === here) { a.classList.add('active'); if (dd && dd.contains(a)) ddBtn.classList.add('active'); }
   });
 })();
