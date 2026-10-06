@@ -7,6 +7,11 @@
       "source": "/pl-statement",
       "destination": "/pl",
       "permanent": true
+    },
+    {
+      "source": "/track-record",
+      "destination": "/",
+      "permanent": false
     }
   ]
 }
