@@ -6,6 +6,22 @@ if (header) {
   }, { passive: true });
 }
 
+// ---------- mobile menu ----------
+(function () {
+  const toggle = document.querySelector('.nav-toggle');
+  if (!header || !toggle) return;
+
+  function setOpen(open) {
+    header.classList.toggle('nav-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+  }
+
+  toggle.addEventListener('click', () => setOpen(!header.classList.contains('nav-open')));
+  document.querySelectorAll('nav.primary-nav a').forEach(a => a.addEventListener('click', () => setOpen(false)));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
+  window.addEventListener('resize', () => { if (window.innerWidth > 900) setOpen(false); });
+})();
+
 // ---------- reveal on scroll ----------
 const rvEls = document.querySelectorAll('.rv');
 if (rvEls.length) {
