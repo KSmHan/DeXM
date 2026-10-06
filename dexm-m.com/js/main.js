@@ -16,10 +16,20 @@ if (header) {
     toggle.setAttribute('aria-expanded', String(open));
   }
 
-  toggle.addEventListener('click', () => setOpen(!header.classList.contains('nav-open')));
-  document.querySelectorAll('nav.primary-nav a').forEach(a => a.addEventListener('click', () => setOpen(false)));
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setOpen(!header.classList.contains('nav-open'));
+  });
+  // Page links navigate away on their own; hiding the panel mid-tap can swallow the navigation on mobile browsers.
+  // Only the in-page contact button needs the menu closed.
+  document.querySelectorAll('nav.primary-nav [data-open-contact]').forEach(a => a.addEventListener('click', () => setOpen(false)));
+  document.addEventListener('click', (e) => {
+    if (header.classList.contains('nav-open') && !header.contains(e.target)) setOpen(false);
+  });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
   window.addEventListener('resize', () => { if (window.innerWidth > 900) setOpen(false); });
+  // Back/forward cache restores the page as it was left, menu included
+  window.addEventListener('pageshow', () => setOpen(false));
 })();
 
 // ---------- reveal on scroll ----------
