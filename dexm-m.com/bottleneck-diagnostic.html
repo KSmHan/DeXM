@@ -100,7 +100,7 @@ footer span{user-select:all}
 
 <footer>
   <span>DeXM Management</span>
-  <span>kas@dexm-m.com</span>
+  <span>info@dexm-m.com</span>
   <span>+1 917 523 0461</span>
   <span>dexm-m.com</span>
 </footer>
@@ -226,7 +226,7 @@ document.getElementById("reset").onclick=()=>{ans={};isSample=false;save();rende
   document.getElementById("toast").textContent="Answers cleared";setTimeout(()=>document.getElementById("toast").textContent="",2000)};
 document.getElementById("copy").onclick=()=>{
   const m=main();const txt="DeXM Growth Constraint Diagnostic\n"+AXES.map(a=>{const v=avg(a.k);return `${a.n}: ${v==null?"—":v.toFixed(1)} (${status(v)})`}).join("\n")+
-   (m?`\nPrimary constraint: ${m.n}\nFirst steps:\n- ${m.steps.join("\n- ")}`:"")+"\n\nDeXM Management · kas@dexm-m.com";
+   (m?`\nPrimary constraint: ${m.n}\nFirst steps:\n- ${m.steps.join("\n- ")}`:"")+"\n\nDeXM Management · info@dexm-m.com";
   const t=document.getElementById("toast");
   navigator.clipboard.writeText(txt).then(()=>{t.textContent="Results copied"},()=>{t.textContent="Copy failed. Select the results and copy them manually."});
   setTimeout(()=>t.textContent="",2500)};
