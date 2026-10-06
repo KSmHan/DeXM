@@ -426,7 +426,12 @@ function drawChart(cv,c,pal,wpx,hpx,scale){
   g.strokeStyle=pal.warn;g.setLineDash([5,4]);g.lineWidth=1.5;g.beginPath();g.moveTo(padL,yp(c.bE));g.lineTo(w-padR,yp(c.bE));g.stroke();g.setLineDash([]);
   g.strokeStyle=pal.accent;g.lineWidth=2.5;g.beginPath();let started=false;c.em.forEach((v,i)=>{if(v==null)return;started?g.lineTo(x(i),yp(v)):g.moveTo(x(i),yp(v));started=true});g.stroke();
   c.em.forEach((v,i)=>{if(v==null)return;g.beginPath();g.arc(x(i),yp(v),3.2,0,7);g.fillStyle=v<c.bE?pal.bad:pal.accent;g.fill();g.strokeStyle=pal.surface;g.lineWidth=1.5;g.stroke()});
-  g.fillStyle=pal.muted;g.textAlign="center";g.textBaseline="top";for(let i=0;i<W;i++)g.fillText(monthLabel(model.settings.start,i).split(" ")[0],x(i),hgt-padB+8)}
+  g.fillStyle=pal.muted;g.textAlign="center";g.textBaseline="top";
+  // Month labels: full names when they fit, first letter on narrow charts (phones), else every Nth label
+  const labs=[...Array(W)].map((_,i)=>monthLabel(model.settings.start,i).split(" ")[0]);
+  const fits=a=>Math.max(...a.map(t=>g.measureText(t).width))+6<=bw;
+  let shown=labs,step=1;if(!fits(labs)){const ini=labs.map(t=>t.charAt(0));if(fits(ini))shown=ini;else step=Math.ceil((Math.max(...labs.map(t=>g.measureText(t).width))+6)/bw)}
+  for(let i=0;i<W;i+=step)g.fillText(shown[i],x(i),hgt-padB+8)}
 const pagePal=()=>({fg:css("--fg"),muted:css("--muted"),line:css("--line"),good:css("--good"),bad:css("--bad"),warn:css("--warn"),accent:css("--accent"),surface:css("--surface"),mono:css("--mono")});
 
 function verdictData(c){const gap=(c.emY||0)-c.bE,notes=[];

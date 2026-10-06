@@ -136,6 +136,10 @@ nav.primary-nav a.active,.nav-dd-toggle.active{color:var(--gold);}
   touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
 .nav-dd-toggle:hover,.nav-dropdown.open .nav-dd-toggle{color:var(--text-1);}
+/* Same box for links and the Tools button in every browser (Firefox/Safari style buttons differently) */
+nav.primary-nav > a,.nav-dd-toggle{line-height:20px;}
+.nav-dd-toggle{margin:0;-webkit-appearance:none;appearance:none;}
+.nav-dd-toggle::-moz-focus-inner{border:0;padding:0;}
 .nav-caret{width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .2s ease;}
 .nav-dropdown.open .nav-caret{transform:translateY(1px) rotate(-135deg);}
 .nav-dd-menu{
