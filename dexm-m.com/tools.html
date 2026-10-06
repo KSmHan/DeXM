@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tools — DeXM Management</title>
+<meta name="description" content="Free tools from DeXM Management: Growth Constraint Diagnostic, 12-month P&amp;L against your benchmark, and a 13-week cash forecast. Your data stays in your browser.">
+<link rel="icon" href="img/dexm-mark.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header id="siteHeader">
+  <div class="wrap">
+    <a href="/" class="logo-group">
+      <span class="logo-mark"><img src="img/dexm-mark.png" alt=""></span>
+      <span class="logo">DeXM Management</span>
+    </a>
+    <nav class="primary-nav" id="primaryNav">
+      <a href="/solutions">Solutions</a>
+      <a href="/dexm-os">DeXM OS</a>
+      <a href="/about">About</a>
+      <a href="#" class="btn nav-cta" data-open-contact>Book an Intro Call</a>
+    </nav>
+    <div class="header-cta">
+      <a href="#" class="btn" data-open-contact>Book an Intro Call</a>
+    </div>
+    <button class="nav-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="primaryNav"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<main>
+
+  <!-- PAGE HERO -->
+  <section class="page-hero">
+    <div class="wrap">
+      <div class="eyebrow">DEXM TOOLS</div>
+      <h1>Start with your own numbers.</h1>
+      <p>Three working tools from our engagements: find the constraint on growth, rebuild the P&amp;L against your benchmark, and see the week cash runs short. Free to use. Your data stays in your browser.</p>
+    </div>
+  </section>
+
+  <!-- TOOLS -->
+  <section class="section">
+    <div class="wrap">
+      <div class="cards rv">
+        <a href="/bottleneck-diagnostic" class="card">
+          <div class="card-tag">Diagnostic · 25 questions</div>
+          <h3>DeXM Growth Constraint Diagnostic</h3>
+          <p>Answer 25 questions across Sales, Money, System, People and Capacity. Get the likely primary constraint on growth, how confident the result is, and the first steps.</p>
+          <span class="link-arrow">Run the diagnostic</span>
+        </a>
+        <a href="/pl" class="card">
+          <div class="card-tag">Profitability · 12 months</div>
+          <h3>DeXM P&amp;L</h3>
+          <p>Enter monthly revenue and costs or import Excel. See gross margin, EBITDA and net income against your industry benchmark, and where the gap is. Export to Excel or PDF.</p>
+          <span class="link-arrow">Open the P&amp;L</span>
+        </a>
+        <a href="/cash-forecast" class="card">
+          <div class="card-tag">Liquidity · 13 weeks</div>
+          <h3>DeXM 13-Week Cash Forecast</h3>
+          <p>Enter weekly receipts and disbursements or import Excel. See which week cash drops below your minimum, by how much, and the levers to close the gap.</p>
+          <span class="link-arrow">Build a forecast</span>
+        </a>
+      </div>
+      <p class="note rv">No sign-up. Nothing is sent to a server: inputs are saved only in your browser.</p>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="final-cta" id="contact">
+    <div class="wrap rv">
+      <div class="eyebrow" style="justify-content:center;">BEYOND THE TOOLS</div>
+      <h2>Book an Intro Call</h2>
+      <p>If the numbers point to a cash gap, a margin problem or a hard constraint, we can test the hypothesis against the facts with you.</p>
+      <a href="#" class="btn btn-solid" data-open-contact>Book an Intro Call</a>
+      <div class="final-cta-note">INFO@DEXM-M.COM &nbsp;·&nbsp; NEW YORK, NY</div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="/" class="logo-group">
+          <span class="logo-mark"><img src="img/dexm-mark.png" alt=""></span>
+          <span class="logo">DeXM Management</span>
+        </a>
+        <p>DeXM Management is working with PE sponsors, owners, and management teams of manufacturing companies to stabilize cash, rebuild EBITDA, and restore and create enterprise value.</p>
+      </div>
+      <div class="footer-col">
+        <h4></h4>
+        <a href="/solutions">Solutions</a>
+        <a href="/dexm-os">DeXM OS</a>
+        <a href="/about">About</a>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <a href="mailto:info@dexm-m.com">info@dexm-m.com</a>
+        <span style="display:block;color:var(--text-3);font-size:13.5px;padding:5px 0;">New York, NY</span>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 DeXM Management. All rights reserved.</span>
+      <span>Cash. EBITDA. Execution. Enterprise Value.</span>
+    </div>
+  </div>
+</footer>
+
+<!-- CONTACT MODAL -->
+<div class="modal-overlay" id="contactModal">
+  <div class="modal">
+    <button class="modal-close" data-close-contact aria-label="Close">×</button>
+    <h3>Book an Intro Call</h3>
+    <p class="modal-sub">Share a few details and we'll follow up directly. Your message will be sent to our team.</p>
+    <form id="contactForm">
+      <div class="field">
+        <label for="f-name">Name</label>
+        <input type="text" id="f-name" name="name" required>
+      </div>
+      <div class="field">
+        <label for="f-email">Email</label>
+        <input type="email" id="f-email" name="email" required>
+      </div>
+      <div class="field">
+        <label for="f-tel">Tel</label>
+        <input type="tel" id="f-tel" name="tel" required>
+      </div>
+      <div class="field">
+        <label for="f-message">Message (optional)</label>
+        <textarea id="f-message" name="message" rows="3"></textarea>
+      </div>
+      <button type="submit" class="btn btn-solid">Send</button>
+      <div class="form-status" id="formStatus"></div>
+    </form>
+  </div>
+</div>
+
+<script src="js/main.js"></script>
+</body>
+</html>
