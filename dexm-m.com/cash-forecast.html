@@ -422,7 +422,8 @@ new MutationObserver(()=>drawChart($("chart"),compute(model),pagePal())).observe
 const LIBS={xlsx:"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",jspdf:"https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"};
 const loaded={};function lib(k){return loaded[k]||(loaded[k]=new Promise((res,rej)=>{const s=document.createElement("script");s.src=LIBS[k];s.onload=res;s.onerror=()=>{loaded[k]=null;rej(new Error("load"))};document.head.appendChild(s)}))}
 
-let dl=null;const dlReady=window.claude&&window.claude.use?window.claude.use("downloads").then(d=>{dl=d;if(!d)disableDl()}).catch(()=>disableDl()):(disableDl(),Promise.resolve());
+const browserDl={save:async({filename,data})=>{const url=URL.createObjectURL(new Blob([data]));const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);return{status:"saved"}}};
+let dl=null;const dlReady=window.claude&&window.claude.use?window.claude.use("downloads").then(d=>{dl=d||browserDl}).catch(()=>{dl=browserDl}):(dl=browserDl,Promise.resolve());
 function disableDl(){["btnTemplate","btnXlsx","btnPdf"].forEach(id=>{$(id).disabled=true;$(id).title=T.st.noDl})}
 async function offer(filename,data,okMsg){await dlReady;if(!dl){status(T.st.noDl,"err");return}
   status(okMsg);try{await dl.save({filename,data});status(T.st.saved,"ok")}
