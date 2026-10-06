@@ -92,7 +92,31 @@ footer{padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:va
 footer span{user-select:all}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Inter:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/site-header.css">
 </head><body>
+<div class="dxh" id="dxh">
+  <div class="dxh-wrap">
+    <a href="/" class="dxh-logo"><img src="img/dexm-mark.png" alt=""><span>DeXM Management</span></a>
+    <nav class="dxh-nav" id="dxhNav" aria-label="Site">
+      <a href="/solutions">Solutions</a>
+      <a href="/track-record">Track-record</a>
+      <a href="/about">About</a>
+      <div class="dxh-dd">
+        <button class="dxh-dd-toggle" type="button" aria-expanded="false" aria-controls="dxhTools">Tools<span class="dxh-caret" aria-hidden="true"></span></button>
+        <div class="dxh-dd-menu" id="dxhTools">
+          <a href="/bottleneck-diagnostic">Bottleneck Diagnostic</a>
+          <a href="/cash-forecast">13-Week Cash Forecast</a>
+          <a href="/pl">P&amp;L Statement</a>
+        </div>
+      </div>
+      <a href="/#contact" class="dxh-cta">Discuss a Portfolio Situation</a>
+    </nav>
+    <a href="/#contact" class="dxh-cta">Discuss a Portfolio Situation</a>
+    <button class="dxh-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="dxhNav"><span></span><span></span><span></span></button>
+  </div>
+</div>
 
 
 <div class="wrap">
@@ -556,4 +580,5 @@ texts();renderSettings();renderGrid();$("sample").hidden=!isSample;
 })()}
 
 </script>
+<script src="js/site-header.js"></script>
 </body></html>
