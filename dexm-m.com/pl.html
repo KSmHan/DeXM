@@ -90,7 +90,6 @@ input[type=number]{-moz-appearance:textfield}
 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 footer{padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
 footer span{user-select:all}
-footer .tag{flex-basis:100%;user-select:text;color:var(--fg)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head><body>
@@ -129,9 +128,7 @@ footer .tag{flex-basis:100%;user-select:text;color:var(--fg)}
 <div class="tablewrap"><table id="grid"></table></div>
 
 <footer>
-  <span class="tag">DeXM Management is an Operating Partner working with PE sponsors, owners, and management teams of manufacturing companies to stabilize cash, rebuild EBITDA, and restore and create enterprise value.</span>
-  <span>info@dexm-m.com</span>
-  <span>+1 917 523 0461</span>
+  <span>DeXM Management</span><span>info@dexm-m.com</span><span>+1 917 523 0461</span><span>dexm-m.com</span>
 </footer>
 </div>
 
@@ -500,7 +497,7 @@ function reportPages(){
   const P={fg:"#1b2224",muted:"#5d686b",line:"#d6dbd9",band:"#eef1ef",acc:"#0e6b6b",accSoft:"#dcecea",bad:"#b4442d",good:"#2f7d4f",warn:"#b7791f"};
   const pages=[];
   const newPage=()=>{const cv=document.createElement("canvas");cv.width=PW*SC;cv.height=PH*SC;const g=cv.getContext("2d");g.scale(SC,SC);g.fillStyle="#fff";g.fillRect(0,0,PW,PH);pages.push(cv);return g};
-  const foot=(g,n)=>{g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.textAlign="left";g.fillText("DeXM Management is an Operating Partner working with PE sponsors, owners, and management teams of manufacturing companies to stabilize cash, rebuild EBITDA, and restore and create enterprise value.",M,PH-46);g.fillText("info@dexm-m.com · +1 917 523 0461",M,PH-28);g.textAlign="right";g.fillText(String(n),PW-M,PH-28);g.textAlign="left"};
+  const foot=(g,n)=>{g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.textAlign="left";g.fillText("DeXM Management · info@dexm-m.com · +1 917 523 0461 · dexm-m.com",M,PH-28);g.textAlign="right";g.fillText(String(n),PW-M,PH-28);g.textAlign="left"};
   const wrap=(g,text,x,y,maxW,lh)=>{const words=String(text).replace(/<[^>]+>/g,"").split(" ");let line="";for(const w of words){const t=line?line+" "+w:w;if(g.measureText(t).width>maxW&&line){g.fillText(line,x,y);y+=lh;line=w}else line=t}if(line){g.fillText(line,x,y);y+=lh}return y};
   const clip=(g,text,maxW)=>{text=String(text);if(g.measureText(text).width<=maxW)return text;while(text.length>1&&g.measureText(text+"…").width>maxW)text=text.slice(0,-1);return text+"…"};
   let g=newPage(),y=M+24;
@@ -515,7 +512,7 @@ function reportPages(){
   g.font=`13px ${F.sans}`;g.fillStyle=P.fg;v.notes.forEach(t=>{y=wrap(g,"•  "+t,M+18,y+2,CW-40,19)});
   if(v.levers.length){g.font=`600 13px ${F.sans}`;g.fillText(T.v.levers,M+18,y+8);y+=28;g.font=`13px ${F.sans}`;v.levers.forEach(t=>{y=wrap(g,"•  "+t,M+18,y,CW-40,19)})}
   g.fillStyle=[P.good,P.warn,P.bad][v.sev];g.fillRect(M,vy,5,y-vy);y+=20;
-  const ch=Math.max(220,PH-y-92),cc=document.createElement("canvas");
+  const ch=Math.max(220,PH-y-70),cc=document.createElement("canvas");
   drawChart(cc,c,{fg:P.fg,muted:P.muted,line:P.line,good:P.good,bad:P.bad,warn:P.warn,accent:P.acc,surface:"#fff",mono:F.mono},CW,ch,SC);
   g.drawImage(cc,M,y,CW,ch);y+=ch+8;
   g.font=`12px ${F.sans}`;let lx=M;[[P.good,T.lg.bar,10],[P.acc,T.lg.line,3],[P.warn,T.lg.bench,2]].forEach(([col,txt,h])=>{g.fillStyle=col;g.fillRect(lx,y+4-h/2,14,h);g.fillStyle=P.muted;g.fillText(txt,lx+20,y+8);lx+=g.measureText(txt).width+48});
@@ -526,7 +523,7 @@ function reportPages(){
     if(sec==="cogs"){r(T.r.cogs,c.cogs,"sub",c.tot.cogs);r(T.r.gp,c.gp,"key",c.tot.gp);r(T.r.gm,c.gm,"pct",c.gmY,1)}
     if(sec==="opex"){r(T.r.opex,c.opex,"sub",c.tot.opex);r(T.r.ebitda,c.ebitda,"key",c.tot.ebitda);r(T.r.em,c.em,"pct",c.emY,1,x=>x!=null&&x<c.bE)}
     if(sec==="below"){r(T.r.ebit,c.ebit,"sub",c.tot.ebit);r(T.r.ebt,c.ebt,"sub",c.tot.ebt);r(T.r.ni,c.ni,"key",c.tot.ni);r(T.r.nm,c.nm,"pct",c.nmY,1)}});
-  const LW=300,VW=(CW-LW)/(W+1),RH=22,HH=44,top=M+40,per=Math.floor((PH-top-HH-92)/RH);
+  const LW=300,VW=(CW-LW)/(W+1),RH=22,HH=44,top=M+40,per=Math.floor((PH-top-HH-70)/RH);
   for(let start=0,pn=2;start<rows.length;start+=per,pn++){
     g=newPage();g.fillStyle=P.fg;g.font=`700 18px ${F.disp}`;g.fillText(T.sheetTitle+(s.company?` · ${s.company}`:""),M,M+14);
     g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.fillText(`${T.units}: ${s.units||""}`,M,M+32);
