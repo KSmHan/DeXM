@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
 <title>Bottleneck Diagnostic — DeXM Management</title>
-<meta name="description" content="Rapid diagnostic for manufacturing businesses: answer 24 questions across Market, Money, System, People and Capacity to find your likely primary growth constraint.">
+<meta name="description" content="Rapid diagnostic for manufacturing businesses: answer 25 questions across Sales, Money, System, People and Capacity to find your likely primary growth constraint.">
 <link rel="icon" href="img/dexm-mark.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -110,7 +110,7 @@ footer span{user-select:all}
 const LANG="en";
 const T={
 ru:{brand:"DeXM Management · экспресс-диагностика",h1:"Что ограничивает рост вашего производства?",
- lede:"__N__ вопроса по пяти осям: Market, Money, System, People, Capacity. Выберите диапазон, который соответствует вашим цифрам за последние 12 месяцев. Если точной цифры нет, выберите «Не знаю»: это тоже результат.",
+ lede:"__N__ вопросов по пяти осям: Сбыт, Money, System, People, Capacity. Выберите диапазон, который соответствует вашим цифрам за последние 12 месяцев. Если точной цифры нет, выберите «Не знаю»: это тоже результат.",
  unknown:"Не знаю",sample:"Показан пример заполнения для типичного завода. Нажмите «Начать заново», чтобы пройти диагностику по своей компании.",
  reset:"Начать заново",copy:"Скопировать результат",cleared:"Ответы очищены",copied:"Результат скопирован",copyFail:"Не удалось скопировать. Выделите результат вручную.",
  dataItem:"Доступность данных",dataHint:n=>`Рассчитывается автоматически по числу ответов «Не знаю» во всём опроснике: ${n}.`,
@@ -124,7 +124,7 @@ ru:{brand:"DeXM Management · экспресс-диагностика",h1:"Чт�
  cta:"<strong>Проверить гипотезу на фактах</strong> можно за 2 недели экспресс-диагностики DeXM. Пишите: info@dexm-m.com",
  radar:"Радарная диаграмма по пяти осям",copyHead:"Экспресс-диагностика DeXM",copyMain:"Вероятное главное ограничение (гипотеза)"},
 en:{brand:"DeXM Management · rapid diagnostic",h1:"What is holding your manufacturing business back?",
- lede:"__N__ questions across five axes: Market, Money, System, People and Capacity. Pick the range that matches your numbers for the last 12 months. If you don't have the number, choose “Don't know”. That is a result too.",
+ lede:"__N__ questions across five axes: Sales, Money, System, People and Capacity. Pick the range that matches your numbers for the last 12 months. If you don't have the number, choose “Don't know”. That is a result too.",
  unknown:"Don't know",sample:"This is a sample assessment of a typical plant. Select “Start over” to score your own company.",
  reset:"Start over",copy:"Copy results",cleared:"Answers cleared",copied:"Results copied",copyFail:"Copy failed. Select the results and copy them manually.",
  dataItem:"Data availability",dataHint:n=>`Scored automatically from the number of “Don't know” answers across the whole diagnostic: ${n}.`,
@@ -141,7 +141,7 @@ en:{brand:"DeXM Management · rapid diagnostic",h1:"What is holding your manufac
 
 const Q=(ru,en,oru,oen,hru,hen)=>({t:{ru,en},o:{ru:oru,en:oen},h:hru?{ru:hru,en:hen}:null});
 const AXES=[
- {k:"market",n:"Market",sub:{ru:"спрос",en:"demand"},q:[
+ {k:"market",n:LANG==="ru"?"Сбыт":"Sales",sub:{ru:"продажи и спрос",en:"demand"},q:[
   Q("Загрузка мощностей заказами, в среднем за 12 месяцев","Capacity utilization from orders, 12-month average",
     ["Ниже 50%","50–65%","65–80%","80–90%","Выше 90%"],["Below 50%","50–65%","65–80%","80–90%","Above 90%"]),
   Q("Приток новых клиентов против оттока за 12 месяцев","New customer wins vs. customer churn, last 12 months",
@@ -150,6 +150,9 @@ const AXES=[
     "Сравните число новых клиентов с числом ушедших.","Compare the number of customers won with the number lost."),
   Q("Горизонт видимости заказов (портфель + воронка)","Order visibility (backlog + pipeline)",
     ["Меньше 1 месяца","1–2 месяца","2–3 месяца","3–6 месяцев","Больше 6 месяцев"],["Under 1 month","1–2 months","2–3 months","3–6 months","Over 6 months"]),
+  Q("Какая доля заказов — рекуррентная выручка по договорам на год вперёд","What share of orders is recurring revenue contracted 12 months ahead",
+    ["Меньше 10%","10–25%","25–40%","40–60%","Больше 60%"],["Under 10%","10–25%","25–40%","40–60%","Over 60%"],
+    "Рамочные и долгосрочные договоры с подтверждёнными объёмами на следующие 12 месяцев.","Framework and long-term contracts with committed volumes for the next 12 months."),
   Q("Доля крупнейшего клиента в выручке","Largest customer's share of revenue",
     ["Больше 40%","30–40%","20–30%","10–20%","Меньше 10%"],["Over 40%","30–40%","20–30%","10–20%","Under 10%"]),
   Q("Изменение валовой маржи за 12 месяцев","Change in gross margin, last 12 months",
@@ -164,12 +167,13 @@ const AXES=[
   Q("EBITDA против отраслевого бенчмарка","EBITDA margin vs. industry benchmark",
     ["Ниже более чем на 5 п.п.","Ниже на 0–5 п.п.","Выше на 0–5 п.п.","Выше на 5–10 п.п.","Выше на 10 п.п. и более"],
     ["More than 5 pts below","0–5 pts below","0–5 pts above","5–10 pts above","10+ pts above"]),
-  Q("DPO минус DSO","DPO minus DSO",
-    ["DSO больше DPO на 30+ дней","DSO больше DPO на 10–30 дней","Разница в пределах ±10 дней","DPO больше DSO на 10–20 дней","DPO больше DSO более чем на 20 дней"],
-    ["DSO exceeds DPO by 30+ days","DSO exceeds DPO by 10–30 days","Within ±10 days","DPO exceeds DSO by 10–20 days","DPO exceeds DSO by more than 20 days"],
-    "DSO — дни до получения оплаты от клиентов, DPO — дни до оплаты поставщикам.","DSO is days to collect from customers; DPO is days to pay suppliers."),
-  Q("Запасы + незавершённое производство + дебиторка, % от годовой выручки","Inventory + WIP + receivables, % of annual revenue",
-    ["Выше 40%","30–40%","25–30%","20–25%","Ниже 20%"],["Above 40%","30–40%","25–30%","20–25%","Below 20%"]),
+  Q("Цикл оборота денежных средств (CCC)","Cash conversion cycle (CCC)",
+    ["Больше 120 дней","90–120 дней","60–90 дней","30–60 дней","Меньше 30 дней"],
+    ["Over 120 days","90–120 days","60–90 days","30–60 days","Under 30 days"],
+    "CCC = дни запасов (DIO) + дни дебиторки (DSO) − дни кредиторки (DPO).","CCC = days inventory (DIO) + days receivables (DSO) − days payables (DPO)."),
+  Q("Доля просроченной дебиторки (более 30 дней после срока оплаты)","Share of overdue receivables (more than 30 days past due)",
+    ["Больше 25%","15–25%","10–15%","5–10%","Меньше 5%"],["Over 25%","15–25%","10–15%","5–10%","Under 5%"],
+    "Доля от всей дебиторской задолженности на конец последнего месяца.","Share of total receivables at the end of the last month."),
   Q("Кассовые разрывы за 12 месяцев","Cash shortfalls, last 12 months",
     ["Постоянно","Несколько раз","Один-два раза","Не было, но резерв минимальный","Не было, есть резерв и кредитная линия"],
     ["Constant","Several","One or two","None, but a thin cushion","None, with a reserve and a credit line"])],
@@ -223,8 +227,8 @@ const AXES=[
 ];
 const ORDER=["money","market","capacity","system","people"];
 const TOTAL=AXES.reduce((s,a)=>s+a.q.length,0);
-const SAMPLE={market:[4,3,4,3,3],money:[2,"u","u",2,3],system:[2,2,3,2],people:[2,3,2,2,2],capacity:[3,3,3,3,4]};
-const KEY="dexm-diag-v4-"+LANG;
+const SAMPLE={market:[4,3,4,2,3,3],money:[2,"u","u",2,3],system:[2,2,3,2],people:[2,3,2,2,2],capacity:[3,3,3,3,4]};
+const KEY="dexm-diag-v6-"+LANG;
 let ans={},isSample=true;
 try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.ans){ans=s.ans;isSample=false}}catch(e){}
 if(isSample)ans=JSON.parse(JSON.stringify(SAMPLE));
