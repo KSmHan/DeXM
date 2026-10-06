@@ -27,10 +27,22 @@ if (header) {
     if (header.classList.contains('nav-open') && !header.contains(e.target)) setOpen(false);
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
-  window.addEventListener('resize', () => { if (window.innerWidth > 1180) setOpen(false); });
+  window.addEventListener('resize', () => { if (window.innerWidth > 1100) setOpen(false); });
   // Back/forward cache restores the page as it was left, menu included
   window.addEventListener('pageshow', () => setOpen(false));
 })();
+
+// ---------- tools dropdown ----------
+document.querySelectorAll('.nav-dropdown').forEach(dd => {
+  const btn = dd.querySelector('.nav-dd-toggle');
+  const setDd = (open) => { dd.classList.toggle('open', open); btn.setAttribute('aria-expanded', String(open)); };
+  btn.addEventListener('click', (e) => { e.stopPropagation(); setDd(!dd.classList.contains('open')); });
+  document.addEventListener('click', (e) => { if (!dd.contains(e.target)) setDd(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setDd(false); });
+  window.addEventListener('pageshow', () => setDd(false));
+  // Highlight Tools when the current page is one of its items
+  if ([...dd.querySelectorAll('a')].some(a => a.pathname === location.pathname.replace(/\.html$/, ''))) btn.classList.add('active');
+});
 
 // ---------- reveal on scroll ----------
 const rvEls = document.querySelectorAll('.rv');

@@ -1,5 +1,12 @@
 {
   "outputDirectory": "dexm-m.com",
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/pl-statement",
+      "destination": "/pl",
+      "permanent": true
+    }
+  ]
 }
