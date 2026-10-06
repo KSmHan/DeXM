@@ -1,0 +1,516 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>13-Week Cash Forecast — DeXM Management</title>
+<meta name="description" content="Free 13-week cash flow forecast: enter weekly receipts and disbursements or import Excel to see which week cash drops below your minimum. Data stays in your browser.">
+<link rel="icon" href="img/dexm-mark.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: header + toolbar, settings strip, summary (KPIs + chart + verdict), then the full-width 13-week ledger with a sticky label column */
+:root{
+  --bg:#f3f4f2; --surface:#ffffff; --fg:#1b2224; --muted:#5d686b; --line:#d6dbd9;
+  --accent:#0e6b6b; --accent-soft:#dcecea; --steel:#3c4a4f; --band:#eef1ef;
+  --good:#2f7d4f; --warn:#b7791f; --bad:#b4442d; --bad-soft:#f6e3de;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131819; --surface:#1b2224; --fg:#e6ebea; --muted:#9aa6a8; --line:#2e3739;
+  --accent:#4fb3ad; --accent-soft:#1f3534; --steel:#b9c5c7; --band:#20292b;
+  --good:#5fbf86; --warn:#e0a84a; --bad:#e2765f; --bad-soft:#3a2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131819; --surface:#1b2224; --fg:#e6ebea; --muted:#9aa6a8; --line:#2e3739;
+  --accent:#4fb3ad; --accent-soft:#1f3534; --steel:#b9c5c7; --band:#20292b;
+  --good:#5fbf86; --warn:#e0a84a; --bad:#e2765f; --bad-soft:#3a2420; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:20px;padding-block:28px 48px;display:flex;flex-direction:column;gap:20px}
+header{border-bottom:2px solid var(--fg);padding-bottom:14px}
+.brand{font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font:800 clamp(26px,4vw,38px)/1.1 var(--display);margin:6px 0 0;text-wrap:balance;letter-spacing:-.01em}
+.lede{max-width:72ch;color:var(--muted);margin:8px 0 0}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,.filebtn{font:500 14px var(--body);border-radius:4px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg);display:inline-flex;align-items:center}
+button.primary,.filebtn{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.filebtn input{position:absolute;width:1px;height:1px;opacity:0}
+.status{font-size:13px;color:var(--muted);min-height:1.2em;flex-basis:100%}
+.status.ok{color:var(--good)} .status.err{color:var(--bad)}
+.notice{font-size:13px;background:var(--accent-soft);padding:10px 12px;border-radius:4px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px}
+.label{font:500 11px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 16px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field input{font:15px var(--body);padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);width:100%;min-width:0}
+.field input.num{font-family:var(--mono);text-align:right}
+.summary{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px}
+@media (max-width:900px){.summary{grid-template-columns:1fr}}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-bottom:14px}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi b{font:600 20px/1.2 var(--mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.kpi small{font-size:12px;color:var(--muted)}
+.kpi.bad b{color:var(--bad)}
+canvas{width:100%;height:240px;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:12px;height:10px;margin-right:5px;vertical-align:-1px;border-radius:2px}
+.verdict h2{font:700 21px/1.25 var(--display);margin:8px 0 6px;text-wrap:balance}
+.verdict p{margin:0 0 8px;font-size:14px;color:var(--muted)}
+.verdict ul{margin:4px 0 10px;padding-left:18px;font-size:14px;display:grid;gap:3px}
+.sev{display:inline-block;font:500 12px var(--mono);padding:2px 8px;border-radius:3px;color:var(--surface)}
+.cta{border-top:1px solid var(--line);padding-top:10px;font-size:14px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:separate;border-spacing:0;font-size:13px;min-width:100%}
+th,td{padding:0;border-bottom:1px solid var(--line);white-space:nowrap}
+thead th{font:500 11px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:10px 6px;text-align:right;background:var(--surface);position:sticky;top:0}
+thead th small{display:block;font-size:11px;letter-spacing:0;text-transform:none}
+th.lab,td.lab{position:sticky;left:0;z-index:1;background:var(--surface);text-align:left;padding:6px 10px;min-width:230px;max-width:280px;border-right:1px solid var(--line)}
+thead th.lab{z-index:2}
+td.lab{white-space:normal}
+td.lab input{font:13px var(--body);border:1px dashed var(--line);border-radius:3px;padding:3px 6px;background:var(--bg);color:var(--fg);width:calc(100% - 30px)}
+td.lab .del{padding:0 6px;margin-left:4px;font-size:15px;line-height:1.4;border:0;background:none;color:var(--muted)}
+td.v{text-align:right;padding:0 2px}
+td.v input{width:84px;font:13px var(--mono);text-align:right;border:1px solid transparent;border-radius:3px;padding:5px 6px;background:var(--bg);color:var(--fg);font-variant-numeric:tabular-nums}
+td.v input:hover{border-color:var(--line)}
+td.c{text-align:right;padding:6px 8px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+td.tot{font-weight:600;background:var(--band)}
+tr.sec td{background:var(--band);font:600 12px var(--body);letter-spacing:.04em;text-transform:uppercase;padding:8px 10px}
+tr.sec td.lab{background:var(--band)}
+tr.sub td{font-weight:600}
+tr.key td{font-weight:600;background:var(--accent-soft)}
+tr.key td.lab{background:var(--accent-soft)}
+td.neg{color:var(--bad)}
+td.below{background:var(--bad-soft)!important;color:var(--bad)}
+tr.add td{padding:4px 10px;border-bottom:1px solid var(--line)}
+tr.add button{font-size:12px;padding:3px 8px;border-style:dashed;background:none;color:var(--accent)}
+input[type=number]{-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+footer{padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+footer span{user-select:all}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head><body>
+
+<div class="wrap">
+<header>
+  <a href="/" class="brand" id="t-brand" style="display:block;text-decoration:none"></a>
+  <h1 id="t-h1"></h1>
+  <p class="lede" id="t-lede"></p>
+</header>
+
+<div class="toolbar">
+  <label class="filebtn" id="importLbl"><span id="t-import"></span><input type="file" id="importFile" accept=".xlsx,.xls,.xlsm,.csv"></label>
+  <button id="btnTemplate"></button>
+  <button id="btnXlsx"></button>
+  <button id="btnPdf"></button>
+  <button id="btnReset"></button>
+  <div class="status" id="status" role="status"></div>
+</div>
+<div class="notice" id="sample"></div>
+
+<section class="panel">
+  <div class="settings" id="settings"></div>
+</section>
+
+<section class="summary">
+  <div class="panel">
+    <div class="kpis" id="kpis"></div>
+    <canvas id="chart" aria-label=""></canvas>
+    <div class="legend" id="legend"></div>
+  </div>
+  <div class="panel verdict" id="verdict" aria-live="polite"></div>
+</section>
+
+<div class="tablewrap"><table id="grid"></table></div>
+
+<footer>
+  <span>DeXM Management</span><span>info@dexm-m.com</span><span>+1 917 523 0461</span><span>dexm-m.com</span>
+</footer>
+</div>
+
+<script>
+const LANG="en";
+const W=13;
+const L={
+ru:{brand:"DeXM Management · управление ликвидностью",h1:"13-недельный прогноз денежного потока",
+ lede:"Заполните поступления и платежи по неделям прямо в таблице или загрузите Excel. Прогноз сразу покажет, в какую неделю денег станет меньше минимума и сколько не хватит. Данные хранятся только в вашем браузере.",
+ imp:"Загрузить из Excel",tpl:"Скачать шаблон Excel",xlsx:"Скачать Excel",pdf:"Скачать PDF для печати",reset:"Очистить",
+ sample:"Показан пример для завода с выручкой около $30 млн. Нажмите «Очистить» или загрузите свой Excel.",
+ company:"Компания",start:"Начало недели 1",units:"Единицы",opening:"Остаток денег на начало",min:"Минимальный остаток",limit:"Лимит кредитной линии",
+ unitsDef:"тыс. $",companyDef:"Пример: Завод",
+ wk:"Нед",week:"Неделя",total:"Итого 13 нед.",line:"Статья",section:"Раздел",
+ sec:{rec:"Поступления",ops:"Операционные платежи",non:"Неоперационные платежи",fin:"Финансирование"},
+ add:"+ Добавить строку",newLine:"Новая статья",del:"Удалить строку",
+ r:{tr:"Итого поступления",tod:"Итого операционные платежи",ocf:"Операционный денежный поток",tno:"Итого неоперационные платежи",tfin:"Итого финансирование",ncf:"Чистый денежный поток",open:"Остаток на начало недели",end:"Остаток на конец недели",min:"Минимальный остаток",head:"Запас над минимумом",avail:"Доступно по кредитной линии",liq:"Ликвидность (остаток + линия)"},
+ calc:"Расчёт",
+ k:{end:"Остаток на неделе 13",low:"Минимальный остаток",lowW:w=>`неделя ${w}`,below:"Недель ниже минимума",gap:"Макс. нехватка до минимума",ocf:"Операционный поток, 13 нед.",peak:"Макс. выборка по линии"},
+ lg:{net:"Чистый поток",end:"Остаток на конец недели",min:"Минимум"},
+ v:{label:"Вывод",ok:"Денег хватает на все 13 недель",okP:(h,w)=>`Минимальный запас над минимумом: ${h} на неделе ${w}. Используйте окно, чтобы снизить долг или профинансировать рост.`,
+  warn:(w)=>`Остаток падает ниже минимума на неделе ${w}`,warnP:(n,g)=>`Недель ниже минимума: ${n}. Максимальная нехватка: ${g}. Кредитная линия покрывает разрыв, но запас тонкий.`,
+  crit:(w)=>`Денег не хватает на неделе ${w}, даже с кредитной линией`,critP:g=>`Нехватка ликвидности с учётом линии: ${g}. Нужны действия до этой недели.`,
+  noLine:(w)=>`Остаток падает ниже минимума на неделе ${w}`,noLineP:(n,g)=>`Недель ниже минимума: ${n}. Максимальная нехватка: ${g}. Свободного лимита по линии не хватает.`,
+  sev:["в норме","внимание","критично"],levers:"Рычаги",
+  L:["Ускорить сбор просроченной дебиторки и запросить предоплаты по крупным заказам.","Согласовать перенос платежей ключевым поставщикам на 2–3 недели.","Сократить закупки сырья под склад до уровня текущих заказов.","Перенести несрочные капзатраты за пределы окна.","Заранее согласовать выборку или расширение кредитной линии с банком."],
+  cta:"<strong>Нужен разбор прогноза?</strong> DeXM проверяет допущения и строит план высвобождения денег за 2 недели. info@dexm-m.com"},
+ st:{tpl:"Шаблон готов к сохранению",xlsx:"Excel готов к сохранению",pdf:"PDF готов к сохранению",saved:"Файл сохранён",declined:"Сохранение отменено",
+  noDl:"Скачивание недоступно в этом просмотре. Откройте страницу по ссылке в браузере.",fail:"Не удалось создать файл. Попробуйте ещё раз.",loading:"Загружаю модуль…",
+  imported:(n,m,s)=>`Загружено статей: ${n}${m?`. Добавлено новых строк: ${m}`:""}${s?`. Настройки: ${s}`:""}.`,unrec:l=>` Не распознано: ${l}.`,
+  noHeader:"Не нашёл строку с неделями. Нужны заголовки «Неделя 1…13» или «Week 1…13». Скачайте шаблон, чтобы увидеть формат.",cleared:"Таблица очищена",readFail:"Не удалось прочитать файл. Проверьте, что это .xlsx, .xls или .csv."},
+ sheetTitle:"13-недельный прогноз денежного потока",prepared:"Подготовлено",chartAria:"График чистого денежного потока и остатка по неделям",
+ lines:{ar:"Поступления от клиентов (дебиторка)",pre:"Предоплаты и авансы клиентов",orec:"Прочие поступления",sup:"Поставщики сырья и материалов",pay:"Зарплата и налоги на ФОТ",rent:"Аренда и коммунальные",frt:"Логистика и доставка",mnt:"Ремонт и обслуживание оборудования",tax:"Налоги",oops:"Прочие операционные",capex:"Капзатраты",debt:"Обслуживание долга (проценты и тело)",own:"Выплаты собственникам и прочее",rev:"Кредитная линия: выборка / (погашение)"}},
+en:{brand:"DeXM Management · liquidity management",h1:"13-Week Cash Flow Forecast",
+ lede:"Enter weekly receipts and disbursements in the table or load them from Excel. The forecast shows right away which week cash drops below your minimum and by how much. Your data stays in your browser.",
+ imp:"Import from Excel",tpl:"Download Excel template",xlsx:"Download Excel",pdf:"Download PDF to print",reset:"Clear",
+ sample:"This is a sample for a plant with about $30M in revenue. Select “Clear” or import your own Excel file.",
+ company:"Company",start:"Week 1 start",units:"Units",opening:"Opening cash",min:"Minimum cash",limit:"Credit line limit",
+ unitsDef:"$000",companyDef:"Sample: Plant",
+ wk:"Wk",week:"Week",total:"13-wk total",line:"Line item",section:"Section",
+ sec:{rec:"Receipts",ops:"Operating disbursements",non:"Non-operating disbursements",fin:"Financing"},
+ add:"+ Add line",newLine:"New line",del:"Delete line",
+ r:{tr:"Total receipts",tod:"Total operating disbursements",ocf:"Operating cash flow",tno:"Total non-operating disbursements",tfin:"Total financing",ncf:"Net cash flow",open:"Opening cash",end:"Ending cash",min:"Minimum cash",head:"Headroom over minimum",avail:"Credit line available",liq:"Liquidity (cash + line)"},
+ calc:"Calculated",
+ k:{end:"Ending cash, week 13",low:"Lowest cash",lowW:w=>`week ${w}`,below:"Weeks below minimum",gap:"Largest gap to minimum",ocf:"Operating cash flow, 13 wks",peak:"Peak credit line use"},
+ lg:{net:"Net cash flow",end:"Ending cash",min:"Minimum"},
+ v:{label:"Verdict",ok:"Cash covers all 13 weeks",okP:(h,w)=>`Tightest headroom over minimum: ${h} in week ${w}. Use the window to pay down debt or fund growth.`,
+  warn:(w)=>`Cash falls below the minimum in week ${w}`,warnP:(n,g)=>`Weeks below minimum: ${n}. Largest gap: ${g}. The credit line covers it, but the cushion is thin.`,
+  crit:(w)=>`Cash runs out in week ${w}, even with the credit line`,critP:g=>`Liquidity shortfall after the credit line: ${g}. Act before that week.`,
+  noLine:(w)=>`Cash falls below the minimum in week ${w}`,noLineP:(n,g)=>`Weeks below minimum: ${n}. Largest gap: ${g}. Undrawn credit line is not enough to close it.`,
+  sev:["on track","watch","critical"],levers:"Levers",
+  L:["Collect overdue receivables and ask for deposits on large orders.","Agree a 2–3 week payment shift with key suppliers.","Cut raw material buying to current order levels.","Move non-urgent capex outside the 13-week window.","Line up a credit line draw or increase with the bank in advance."],
+  cta:"<strong>Want a second pair of eyes?</strong> DeXM tests the assumptions and builds a cash release plan in 2 weeks. info@dexm-m.com"},
+ st:{tpl:"Template ready to save",xlsx:"Excel file ready to save",pdf:"PDF ready to save",saved:"File saved",declined:"Save cancelled",
+  noDl:"Downloads are not available in this view. Open the page from its link in a browser.",fail:"Could not create the file. Try again.",loading:"Loading module…",
+  imported:(n,m,s)=>`Imported ${n} line items${m?`, added ${m} new lines`:""}${s?`, settings: ${s}`:""}.`,unrec:l=>` Not recognized: ${l}.`,
+  noHeader:"Could not find a row with week headers. Use “Week 1…13” or “Неделя 1…13”. Download the template to see the format.",cleared:"Table cleared",readFail:"Could not read the file. Check that it is .xlsx, .xls or .csv."},
+ sheetTitle:"13-Week Cash Flow Forecast",prepared:"Prepared",chartAria:"Chart of weekly net cash flow and ending cash",
+ lines:{ar:"Customer collections (AR)",pre:"Customer prepayments and deposits",orec:"Other receipts",sup:"Raw materials and suppliers",pay:"Payroll and benefits",rent:"Rent and utilities",frt:"Freight and logistics",mnt:"Equipment maintenance and repairs",tax:"Taxes",oops:"Other operating",capex:"Capex",debt:"Debt service (interest and principal)",own:"Owner distributions and other",rev:"Revolver draw / (repayment)"}}
+};
+const T=L[LANG];
+const SECS=["rec","ops","non","fin"];
+const BUILT=[["ar","rec"],["pre","rec"],["orec","rec"],["sup","ops"],["pay","ops"],["rent","ops"],["frt","ops"],["mnt","ops"],["tax","ops"],["oops","ops"],["capex","non"],["debt","non"],["own","non"],["rev","fin"]];
+// import matching: order matters (debt before maintenance, payroll before taxes, revolver before debt)
+const ALIAS=[
+ ["rev",/(revolver|credit line|line of credit|\bdraw\b|кредитная линия|выборка)/i],
+ ["ar",/(collection|receivable|\bar\b|дебитор|от клиентов|поступления от покуп)/i],
+ ["pre",/(prepay|deposit|advance|предоплат|аванс)/i],
+ ["orec",/(other receipt|other income|other inflow|прочие поступ|прочие доход)/i],
+ ["debt",/(debt|interest|principal|loan|обслуживание долга|процент|займ|кредит)/i],
+ ["capex",/(capex|capital exp|equipment purchase|капзатрат|капвложен|инвестиц)/i],
+ ["own",/(owner|dividend|distribution|собственник|дивиденд)/i],
+ ["pay",/(payroll|salar|wage|benefit|зарплат|заработн|фот)/i],
+ ["sup",/(supplier|raw material|material|\bap\b|payable|vendor|поставщик|сырь|материал)/i],
+ ["rent",/(rent|utilit|lease|аренд|коммунал)/i],
+ ["frt",/(freight|logistic|shipping|delivery|логист|доставк|транспорт)/i],
+ ["mnt",/(maintenance|repair|ремонт|обслуживание оборуд|запчаст)/i],
+ ["tax",/(tax|налог)/i],
+ ["oops",/(other operating|other opex|other expense|прочие операц|прочие расход|прочие плат)/i]];
+const SEC_RE=[["rec",/(receipt|inflow|collections? total|поступлен)/i],["fin",/(financ|финансир)/i],["non",/(non-?operat|неоперац|capex|капзатр)/i],["ops",/(operat|disburse|outflow|expense|операц|платеж|расход)/i]];
+const CALC_RE=/(итого|total|net cash|чистый|ending|конец|на конец|opening cash|на начало|headroom|запас над|availab|доступно|liquidity|ликвидн|минимальн|minimum cash|operating cash flow|операционный денежный)/i;
+const ALL_LABELS={};["ru","en"].forEach(l=>Object.entries(L[l].lines).forEach(([k,v])=>ALL_LABELS[v.toLowerCase()]=k));
+
+function nextMonday(){const d=new Date();const day=d.getDay();const add=((8-day)%7)||7;d.setDate(d.getDate()+add);return iso(d)}
+function iso(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+function weekDate(start,w){const d=new Date(start+"T00:00:00");if(isNaN(d))return "";d.setDate(d.getDate()+7*w);
+  return LANG==="ru"?`${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}`:d.toLocaleDateString("en-US",{month:"short",day:"numeric"})}
+const zeros=()=>Array(W).fill(0);
+function blankModel(){return{settings:{company:"",start:nextMonday(),units:T.unitsDef,opening:0,min:0,limit:0},
+  lines:BUILT.map(([id,sec])=>({id,sec,vals:zeros()}))}}
+function sampleModel(){const m=blankModel();m.settings.company=T.companyDef;m.settings.opening=600;m.settings.min=500;m.settings.limit=1500;
+  const S={ar:[560,540,610,575,520,590,480,600,620,585,560,610,640],pre:[0,80,0,0,60,0,0,90,0,0,70,0,0],orec:[0,0,0,15,0,0,0,0,0,25,0,0,0],
+   sup:[320,290,340,310,300,330,420,300,310,320,300,330,340],pay:[190,0,190,0,195,0,195,0,195,0,195,0,200],rent:[65,0,0,0,65,0,0,0,65,0,0,0,65],
+   frt:[35,32,38,34,33,36,35,34,37,35,34,36,38],mnt:[12,15,10,40,12,10,14,12,11,35,12,10,13],tax:[0,0,0,0,0,0,140,0,0,0,0,0,0],
+   oops:[20,18,22,20,19,21,20,20,22,20,19,21,22],capex:[0,0,0,0,0,300,0,0,0,0,0,0,0],debt:[0,0,0,48,0,0,0,48,0,0,0,48,0],
+   own:zeros(),rev:zeros()};
+  m.lines.forEach(l=>l.vals=S[l.id].slice());return m}
+const labelOf=l=>l.id?T.lines[l.id]:(l.label||T.newLine);
+
+function compute(m){
+  const sum=sec=>{const a=zeros();m.lines.filter(l=>l.sec===sec).forEach(l=>l.vals.forEach((v,i)=>a[i]+=+v||0));return a};
+  const tr=sum("rec"),tod=sum("ops"),tno=sum("non"),tfin=sum("fin");
+  const ocf=tr.map((v,i)=>v-tod[i]),ncf=ocf.map((v,i)=>v-tno[i]+tfin[i]);
+  const open=[],end=[],avail=[],liq=[],min=zeros().map(()=>+m.settings.min||0),head=[];
+  let cash=+m.settings.opening||0,cum=0;
+  for(let i=0;i<W;i++){open[i]=cash;cash+=ncf[i];end[i]=cash;cum+=tfin[i];
+    avail[i]=Math.max(0,(+m.settings.limit||0)-Math.max(0,m.lines.filter(l=>l.id==="rev").reduce((s,l)=>s+l.vals.slice(0,i+1).reduce((a,b)=>a+(+b||0),0),0)));
+    head[i]=end[i]-min[i];liq[i]=end[i]+avail[i]}
+  const revCum=[];let rc=0;const rev=m.lines.find(l=>l.id==="rev");for(let i=0;i<W;i++){rc+=rev?(+rev.vals[i]||0):0;revCum[i]=rc}
+  let lowI=0;end.forEach((v,i)=>{if(v<end[lowI])lowI=i});
+  let tightI=0;head.forEach((v,i)=>{if(v<head[tightI])tightI=i});
+  const below=end.map((v,i)=>v<min[i]);
+  const firstBelow=below.indexOf(true),firstOut=liq.findIndex(v=>v<0);
+  return{tr,tod,ocf,tno,tfin,ncf,open,end,min,head,avail,liq,lowI,tightI,below,firstBelow,firstOut,
+    nBelow:below.filter(Boolean).length,maxGap:Math.max(0,...head.map(v=>-v)),liqGap:Math.max(0,...liq.map(v=>-v)),
+    ocf13:ocf.reduce((a,b)=>a+b,0),peakRev:Math.max(0,...revCum)};
+}
+const sum13=a=>a.reduce((x,y)=>x+(+y||0),0);
+
+function parseNum(x){if(typeof x==="number")return isFinite(x)?x:null;if(x==null)return null;
+  let s=String(x).trim().replace(/[\s $€£₽]/g,"");if(!s||s==="-"||s==="—")return null;
+  let neg=false;if(/^\(.*\)$/.test(s)){neg=true;s=s.slice(1,-1)}
+  if(s.includes(",")&&s.includes("."))s=s.lastIndexOf(",")>s.lastIndexOf(".")?s.replace(/\./g,"").replace(",","."):s.replace(/,/g,"");
+  else if(s.includes(","))s=/,\d{3}$/.test(s)&&!/,\d{3},?\d{1,2}$/.test(s)?s.replace(/,/g,""):s.replace(",",".");
+  const n=parseFloat(s);return isFinite(n)?(neg?-n:n):null}
+const WEEK_RE=/^(week|wk|w|неделя|нед)\.?\s*(\d{1,2})\b/i;
+
+function importAOA(rows){
+  // find header row with week columns
+  let hdr=-1,map={};
+  for(let r=0;r<Math.min(rows.length,60);r++){const m={};(rows[r]||[]).forEach((c,ci)=>{const t=String(c==null?"":c).trim();const mm=t.match(WEEK_RE);
+      const n=mm?+mm[2]:(/^\d{1,2}$/.test(t)?+t:null);if(n>=1&&n<=W&&m[n]==null)m[n]=ci});
+    if(Object.keys(m).length>=6){hdr=r;map=m;break}}
+  if(hdr<0)return{error:"noHeader"};
+  const first=Math.min(...Object.values(map));
+  const model=blankModel();model.settings.units="";const found=[];
+  const txt=c=>c==null?"":String(c).trim();
+  // settings above header
+  const SET=[["opening",/(opening|beginning cash|начальн|остаток (денег )?на начало|входящ)/i],["min",/(minimum|min\.? cash|минимальн|неснижаем)/i],["limit",/(credit line|revolver|line of credit|limit|кредитн.*лини|лимит)/i],["start",/(start|начало недели|дата начала)/i],["company",/(company|компания)/i],["units",/(units|единиц)/i]];
+  for(let r=0;r<hdr;r++){const row=rows[r]||[];row.forEach((c,ci)=>{const t=txt(c);if(!t||typeof c==="number")return;
+      for(const [k,re] of SET){if(re.test(t)&&!found.includes(k)){const rest=row.slice(ci+1).filter(x=>x!=null&&txt(x)!=="");if(!rest.length)continue;let v=rest[0];
+          if(k==="start"){if(v instanceof Date)v=iso(v);else if(typeof v==="number")v=iso(new Date(Math.round((v-25569)*864e5)+new Date().getTimezoneOffset()*6e4));else if(/^\d{4}-\d{2}-\d{2}$/.test(txt(v)))v=txt(v);else{const d=new Date(txt(v));if(isNaN(d))continue;v=iso(d)}}
+          else if(k==="company"||k==="units")v=txt(v);else{v=parseNum(v);if(v==null)continue}
+          model.settings[k]=v;found.push(k);break}}})}
+  if(!model.settings.units)model.settings.units=T.unitsDef;
+  let curSec=null,n=0,added=0;const unrec=[],hit=new Set();
+  for(let r=hdr+1;r<rows.length;r++){const row=rows[r]||[];
+    const left=row.slice(0,first).map(txt);const nonEmpty=left.filter(Boolean);if(!nonEmpty.length)continue;
+    const label=left[first-1]||nonEmpty[nonEmpty.length-1];const secText=nonEmpty.length>1?nonEmpty[0]:"";
+    if(left.some(t=>/^(расч|calc)/i.test(t)))continue;
+    const vals=[];let has=false;for(let w=1;w<=W;w++){const v=map[w]!=null?parseNum(row[map[w]]):null;vals.push(v==null?0:v);if(v!=null&&v!==0)has=true}
+    const secOf=t=>{for(const [k,re] of SEC_RE)if(re.test(t))return k;return null};
+    if(!vals.some((v,i)=>map[i+1]!=null&&row[map[i+1]]!=null&&txt(row[map[i+1]])!=="")){const s=secOf(label);if(s)curSec=s;continue}
+    if(CALC_RE.test(label)&&!ALL_LABELS[label.toLowerCase()])continue;
+    const sec=(secText&&secOf(secText))||curSec;
+    let id=ALL_LABELS[label.toLowerCase()];if(!id)for(const [k,re] of ALIAS)if(re.test(label)){id=k;break}
+    if(id){const line=model.lines.find(l=>l.id===id);
+      line.vals=line.vals.map((v,i)=>v+(id==="rev"?vals[i]:Math.abs(vals[i])));if(!hit.has(id)){hit.add(id);n++}}
+    else if(sec){model.lines.push({id:null,sec,label,vals:sec==="fin"?vals:vals.map(Math.abs)});added++}
+    else if(has)unrec.push(label)}
+  // keep custom lines grouped by section order
+  model.lines.sort((a,b)=>SECS.indexOf(a.sec)-SECS.indexOf(b.sec));
+  return{model,n,added,unrec,settings:found}
+}
+
+// Build worksheet rows + formula plan for Excel export
+function exportPlan(m,blank){
+  const c=compute(m);const col=i=>String.fromCharCode(67+i); // C..O
+  const rows=[],f=[];const push=(r,formulas)=>{rows.push(r);if(formulas)f.push([rows.length,formulas])};
+  const wk=[...Array(W)].map((_,i)=>`${T.week} ${i+1} · ${weekDate(m.settings.start,i)}`);
+  push([T.sheetTitle]);push([T.company,"",blank?"":m.settings.company]);push([T.units,"",m.settings.units]);push([]);
+  push([T.opening,"",blank?0:+m.settings.opening]);const rOpen=rows.length;
+  push([T.min,"",blank?0:+m.settings.min]);const rMin=rows.length;
+  push([T.limit,"",blank?0:+m.settings.limit]);const rLim=rows.length;
+  push([T.start,"",m.settings.start]);push([]);
+  push([T.section,T.line,...wk,T.total]);
+  const subRow={};let revRow=null;
+  SECS.forEach(s=>{push([T.sec[s]]);const startR=rows.length+1;
+    const ls=m.lines.filter(l=>l.sec===s);
+    ls.forEach(l=>{push([T.sec[s],labelOf(l),...(blank?zeros():l.vals.map(v=>+v||0)),null],[[W,`SUM(C{r}:O{r})`]]);if(l.id==="rev")revRow=rows.length});
+    const endR=rows.length;const key={rec:"tr",ops:"tod",non:"tno",fin:"tfin"}[s];
+    push([T.calc,T.r[key],...zeros(),null],[...[...Array(W)].map((_,i)=>[i,endR>=startR?`SUM(${col(i)}${startR}:${col(i)}${endR})`:"0"]),[W,`SUM(C{r}:O{r})`]]);subRow[s]=rows.length});
+  const F=(fn,tot)=>[...[...Array(W)].map((_,i)=>[i,fn(col(i),i)]),...(tot?[[W,`SUM(C{r}:O{r})`]]:[])];
+  push([]);
+  push([T.calc,T.r.ocf,...zeros(),null],F(x=>`${x}${subRow.rec}-${x}${subRow.ops}`,1));const rOcf=rows.length;
+  push([T.calc,T.r.ncf,...zeros(),null],F(x=>`${x}${rOcf}-${x}${subRow.non}+${x}${subRow.fin}`,1));const rNcf=rows.length;
+  const rO=rows.length+1,rE=rows.length+2;
+  push([T.calc,T.r.open,...zeros()],F((x,i)=>i===0?`$C$${rOpen}`:`${col(i-1)}${rE}`));
+  push([T.calc,T.r.end,...zeros()],F(x=>`${x}${rO}+${x}${rNcf}`));
+  push([T.calc,T.r.min,...zeros()],F(()=>`$C$${rMin}`));const rM=rows.length;
+  push([T.calc,T.r.head,...zeros()],F(x=>`${x}${rE}-${x}${rM}`));
+  push([T.calc,T.r.avail,...zeros()],F(x=>revRow?`MAX(0,$C$${rLim}-MAX(0,SUM($C${revRow}:${x}${revRow})))`:`$C$${rLim}`));const rA=rows.length;
+  push([T.calc,T.r.liq,...zeros()],F(x=>`${x}${rE}+${x}${rA}`));
+  return{rows,f,c};
+}
+</script>
+<script>
+if(typeof document!=="undefined"){(function(){
+const KEY="dexm-13wk-v1-"+LANG;
+let model,isSample=false;
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.lines){model=s}}catch(e){}
+if(!model){model=sampleModel();isSample=true}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(model))}catch(e){}};
+const nf=new Intl.NumberFormat(LANG==="ru"?"ru-RU":"en-US",{maximumFractionDigits:0});
+const fmt=v=>{v=Math.round(v);if(!v)return "0";return v<0?`(${nf.format(-v)})`:nf.format(v)};
+const fmtU=v=>`${fmt(v)} ${model.settings.units||""}`.trim();
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function status(msg,cls){const s=$("status");s.textContent=msg||"";s.className="status"+(cls?" "+cls:"")}
+function texts(){$("t-brand").textContent=T.brand;$("t-h1").textContent=T.h1;$("t-lede").textContent=T.lede;
+  $("t-import").textContent=T.imp;$("btnTemplate").textContent=T.tpl;$("btnXlsx").textContent=T.xlsx;$("btnPdf").textContent=T.pdf;$("btnReset").textContent=T.reset;
+  $("sample").textContent=T.sample;$("chart").setAttribute("aria-label",T.chartAria);
+  $("legend").innerHTML=`<span><i style="background:var(--good)"></i>${T.lg.net}</span><span><i style="background:var(--accent);height:3px"></i>${T.lg.end}</span><span><i style="background:var(--bad);height:2px"></i>${T.lg.min}</span>`}
+
+function renderSettings(){const s=model.settings;
+  const f=(k,lab,type,cls)=>`<div class="field"><label class="label" for="set-${k}">${lab}</label><input id="set-${k}" data-k="${k}" type="${type}" ${cls?`class="${cls}" inputmode="decimal"`:""} value="${esc(s[k]??"")}"></div>`;
+  $("settings").innerHTML=f("company",T.company,"text")+f("start",T.start,"date")+f("units",T.units,"text")+f("opening",T.opening,"number","num")+f("min",T.min,"number","num")+f("limit",T.limit,"number","num")}
+$("settings").addEventListener("input",e=>{const k=e.target.dataset.k;if(!k)return;
+  model.settings[k]=["opening","min","limit"].includes(k)?(parseFloat(e.target.value)||0):e.target.value;touch();
+  if(k==="start"||k==="units")renderGrid();else update()});
+
+function renderGrid(){
+  const s=model.settings;let h=`<thead><tr><th class="lab">${T.line}</th>`;
+  for(let i=0;i<W;i++)h+=`<th>${T.wk} ${i+1}<small>${weekDate(s.start,i)}</small></th>`;
+  h+=`<th>${T.total}</th></tr></thead><tbody>`;
+  const calcRow=(key,cls)=>`<tr class="${cls||"sub"}"><td class="lab">${T.r[key]}</td>${[...Array(W)].map((_,i)=>`<td class="c" id="c-${key}-${i}"></td>`).join("")}<td class="c tot" id="c-${key}-t"></td></tr>`;
+  SECS.forEach(sec=>{h+=`<tr class="sec"><td class="lab">${T.sec[sec]}</td><td colspan="${W+1}"></td></tr>`;
+    model.lines.forEach((l,li)=>{if(l.sec!==sec)return;
+      h+=`<tr><td class="lab">${l.id?esc(labelOf(l)):`<input id="lab-${li}" data-li="${li}" class="labin" value="${esc(l.label||"")}" placeholder="${T.newLine}"><button class="del" data-del="${li}" aria-label="${T.del}">×</button>`}</td>`;
+      l.vals.forEach((v,i)=>h+=`<td class="v"><input type="number" step="any" inputmode="decimal" id="in-${li}-${i}" data-li="${li}" data-w="${i}" value="${v===0?"":v}" placeholder="0" aria-label="${esc(labelOf(l))}, ${T.wk} ${i+1}"></td>`);
+      h+=`<td class="c tot" id="lt-${li}"></td></tr>`});
+    h+=`<tr class="add"><td class="lab" colspan="1"><button data-add="${sec}">${T.add}</button></td><td colspan="${W+1}"></td></tr>`;
+    h+=calcRow({rec:"tr",ops:"tod",non:"tno",fin:"tfin"}[sec])});
+  h+=`<tr class="sec"><td class="lab">${LANG==="ru"?"Итоги":"Summary"}</td><td colspan="${W+1}"></td></tr>`;
+  h+=calcRow("ocf")+calcRow("ncf")+calcRow("open","")+calcRow("end","key")+calcRow("min","")+calcRow("head","")+calcRow("avail","")+calcRow("liq","sub");
+  $("grid").innerHTML=h+"</tbody>";update()}
+
+$("grid").addEventListener("input",e=>{const t=e.target;
+  if(t.dataset.w!=null){model.lines[+t.dataset.li].vals[+t.dataset.w]=parseFloat(t.value)||0;touch();update()}
+  else if(t.classList.contains("labin")){model.lines[+t.dataset.li].label=t.value;touch()}});
+$("grid").addEventListener("click",e=>{const a=e.target.dataset.add,d=e.target.dataset.del;
+  if(a){const idx=model.lines.map(l=>l.sec).lastIndexOf(a);model.lines.splice(idx+1,0,{id:null,sec:a,label:"",vals:zeros()});touch();renderGrid();const inp=$(`lab-${idx+1}`);inp&&inp.focus()}
+  if(d!=null){model.lines.splice(+d,1);touch();renderGrid()}});
+$("grid").addEventListener("paste",e=>{const t=e.target;if(t.dataset.w==null)return;const txt=(e.clipboardData||{}).getData?e.clipboardData.getData("text"):"";
+  if(!/[\t\n]/.test(txt))return;e.preventDefault();const li0=+t.dataset.li,w0=+t.dataset.w;
+  const rowsP=txt.replace(/\r/g,"").split("\n").filter(r=>r!=="");const sameSec=model.lines.map((l,i)=>i).filter(i=>i>=li0);
+  rowsP.forEach((r,ri)=>{const li=sameSec[ri];if(li==null)return;r.split("\t").forEach((c,ci)=>{const w=w0+ci;if(w<W){const v=parseNum(c);model.lines[li].vals[w]=v==null?0:(model.lines[li].id==="rev"?v:Math.abs(v))}})});
+  touch();renderGrid()});
+
+function touch(){if(isSample){isSample=false;$("sample").hidden=true}save()}
+
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function drawChart(cv,c,pal,wpx,hpx,scale){
+  const dpr=scale||window.devicePixelRatio||1;const w=wpx||cv.clientWidth||600,hgt=hpx||cv.clientHeight||240;
+  cv.width=w*dpr;cv.height=hgt*dpr;const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,hgt);
+  const padL=58,padR=10,padT=12,padB=26;const vals=[...c.ncf,...c.end,c.min[0],0];
+  let lo=Math.min(...vals),hi=Math.max(...vals);if(hi===lo)hi=lo+1;const span=hi-lo;lo-=span*.08;hi+=span*.08;
+  const y=v=>padT+(hi-v)/(hi-lo)*(hgt-padT-padB);const bw=(w-padL-padR)/W;const x=i=>padL+bw*i+bw/2;
+  g.font=`11px ${pal.mono}`;g.fillStyle=pal.muted;g.strokeStyle=pal.line;g.lineWidth=1;g.textAlign="right";g.textBaseline="middle";
+  const step=niceStep((hi-lo)/4);for(let t=Math.ceil(lo/step)*step;t<=hi;t+=step){g.beginPath();g.moveTo(padL,y(t)+.5);g.lineTo(w-padR,y(t)+.5);g.stroke();g.fillText(fmt(t),padL-6,y(t))}
+  g.strokeStyle=pal.fg;g.globalAlpha=.4;g.beginPath();g.moveTo(padL,y(0)+.5);g.lineTo(w-padR,y(0)+.5);g.stroke();g.globalAlpha=1;
+  c.ncf.forEach((v,i)=>{g.fillStyle=v>=0?pal.good:pal.bad;g.globalAlpha=.55;const y0=y(0),y1=y(v);g.fillRect(x(i)-bw*.3,Math.min(y0,y1),bw*.6,Math.max(1,Math.abs(y1-y0)))});g.globalAlpha=1;
+  g.strokeStyle=pal.bad;g.setLineDash([5,4]);g.lineWidth=1.5;g.beginPath();g.moveTo(padL,y(c.min[0]));g.lineTo(w-padR,y(c.min[0]));g.stroke();g.setLineDash([]);
+  g.strokeStyle=pal.accent;g.lineWidth=2.5;g.beginPath();c.end.forEach((v,i)=>i?g.lineTo(x(i),y(v)):g.moveTo(x(i),y(v)));g.stroke();
+  c.end.forEach((v,i)=>{g.beginPath();g.arc(x(i),y(v),i===c.lowI||i===W-1?4.5:3,0,7);g.fillStyle=c.below[i]?pal.bad:pal.accent;g.fill();g.strokeStyle=pal.surface;g.lineWidth=1.5;g.stroke()});
+  g.fillStyle=pal.muted;g.textAlign="center";g.textBaseline="top";for(let i=0;i<W;i++)g.fillText(String(i+1),x(i),hgt-padB+8)}
+function niceStep(r){const p=Math.pow(10,Math.floor(Math.log10(Math.max(r,1e-9))));const n=r/p;return(n<1.5?1:n<3?2:n<7?5:10)*p}
+const pagePal=()=>({fg:css("--fg"),muted:css("--muted"),line:css("--line"),good:css("--good"),bad:css("--bad"),accent:css("--accent"),surface:css("--surface"),mono:css("--mono")});
+
+function verdictData(c){
+  if(c.firstOut>=0)return{sev:2,h:T.v.crit(c.firstOut+1),p:T.v.critP(fmtU(c.liqGap))};
+  if(c.firstBelow>=0){const covered=c.below.every((b,i)=>!b||c.liq[i]>=c.min[i]);
+    return covered?{sev:1,h:T.v.warn(c.firstBelow+1),p:T.v.warnP(c.nBelow,fmtU(c.maxGap))}:{sev:2,h:T.v.noLine(c.firstBelow+1),p:T.v.noLineP(c.nBelow,fmtU(c.maxGap))}}
+  return{sev:0,h:T.v.ok,p:T.v.okP(fmtU(c.head[c.tightI]),c.tightI+1)}}
+function kpiData(c){return[[T.k.end,fmt(c.end[W-1]),model.settings.units,c.end[W-1]<c.min[0]],[T.k.low,fmt(c.end[c.lowI]),T.k.lowW(c.lowI+1),c.end[c.lowI]<c.min[0]],
+  [T.k.below,String(c.nBelow),"",c.nBelow>0],[T.k.gap,fmt(c.maxGap),model.settings.units,c.maxGap>0],[T.k.ocf,fmt(c.ocf13),model.settings.units,c.ocf13<0],[T.k.peak,fmt(c.peakRev),model.settings.units,false]]}
+
+function update(){const c=compute(model);
+  const set=(id,v,cls)=>{const el=$(id);if(!el)return;el.textContent=v==null?"":fmt(v);el.classList.toggle("neg",v<0);if(cls!=null)el.classList.toggle("below",cls)};
+  ["tr","tod","tno","tfin","ocf","ncf"].forEach(k=>{c[k].forEach((v,i)=>set(`c-${k}-${i}`,v));set(`c-${k}-t`,sum13(c[k]))});
+  ["open","end","min","head","avail","liq"].forEach(k=>c[k].forEach((v,i)=>set(`c-${k}-${i}`,v,k==="end"?c.below[i]:k==="liq"?v<0:null)));
+  model.lines.forEach((l,li)=>set(`lt-${li}`,sum13(l.vals)));
+  $("kpis").innerHTML=kpiData(c).map(([l,v,s,bad])=>`<div class="kpi${bad?" bad":""}"><span class="label">${l}</span><b>${v}</b><small>${esc(s||"")}</small></div>`).join("");
+  drawChart($("chart"),c,pagePal());
+  const v=verdictData(c);const sevC=["var(--good)","var(--warn)","var(--bad)"][v.sev];
+  $("verdict").innerHTML=`<span class="label">${T.v.label}</span> <span class="sev" style="background:${sevC}">${T.v.sev[v.sev]}</span><h2>${v.h}</h2><p>${v.p}</p>${v.sev?`<span class="label">${T.v.levers}</span><ul>${T.v.L.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}<p class="cta">${T.v.cta}</p>`;
+}
+window.addEventListener("resize",()=>drawChart($("chart"),compute(model),pagePal()));
+const mq=window.matchMedia("(prefers-color-scheme: dark)");mq.addEventListener&&mq.addEventListener("change",()=>drawChart($("chart"),compute(model),pagePal()));
+new MutationObserver(()=>drawChart($("chart"),compute(model),pagePal())).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+// lazy library loading (cdnjs)
+const LIBS={xlsx:"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",jspdf:"https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"};
+const loaded={};function lib(k){return loaded[k]||(loaded[k]=new Promise((res,rej)=>{const s=document.createElement("script");s.src=LIBS[k];s.onload=res;s.onerror=()=>{loaded[k]=null;rej(new Error("load"))};document.head.appendChild(s)}))}
+
+let dl=null;const dlReady=window.claude&&window.claude.use?window.claude.use("downloads").then(d=>{dl=d;if(!d)disableDl()}).catch(()=>disableDl()):(disableDl(),Promise.resolve());
+function disableDl(){["btnTemplate","btnXlsx","btnPdf"].forEach(id=>{$(id).disabled=true;$(id).title=T.st.noDl})}
+async function offer(filename,data,okMsg){await dlReady;if(!dl){status(T.st.noDl,"err");return}
+  status(okMsg);try{await dl.save({filename,data});status(T.st.saved,"ok")}
+  catch(e){const code=e&&e.code;status(code==="declined"?T.st.declined:code==="unavailable"||code==="not_granted"?T.st.noDl:T.st.fail,code==="declined"?"":"err")}}
+const fname=ext=>`${(model.settings.company||"DeXM").replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-|-$/g,"")||"DeXM"}-13wk-cash.${ext}`;
+
+async function buildXlsx(blank){status(T.st.loading);await lib("xlsx");
+  const m=blank?blankModel():model;const {rows,f}=exportPlan(m,blank);
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  f.forEach(([r,list])=>list.forEach(([ci,fx])=>{const addr=XLSX.utils.encode_cell({r:r-1,c:ci+2});ws[addr]={t:"n",f:fx.replace(/\{r\}/g,r)}}));
+  ws["!cols"]=[{wch:16},{wch:40},...Array(W).fill({wch:15}),{wch:15}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,LANG==="ru"?"Прогноз 13 недель":"13-week forecast");
+  return XLSX.write(wb,{bookType:"xlsx",type:"array"})}
+$("btnTemplate").onclick=async()=>{try{const b=await buildXlsx(true);await offer(LANG==="ru"?"DeXM-шаблон-13-недель.xlsx":"DeXM-13-week-template.xlsx",new Uint8Array(b),T.st.tpl)}catch(e){console.error(e);status(T.st.fail,"err")}};
+$("btnXlsx").onclick=async()=>{try{const b=await buildXlsx(false);await offer(fname("xlsx"),new Uint8Array(b),T.st.xlsx)}catch(e){console.error(e);status(T.st.fail,"err")}};
+
+$("importFile").addEventListener("change",async e=>{const file=e.target.files[0];e.target.value="";if(!file)return;
+  try{status(T.st.loading);await lib("xlsx");const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:"array",cellDates:true});
+    let best=null;for(const name of wb.SheetNames){const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null});const r=importAOA(rows);if(!r.error){best=r;break}}
+    if(!best){status(T.st.noHeader,"err");return}
+    model=best.model;isSample=false;$("sample").hidden=true;save();renderSettings();renderGrid();
+    const setNames=best.settings.map(k=>({opening:T.opening,min:T.min,limit:T.limit,start:T.start,company:T.company,units:T.units}[k])).join(", ");
+    status(T.st.imported(best.n,best.added,setNames)+(best.unrec.length?T.st.unrec(best.unrec.slice(0,6).join("; ")):""),best.unrec.length?"":"ok")}
+  catch(err){status(T.st.readFail,"err")}});
+
+$("btnReset").onclick=()=>{model=blankModel();isSample=false;$("sample").hidden=true;save();renderSettings();renderGrid();status(T.st.cleared,"ok")};
+
+function reportPages(){
+  const c=compute(model),s=model.settings,v=verdictData(c),PW=1500,PH=1060,SC=2,M=50,CW=PW-2*M;
+  const F={sans:'"IBM Plex Sans","Segoe UI",Arial,sans-serif',mono:'"IBM Plex Mono",Menlo,monospace',disp:'"Archivo","Helvetica Neue",Arial,sans-serif'};
+  const P={fg:"#1b2224",muted:"#5d686b",line:"#d6dbd9",band:"#eef1ef",acc:"#0e6b6b",accSoft:"#dcecea",bad:"#b4442d",good:"#2f7d4f",warn:"#b7791f"};
+  const pages=[];
+  const newPage=()=>{const cv=document.createElement("canvas");cv.width=PW*SC;cv.height=PH*SC;const g=cv.getContext("2d");g.scale(SC,SC);g.fillStyle="#fff";g.fillRect(0,0,PW,PH);g.textBaseline="alphabetic";pages.push(cv);return g};
+  const foot=(g,n)=>{g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.textAlign="left";g.fillText("DeXM Management · info@dexm-m.com · +1 917 523 0461 · dexm-m.com",M,PH-28);g.textAlign="right";g.fillText(String(n),PW-M,PH-28);g.textAlign="left"};
+  const wrap=(g,text,x,y,maxW,lh)=>{const words=String(text).split(" ");let line="";for(const w of words){const t=line?line+" "+w:w;if(g.measureText(t).width>maxW&&line){g.fillText(line,x,y);y+=lh;line=w}else line=t}if(line){g.fillText(line,x,y);y+=lh}return y};
+  const clip=(g,text,maxW)=>{text=String(text);if(g.measureText(text).width<=maxW)return text;while(text.length>1&&g.measureText(text+"…").width>maxW)text=text.slice(0,-1);return text+"…"};
+  // page 1: summary
+  let g=newPage(),y=M+24;
+  g.fillStyle=P.fg;g.font=`800 30px ${F.disp}`;g.fillText(T.sheetTitle,M,y);y+=28;
+  g.font=`14px ${F.sans}`;g.fillStyle=P.muted;g.fillText([s.company,`${T.units}: ${s.units||""}`,`${T.start}: ${weekDate(s.start,0)}`,`${T.prepared}: ${new Date().toLocaleDateString(LANG==="ru"?"ru-RU":"en-US")}`].filter(Boolean).join("   ·   "),M,y);y+=14;
+  g.fillStyle=P.fg;g.fillRect(M,y,CW,2);y+=22;
+  const ks=kpiData(c),kw=(CW-5*12)/6;
+  ks.forEach(([l,val,sub,bad],i)=>{const x=M+i*(kw+12);g.strokeStyle=P.line;g.lineWidth=1;g.strokeRect(x+.5,y+.5,kw,78);
+    g.font=`500 11px ${F.mono}`;g.fillStyle=P.muted;g.fillText(clip(g,l.toUpperCase(),kw-20),x+10,y+20);
+    g.font=`600 24px ${F.mono}`;g.fillStyle=bad?P.bad:P.fg;g.fillText(val,x+10,y+50);g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.fillText(sub||"",x+10,y+68)});
+  y+=104;
+  const sevC=[P.good,P.warn,P.bad][v.sev];const vy=y;g.fillStyle=sevC;
+  g.font=`700 19px ${F.disp}`;g.fillStyle=P.fg;y=wrap(g,v.h,M+18,y+18,CW-30,24);g.font=`14px ${F.sans}`;g.fillStyle=P.muted;y=wrap(g,v.p,M+18,y+2,CW-30,20);
+  if(v.sev){g.fillStyle=P.fg;g.font=`600 13px ${F.sans}`;g.fillText(T.v.levers,M+18,y+6);y+=26;g.font=`13px ${F.sans}`;g.fillStyle=P.fg;T.v.L.forEach(t=>{y=wrap(g,"•  "+t,M+18,y,CW-40,19)})}
+  g.fillStyle=sevC;g.fillRect(M,vy,5,y-vy);y+=20;
+  const ch=Math.max(220,PH-y-70),cc=document.createElement("canvas");
+  drawChart(cc,c,{fg:P.fg,muted:P.muted,line:P.line,good:P.good,bad:P.bad,accent:P.acc,surface:"#fff",mono:F.mono},CW,ch,SC);
+  g.drawImage(cc,M,y,CW,ch);y+=ch+8;
+  g.font=`12px ${F.sans}`;let lx=M;[[P.good,T.lg.net,10],[P.acc,T.lg.end,3],[P.bad,T.lg.min,2]].forEach(([col,txt,h])=>{g.fillStyle=col;g.fillRect(lx,y+4-h/2,14,h);g.fillStyle=P.muted;g.fillText(txt,lx+20,y+8);lx+=g.measureText(txt).width+48});
+  foot(g,1);
+  // table pages
+  const rows=[];const r=(lab,arr,kind,tot,red)=>rows.push({lab,arr,kind,tot,red});
+  SECS.forEach(sec=>{rows.push({lab:T.sec[sec],kind:"sec"});model.lines.filter(l=>l.sec===sec).forEach(l=>r(labelOf(l),l.vals.map(x=>+x||0),"",sum13(l.vals)));
+    const k={rec:"tr",ops:"tod",non:"tno",fin:"tfin"}[sec];r(T.r[k],c[k],"sub",sum13(c[k]))});
+  rows.push({lab:LANG==="ru"?"Итоги":"Summary",kind:"sec"});
+  r(T.r.ocf,c.ocf,"sub",c.ocf13);r(T.r.ncf,c.ncf,"sub",sum13(c.ncf));r(T.r.open,c.open,"");r(T.r.end,c.end,"key",null,i=>c.below[i]);r(T.r.min,c.min,"");r(T.r.head,c.head,"");r(T.r.avail,c.avail,"");r(T.r.liq,c.liq,"sub");
+  const LW=330,VW=(CW-LW)/(W+1),RH=22,HH=44,top=M+40,per=Math.floor((PH-top-HH-70)/RH);
+  for(let start=0,pn=2;start<rows.length;start+=per,pn++){
+    g=newPage();g.fillStyle=P.fg;g.font=`700 18px ${F.disp}`;g.fillText(T.sheetTitle+(s.company?` · ${s.company}`:""),M,M+14);
+    g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.fillText(`${T.units}: ${s.units||""}`,M,M+32);
+    let ty=top;g.font=`500 11px ${F.mono}`;g.fillStyle=P.muted;g.textAlign="left";g.fillText(T.line.toUpperCase(),M+6,ty+26);g.textAlign="right";
+    for(let i=0;i<=W;i++){const x=M+LW+VW*(i+1)-6;if(i<W){g.fillText(`${T.wk} ${i+1}`,x,ty+18);g.fillText(weekDate(s.start,i),x,ty+34)}else{const sp=T.total.indexOf(" ");g.fillText(T.total.slice(0,sp),x,ty+18);g.fillText(T.total.slice(sp+1),x,ty+34)}}
+    g.fillStyle=P.fg;g.fillRect(M,ty+HH-1,CW,1.5);ty+=HH;
+    rows.slice(start,start+per).forEach(row=>{
+      if(row.kind==="sec"){g.fillStyle=P.band;g.fillRect(M,ty,CW,RH);g.fillStyle=P.fg;g.font=`600 12px ${F.sans}`;g.textAlign="left";g.fillText(row.lab.toUpperCase(),M+6,ty+15);ty+=RH;return}
+      if(row.kind==="key"){g.fillStyle=P.accSoft;g.fillRect(M,ty,CW,RH)}
+      const bold=row.kind==="sub"||row.kind==="key";g.fillStyle=P.fg;g.textAlign="left";g.font=`${bold?"600 ":""}12.5px ${F.sans}`;g.fillText(clip(g,row.lab,LW-12),M+6,ty+15);
+      g.textAlign="right";g.font=`${bold?"600 ":""}12px ${F.mono}`;
+      row.arr.forEach((x,i)=>{const red=row.red?row.red(i):x<0;g.fillStyle=red?P.bad:P.fg;g.fillText(fmt(x),M+LW+VW*(i+1)-6,ty+15)});
+      if(row.tot!=null){g.fillStyle=row.tot<0?P.bad:P.fg;g.fillText(fmt(row.tot),M+LW+VW*(W+1)-6,ty+15)}
+      g.fillStyle=P.line;g.fillRect(M,ty+RH-1,CW,1);ty+=RH});
+    g.textAlign="left";foot(g,pn)}
+  return pages}
+$("btnPdf").onclick=async()=>{try{status(T.st.loading);await lib("jspdf");if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+  const pages=reportPages();const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:"landscape",unit:"pt",format:"a4"});
+  const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+  pages.forEach((cv,i)=>{if(i)pdf.addPage();pdf.addImage(cv.toDataURL("image/jpeg",.92),"JPEG",0,0,pw,ph)});
+  await offer(fname("pdf"),pdf.output("arraybuffer"),T.st.pdf)}catch(e){console.error(e);status(T.st.fail,"err")}};
+
+
+texts();renderSettings();renderGrid();$("sample").hidden=!isSample;
+})()}
+</script>
+
+</body></html>
