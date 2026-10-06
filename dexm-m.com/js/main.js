@@ -27,7 +27,7 @@ if (header) {
     if (header.classList.contains('nav-open') && !header.contains(e.target)) setOpen(false);
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
-  window.addEventListener('resize', () => { if (window.innerWidth > 1100) setOpen(false); });
+  window.addEventListener('resize', () => { if (window.innerWidth > 900) setOpen(false); });
   // Back/forward cache restores the page as it was left, menu included
   window.addEventListener('pageshow', () => setOpen(false));
 })();
