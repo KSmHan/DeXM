@@ -3,7 +3,7 @@
 <meta name="description" content="Free EBITDA bridge: enter a baseline P&amp;L and the impact of each value creation lever to see target EBITDA, a risk-weighted view and the enterprise value created. Data stays in your browser.">
 <link rel="icon" href="img/dexm-mark.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
 /* Layout: header + toolbar, settings strip, summary (KPIs + waterfall + verdict), then the bridge table: baseline P&L, levers with confidence, summary */
 :root{
@@ -98,6 +98,7 @@ footer span{user-select:all}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <link rel="stylesheet" href="css/site-header.css">
+<link rel="stylesheet" href="css/toolkit-theme.css">
 <script>if(/[?&]embed\b/.test(location.search))document.documentElement.classList.add("embed")</script>
 <style>.embed .dxh,.embed .wrap>footer{display:none}.embed body{background:transparent}.embed .wrap{padding-block:20px 32px}.embed #t-brand{pointer-events:none}</style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
@@ -226,9 +227,9 @@ const GROUPS=["rev","cost","head"];
 const unitTxt=u=>u==="%"?"%":u==="pts"?(LANG==="ru"?"п.п.":"pts"):"";
 function blankModel(){return{settings:{company:"",units:T.unitsDef,varL:50,varO:40,bench:14,mult:6},base:{rev:0,mat:0,dl:0,oc:0,sga:0},
   lv:LEVERS.map(([id,g])=>({id,g,v:0,c:1})),custom:[]}}
-function sampleModel(){const m=blankModel();Object.assign(m.settings,{company:T.companyDef});m.base={rev:30000,mat:15000,dl:4000,oc:4300,sga:2900};
+function sampleModel(){const m=blankModel();Object.assign(m.settings,{company:T.companyDef});m.base={rev:30179,mat:15185,dl:4031,oc:3445,sga:3763};
   const S={price:[2,1],vol:[5,1],mix:[0.5,2],mat:[3,0],scrap:[1,1],lab:[8,1],oh:[5,0],sga:[5,0],infl:[2.5,0]};
-  m.lv.forEach(l=>{[l.v,l.c]=S[l.id]});return m}
+  m.lv.forEach(l=>{[l.v,l.c]=S[l.id]});m.custom=[{g:"cost",label:LANG==="ru"?"Пересмотр тарифов на энергию":"Energy tariff renegotiation",v:60,c:1}];return m}
 
 function compute(m){
   const b=m.base,n=x=>+x||0,R=n(b.rev),M=n(b.mat),DL=n(b.dl),OC=n(b.oc),S=n(b.sga),s=m.settings;
@@ -259,7 +260,7 @@ const ALIAS=[["lv","infl",/(inflation|инфляц)/i],["lv","price",/(^price|pr
  ["lv","lab",/(productivity|производительн)/i],["lv","oh",/(overhead lever|overhead:|накладные:|сокращение накладн)/i],["lv","mat",/(purchasing|procurement|закупк)/i],["lv","sga",/(sg&a:|sg&a reduction|сокращение sg)/i],
  ["base","rev",/^(revenue|net revenue|sales|выручка|чистая выручка)$/i],["base","mat",/^(raw materials|materials|сырь|материал)/i],["base","dl",/^(direct labor|labor|прямой труд|труд)/i],["base","oc",/^(other cogs|other cost|overhead|прочая себестоим|накладн)/i],["base","sga",/^(sg&a|коммерческие и администр|sga)/i]];
 const SEC_RE=[["rev",/(revenue lever|рычаги выручки)/i],["cost",/(cost lever|рычаги затрат)/i],["head",/(headwind|встречн)/i],["base",/(baseline|базовый)/i],["sum",/(summary|итоги)/i]];
-const CONF_RE=[[0,/^(high|высок)/i],[1,/^(medium|med|средн)/i],[2,/^(low|низк)/i]];
+const CONF_RE=[[0,/^(high|высок[а-яё]*)$/i],[1,/^(medium|med|средн[а-яё]*)$/i],[2,/^(low|низк[а-яё]*)$/i]];
 const SET_RE=[["varL",/(variable share of labor|переменная доля труда)/i],["varO",/(variable share of other|переменная доля прочей)/i],["bench",/(benchmark|бенчмарк)/i],["mult",/(multiple|мультипликатор)/i]];
 
 function importAOA(rows){
@@ -271,7 +272,7 @@ function importAOA(rows){
     const numIdx=row.findIndex((c,i)=>i>ti&&c!=null&&txt(c)!==""&&parseNum(c)!=null);
     const texts=cells.slice(0,numIdx<0?cells.length:numIdx).filter(t=>t&&parseNum(t)==null&&!CONF_RE.some(([,re])=>re.test(t)));
     const label=texts[texts.length-1]||cells[ti];const lower=label.toLowerCase();
-    if(texts.some(t=>/^(расч|calc)/i.test(t)))continue;
+    if(texts.some(t=>/^(расч[её]т|calc|calculated)$/i.test(t)))continue;
     for(const [k,re] of SEC_RE)if(texts.some(t=>re.test(t))){cur=k;break}
     if(numIdx<0){continue}
     const val=parseNum(row[numIdx]);let conf=null;cells.slice(numIdx+1).forEach(t=>{if(conf==null)for(const [ci,re] of CONF_RE)if(re.test(t)){conf=ci;break}});
@@ -301,7 +302,7 @@ function exportPlan(m,blank){
   push([T.col.section,T.col.item,T.col.val,T.col.unit,T.col.conf,T.col.w,T.col.imp,T.col.risk]);
   push([T.secs.base]);const br={};
   BASE.forEach(k=>{push([T.secs.base,T.base[k],blank?0:+m.base[k]||0,s.units]);br[k]=rows.length});
-  push([T.calc,T.r.e0,null,s.units],[[2,`C${br.rev}-C${br.mat}-C${br.dl}-C${br.oc}-C${br.sga}`,"n"]]);const rE0=rows.length;
+  push([T.calc,T.r.e0,null,s.units],[[2,`C${br.rev}-C${br.mat}-C${br.dl}-C${br.oc}-C${br.sga}`,"n"]]);const rE0=rows.length;push([T.calc,T.r.m0,null,"%"],[[2,`IF(C${br.rev}=0,0,C${rE0}/C${br.rev})`,"pct"]]);
   const F={price:`C${br.rev}`,vol:`(C${br.rev}-C${br.mat}-C${br.dl}*C${rVL}/100-C${br.oc}*C${rVO}/100)`,mix:`C${br.rev}`,mat:`C${br.mat}`,scrap:`C${br.mat}`,lab:`C${br.dl}`,oh:`C${br.oc}`,sga:`C${br.sga}`,infl:`-(C${br.mat}+C${br.dl}+C${br.oc}+C${br.sga})`};
   const lvRows=[];const rowOf={};
   GROUPS.forEach(g=>{push([T.secs[g]]);
@@ -409,7 +410,7 @@ function verdictData(c){
   if(c.lowShare>0.3)notes.push(T.v.low(pct(c.lowShare*100)));
   if(c.inflShare>0.25)notes.push(T.v.infl(pct(c.inflShare*100)));
   const ok=c.m1!=null&&c.m1>=c.bench;
-  const h=ok?T.v.benchOk(pct(c.m1),pct(c.bench)):T.v.benchGap(pct(c.m1),pct(c.bench),pp(c.bench-(c.m1||0)));
+  const h=ok?T.v.benchOk(pct(c.m1),pct(c.bench)):T.v.benchGap(pct(c.m1),pct(c.bench),c.m1==null?"—":pp(c.bench-c.m1));
   let sev=0;if(!ok||(c.mr!=null&&c.mr<c.bench)||c.lowShare>0.3||c.conc>0.4||c.inflShare>0.25)sev=1;
   if(c.up<=0||c.lowShare>0.4||c.conc>0.5||(c.m1!=null&&c.m1<c.bench-3))sev=2;
   return{sev,h,p:"",notes,top:c.pos.slice(0,3)}}
@@ -421,7 +422,7 @@ function bridgeDelta(c){const b=model.base,n=x=>+x||0,s=model.settings,R=n(b.rev
   const z=()=>({rev:0,mat:0,dl:0,oc:0,sga:0}),full=z(),risk=z();
   c.items.forEach(x=>{const d=z(),p=x.val/100;
     if(x.custom){if(x.g==="rev")d.rev=x.imp;else d.oc=-x.imp}
-    else if(x.key==="price"||x.key==="mix")d.rev=x.imp;
+    else if(x.key==="price")d.rev=x.imp;else if(x.key==="mix")d.mat=-x.imp;
     else if(x.key==="vol"){d.rev=R*p;d.mat=M*p;d.dl=DL*vl*p;d.oc=OC*vo*p}
     else if(x.key==="mat"||x.key==="scrap")d.mat=-x.imp;
     else if(x.key==="lab")d.dl=-x.imp;else if(x.key==="oh")d.oc=-x.imp;else if(x.key==="sga")d.sga=-x.imp;
@@ -477,8 +478,8 @@ $("btnReset").onclick=()=>{model=blankModel();isSample=false;$("sample").hidden=
 
 function reportPages(){
   const c=compute(model),s=model.settings,v=verdictData(c),PW=1500,PH=1060,SC=2,M=50,CW=PW-2*M;
-  const F={sans:'"IBM Plex Sans","Segoe UI",Arial,sans-serif',mono:'"IBM Plex Mono",Menlo,monospace',disp:'"Archivo","Helvetica Neue",Arial,sans-serif'};
-  const P={fg:"#1b2224",muted:"#5d686b",line:"#d6dbd9",band:"#eef1ef",acc:"#0e6b6b",accSoft:"#dcecea",bad:"#b4442d",good:"#2f7d4f",warn:"#b7791f",steel:"#3c4a4f"};
+  const F={sans:'"Inter","Segoe UI",Arial,sans-serif',mono:'"IBM Plex Mono",Menlo,monospace',disp:'"Source Serif 4",Georgia,serif'};
+  const P={fg:"#0f1a2b",muted:"#5a6476",line:"#dcdad2",band:"#f3f1eb",acc:"#1d3a63",accSoft:"#f8f1e2",bad:"#b23f2a",good:"#2e7a4e",warn:"#b07418",steel:"#33405a"};
   const pages=[];
   const newPage=()=>{const cv=document.createElement("canvas");cv.width=PW*SC;cv.height=PH*SC;const g=cv.getContext("2d");g.scale(SC,SC);g.fillStyle="#fff";g.fillRect(0,0,PW,PH);pages.push(cv);return g};
   const foot=(g,n)=>{g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.textAlign="left";g.fillText("DeXM Management · info@dexm-m.com · +1 917 523 0461 · dexm-m.com",M,PH-28);g.textAlign="right";g.fillText(String(n),PW-M,PH-28);g.textAlign="left"};

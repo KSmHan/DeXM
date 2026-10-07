@@ -434,7 +434,7 @@ function renderPF(){const el=$("view-proforma");if(!el||view!=="proforma")return
         <details><summary>Mapping rules</summary><ul>
           <li><b>Hidden Factory:</b> scrap materials reduce raw materials; lost machine time (breakdowns, changeovers, speed, scrap time) reduces direct labor and other COGS in the baseline mix; overtime reduces direct labor; expediting, warranty, inventory carrying and other losses reduce other COGS; recovered bottleneck margin becomes extra revenue with materials at the baseline share.</li>
           <li><b>SKU Analysis:</b> repricing to target margin adds revenue; exiting loss-making SKUs removes their revenue, materials, labor and other variable costs.</li>
-          <li><b>EBITDA Bridge:</b> price and mix add revenue; volume adds revenue with its variable costs; purchasing and scrap reduce materials; labor, overhead and SG&amp;A levers reduce those lines; inflation raises all cost lines.</li>
+          <li><b>EBITDA Bridge:</b> price adds revenue; mix (a margin gain at the same revenue) lowers materials; volume adds revenue with its variable costs; purchasing and scrap reduce materials; labor, overhead and SG&amp;A levers reduce those lines; inflation raises all cost lines.</li>
           <li>Amounts from tools in other units are converted to ${U}.</li></ul></details></div></div>
     <div class="actions pf-actions"><span>Baseline from step 1. Each source keeps its own inputs; this page only adds them up.</span><span><button class="btn primary" type="button" id="btnPfXlsx">Download Excel</button> <button class="btn" type="button" id="btnPfPrint">Print</button></span></div>
     <p class="foot-note" id="pfStatus" role="status"></p>`;
