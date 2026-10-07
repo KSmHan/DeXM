@@ -181,7 +181,7 @@ ru:{brand:"DeXM Management · анализ ассортимента",h1:"SKU-а�
   cta:"<strong>Нужен разбор ассортимента?</strong> DeXM строит полную себестоимость по SKU и план переоценки и сокращения хвоста за 2 недели. info@dexm-m.com"},
  st:{tpl:"Шаблон готов к сохранению",xlsx:"Excel готов к сохранению",pdf:"PDF готов к сохранению",saved:"Файл сохранён",declined:"Сохранение отменено",
   noDl:"Скачивание недоступно в этом просмотре. Откройте страницу по ссылке в браузере.",fail:"Не удалось создать файл. Попробуйте ещё раз.",loading:"Загружаю модуль…",
-  imported:(n,s)=>`Загружено SKU: ${n}${s?`. Настройки: ${s}`:""}.`,noHeader:"Не нашёл строку заголовков. Нужны столбцы SKU, объём и цена. Скачайте шаблон, чтобы увидеть формат.",
+  imported:(n,s)=>`Загружено SKU: ${n}${s?`. Настройки: ${s}`:""}.`,noHeader:"Не нашёл строку заголовков. Нужны столбцы SKU, объём и цена. Скачайте шаблон, чтобы увидеть формат.",noData:"В файле нет ни одного SKU с объёмом и ценой. Заполните строки под заголовками и загрузите файл снова.",
   cleared:"Таблица очищена",readFail:"Не удалось прочитать файл. Проверьте, что это .xlsx, .xls или .csv.",pasted:n=>`Вставлено строк: ${n}`},
  sheetTitle:"SKU-анализ",prepared:"Подготовлено",chartAria:"Маржинальный доход по SKU и накопленная кривая"},
 en:{brand:"DeXM Management · portfolio analysis",h1:"SKU Analysis: which products make money and which eat it",
@@ -209,7 +209,7 @@ en:{brand:"DeXM Management · portfolio analysis",h1:"SKU Analysis: which produc
   cta:"<strong>Want a portfolio review?</strong> DeXM builds full cost per SKU and a repricing and tail-reduction plan in 2 weeks. info@dexm-m.com"},
  st:{tpl:"Template ready to save",xlsx:"Excel file ready to save",pdf:"PDF ready to save",saved:"File saved",declined:"Save cancelled",
   noDl:"Downloads are not available in this view. Open the page from its link in a browser.",fail:"Could not create the file. Try again.",loading:"Loading module…",
-  imported:(n,s)=>`Imported ${n} SKUs${s?`, settings: ${s}`:""}.`,noHeader:"Could not find a header row. You need SKU, volume and price columns. Download the template to see the format.",
+  imported:(n,s)=>`Imported ${n} SKUs${s?`, settings: ${s}`:""}.`,noHeader:"Could not find a header row. You need SKU, volume and price columns. Download the template to see the format.",noData:"The file has no SKUs with volume and price. Fill in the rows under the headers and import it again.",
   cleared:"Table cleared",readFail:"Could not read the file. Check that it is .xlsx, .xls or .csv.",pasted:n=>`Pasted ${n} rows`},
  sheetTitle:"SKU Analysis",prepared:"Prepared",chartAria:"Contribution by SKU and cumulative whale curve"}
 };
@@ -269,7 +269,7 @@ function importAOA(rows){
     let price=g("price");if(price==null&&g("rev")!=null&&vol)price=g("rev")/vol;
     const per=k=>{const v=g(k);if(v==null)return 0;return totals[k]&&vol?v/vol:v};
     m.skus.push({name,vol,price:price||0,mat:per("mat"),lab:per("lab"),oth:per("oth"),bn:g("bn")||0})}
-  if(!m.skus.length)return{error:"noHeader"};
+  if(!m.skus.length)return{error:"noData"};
   return{model:m,n:m.skus.length,settings:found}
 }
 
@@ -412,8 +412,8 @@ $("btnTemplate").onclick=async()=>{try{const b=await buildXlsx(true);await offer
 $("btnXlsx").onclick=async()=>{try{const b=await buildXlsx(false);await offer(fname("xlsx"),new Uint8Array(b),T.st.xlsx)}catch(e){console.error(e);status(T.st.fail,"err")}};
 $("importFile").addEventListener("change",async e=>{const file=e.target.files[0];e.target.value="";if(!file)return;
   try{status(T.st.loading);await lib("xlsx");const wb=XLSX.read(await file.arrayBuffer(),{type:"array"});
-    let best=null;for(const name of wb.SheetNames){const r=importAOA(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null}));if(!r.error){best=r;break}}
-    if(!best){status(T.st.noHeader,"err");return}
+    let best=null,err="noHeader";for(const name of wb.SheetNames){const r=importAOA(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null}));if(!r.error){best=r;break}if(r.error==="noData")err="noData"}
+    if(!best){status(T.st[err],"err");return}
     model=best.model;isSample=false;$("sample").hidden=true;save();renderSettings();renderGrid();
     status(T.st.imported(best.n,best.settings.map(k=>T.set[k]).join(", ")),"ok")}
   catch(err){console.error(err);status(T.st.readFail,"err")}});
