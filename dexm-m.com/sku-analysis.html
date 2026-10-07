@@ -98,6 +98,8 @@ footer span{user-select:all}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <link rel="stylesheet" href="css/site-header.css">
+<script>if(/[?&]embed\b/.test(location.search))document.documentElement.classList.add("embed")</script>
+<style>.embed .dxh,.embed .wrap>footer{display:none}.embed body{background:transparent}.embed .wrap{padding-block:20px 32px}.embed #t-brand{pointer-events:none}</style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
 </head><body>
@@ -378,7 +380,10 @@ function kpiData(c){return[[T.k.n,String(c.n),T.k.pareto(c.nA,pct(c.n?c.nA/c.n*1
   [T.k.ebitda,c.fixed?money(c.ebitda):"—",c.fixed?(LANG==="ru"?`постоянные ${money(c.fixed)}`:`fixed costs ${money(c.fixed)}`):"",c.fixed&&c.ebitda<0],[T.k.loss,String(c.losers.length),T.k.lossSub(money(c.lossAmt)),c.losers.length>0],[T.k.pot,money(c.pot),T.k.potSub,c.pot>0]]}
 const ACT_COL={loss:"var(--bad)",core:"var(--good)",fix:"var(--warn)",niche:"var(--accent)",tail:"var(--warn)"};
 
-function update(){const c=compute(model);
+// Summary for the toolkit dashboard (/toolkit): saved locally and sent to the parent frame
+function publish(c){try{const v=verdictData(c),S=model.settings;const out={id:"sku",ts:Date.now(),sample:!!isSample,company:S.company||"",units:S.cur||"",sev:v.sev,h:String(v.h||""),p:String((v.notes||[])[0]||""),act:String((v.levers||[])[0]||""),d:{n:c.n,nA:c.nA,R:c.R,CM:c.CM,cmp:c.cmp,losers:c.losers.length,lossAmt:c.lossAmt,pot:c.pot,peak:c.whalePeak,cms:c.byCm.map(r=>r.cm)}};
+  try{localStorage.setItem("dexm-dash-sku",JSON.stringify(out))}catch(e){}if(window.parent!==window)parent.postMessage({dexm:"summary",s:out},location.origin)}catch(e){console.error(e)}}
+function update(){const c=compute(model);publish(c);
   c.rows.forEach(r=>{const set=(id,txt,neg)=>{const el=$(id);if(!el)return;el.textContent=txt;el.classList.toggle("neg",!!neg)};
     if(!r.valid){["rev","cm","cmp","cmh"].forEach(k=>set(`o-${k}-${r.i}`,"—"));set(`o-abc-${r.i}`,"");const a=$(`o-act-${r.i}`);if(a)a.innerHTML="";return}
     set(`o-rev-${r.i}`,fmt(r.rev));set(`o-cm-${r.i}`,fmt(r.cm),r.cm<0);set(`o-cmp-${r.i}`,pct(r.cmp),r.cmp<c.t);set(`o-cmh-${r.i}`,r.cmh==null?"—":fmt(r.cmh),r.cmh<0);
@@ -471,5 +476,10 @@ texts();renderSettings();renderGrid();$("sample").hidden=!isSample;
 
 </script>
 
+<script>
+// Inside the toolkit: report page height so the parent can size the frame
+if(document.documentElement.classList.contains("embed")&&window.parent!==window){let last=0;const post=()=>{const h=Math.ceil(document.body.scrollHeight);if(h!==last){last=h;parent.postMessage({dexm:"height",h},location.origin)}};
+  new ResizeObserver(post).observe(document.body);addEventListener("load",post);post()}
+</script>
 <script src="js/site-header.js"></script>
 </body></html>
