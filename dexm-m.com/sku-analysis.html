@@ -99,7 +99,7 @@ footer span{user-select:all}
 </style>
 <link rel="stylesheet" href="css/site-header.css">
 <script>if(/[?&]embed\b/.test(location.search))document.documentElement.classList.add("embed")</script>
-<style>.embed .dxh,.embed .wrap>footer{display:none}.embed body{background:transparent}.embed .wrap{padding-block:20px 32px}.embed #t-brand{pointer-events:none}[data-linked]{background:var(--accent-soft)!important;cursor:not-allowed}.linknote::before{content:"\1F517  "}</style>
+<style>.embed .dxh,.embed .wrap>footer{display:none}.embed body{background:transparent}.embed .wrap{padding-block:20px 32px}.embed #t-brand{pointer-events:none}</style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
 </head><body>
@@ -381,7 +381,7 @@ function kpiData(c){return[[T.k.n,String(c.n),T.k.pareto(c.nA,pct(c.n?c.nA/c.n*1
 const ACT_COL={loss:"var(--bad)",core:"var(--good)",fix:"var(--warn)",niche:"var(--accent)",tail:"var(--warn)"};
 
 // Summary for the toolkit dashboard (/toolkit): saved locally and sent to the parent frame
-function publish(c){try{const v=verdictData(c),S=model.settings;const out={id:"sku",ts:Date.now(),sample:!!isSample,company:S.company||"",units:S.cur||"",sev:v.sev,h:String(v.h||""),p:String((v.notes||[])[0]||""),act:String((v.levers||[])[0]||""),d:{n:c.n,nA:c.nA,R:c.R,CM:c.CM,cmp:c.cmp,losers:c.losers.length,lossAmt:c.lossAmt,pot:c.pot,peak:c.whalePeak,cms:c.byCm.map(r=>r.cm)}};
+function publish(c){try{const v=verdictData(c),S=model.settings;const out={id:"sku",ts:Date.now(),sample:!!isSample,company:S.company||"",units:S.cur||"",sev:v.sev,h:String(v.h||""),p:String((v.notes||[])[0]||""),act:String((v.levers||[])[0]||""),d:{n:c.n,nA:c.nA,R:c.R,CM:c.CM,cmp:c.cmp,losers:c.losers.length,lossAmt:c.lossAmt,pot:c.pot,peak:c.whalePeak,cms:c.byCm.map(r=>r.cm),repr:c.reprAmt,exit:c.losers.reduce((a,r)=>{const k=model.skus[r.i],n=x=>+x||0;a.rev+=r.rev;a.mat+=r.vol*n(k.mat);a.lab+=r.vol*n(k.lab);a.oth+=r.vol*n(k.oth);return a},{rev:0,mat:0,lab:0,oth:0})}};
   try{localStorage.setItem("dexm-dash-sku",JSON.stringify(out))}catch(e){}if(window.parent!==window)parent.postMessage({dexm:"summary",s:out},location.origin)}catch(e){console.error(e)}}
 function update(){const c=compute(model);publish(c);
   c.rows.forEach(r=>{const set=(id,txt,neg)=>{const el=$(id);if(!el)return;el.textContent=txt;el.classList.toggle("neg",!!neg)};
@@ -471,21 +471,6 @@ $("btnPdf").onclick=async()=>{try{status(T.st.loading);await lib("jspdf");if(doc
   pages.forEach((cv,i)=>{if(i)pdf.addPage();pdf.addImage(cv.toDataURL("image/jpeg",.92),"JPEG",0,0,pw,ph)});
   await offer(fname("pdf"),pdf.output("arraybuffer"),T.st.pdf)}catch(e){console.error(e);status(T.st.fail,"err")}};
 
-const LINK_TITLE="Linked to the P&L tab of the toolkit. Change it there.";
-const LINK_NOTE="Linked to the P&L tab: the company name comes from there.";
-function linkApply(L){model.settings.company=L.company;return["#set-company"]}
-// Toolkit link: inside /toolkit the shared numbers come from the P&L tab and are read-only here
-let LINK=null,LOCK=[];
-function enforceLink(){if(!LINK)return;const before=JSON.stringify(model);LOCK=linkApply(LINK);if(JSON.stringify(model)!==before&&!isSample)save()}
-function markLinked(){document.querySelectorAll("[data-linked]").forEach(el=>{el.readOnly=false;el.removeAttribute("data-linked");el.removeAttribute("title")});
-  let note=document.getElementById("linkNote");if(!LINK||!LOCK.length){if(note)note.hidden=true;return}
-  LOCK.forEach(sel=>{const el=document.querySelector(sel);if(el){el.readOnly=true;el.dataset.linked="1";el.title=LINK_TITLE}});
-  if(!note){note=document.createElement("div");note.id="linkNote";note.className="notice linknote";const p=document.querySelector("section.panel");p.parentNode.insertBefore(note,p)}
-  note.hidden=false;note.textContent=LINK_NOTE}
-{const rs=renderSettings,rg=renderGrid,up=update;renderSettings=function(){enforceLink();rs();markLinked()};renderGrid=function(){enforceLink();rg();markLinked()};update=function(){enforceLink();up()}}
-window.addEventListener("message",e=>{if(e.origin!==location.origin||e.source!==window.parent)return;const m=e.data;
-  if(m&&m.dexm==="link"){LINK=m.link||null;LOCK=[];renderSettings();renderGrid();markLinked()}});
-if(window.parent!==window)parent.postMessage({dexm:"ready"},location.origin);
 texts();renderSettings();renderGrid();$("sample").hidden=!isSample;
 })()}
 
