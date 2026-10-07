@@ -49,9 +49,6 @@ h1{font:800 clamp(26px,4vw,38px)/1.1 var(--display);margin:6px 0 0;letter-spacin
 .chip.s0{background:var(--good)} .chip.s1{background:var(--warn)} .chip.s2{background:var(--bad)}
 .dot.s0{background:var(--good)} .dot.s1{background:var(--warn)} .dot.s2{background:var(--bad)}
 .notice{font-size:13px;background:var(--accent-soft);padding:10px 12px;border-radius:4px}
-.linkbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;font-size:13.5px;padding:10px 14px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
-.linkbar b{font-weight:600}
-.linkbar.off{color:var(--muted)}
 .top{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px}
 @media (max-width:980px){.top{grid-template-columns:1fr}}
 .overall{border-left:5px solid var(--muted)}
@@ -121,7 +118,7 @@ h1{font:800 clamp(26px,4vw,38px)/1.1 var(--display);margin:6px 0 0;letter-spacin
 footer.site{border-top:1px solid var(--line);padding-block:14px 28px;font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
 
 @media print{
-  .dxh,.tabbar,.frames,.actions .btn,.linkbar button,footer.site,.tile .open,.next button{display:none!important}
+  .dxh,.tabbar,.frames,.actions .btn,footer.site,.tile .open,.next button{display:none!important}
   body{background:#fff}
   .panel,.tile{break-inside:avoid}
   .tiles{grid-template-columns:repeat(5,minmax(0,1fr))}
@@ -157,7 +154,6 @@ footer.site{border-top:1px solid var(--line);padding-block:14px 28px;font-size:1
 
 <main>
   <section class="wrap" id="view-dashboard" role="tabpanel" aria-labelledby="tab-dashboard">
-    <div class="linkbar" id="linkbar"></div>
     <div class="notice" id="sampleNote" hidden>Showing sample data. Open any tool to enter your own numbers or import Excel; the dashboard updates automatically.</div>
     <div class="top">
       <div class="panel overall" id="overall"></div>
@@ -224,19 +220,7 @@ window.addEventListener("hashchange",()=>show(location.hash.slice(1)||"dashboard
 
 window.addEventListener("message",e=>{if(e.origin!==location.origin)return;const m=e.data;if(!m||!m.dexm)return;
   if(m.dexm==="height"){const f=Object.values(frames).find(fr=>fr.contentWindow===e.source);if(f&&m.h>0)f.style.height=m.h+"px"}
-  if(m.dexm==="summary"&&m.s&&BY[m.s.id]){S[m.s.id]=m.s;if(m.s.id==="pl")sendLink();schedule()}
-  if(m.dexm==="ready"){const t=TOOLS.find(x=>frames[x.id].contentWindow===e.source);if(t&&CONSUMERS.includes(t.id))post(t.id,linkPayload())}});
-
-/* Linking: the P&L is the source of the shared numbers; the other tools lock those fields while linked */
-const CONSUMERS=["cash","bridge","hf","sku"];
-let linkOn=true;try{linkOn=localStorage.getItem("dexm-link")!=="off"}catch(e){}
-function linkPayload(){if(!linkOn||!S.pl||!S.pl.d.link)return null;const L=S.pl.d.link;return L.rev>0?L:{company:L.company}}
-function post(id,link){try{frames[id].contentWindow.postMessage({dexm:"link",link},location.origin)}catch(e){}}
-let lastLink;function sendLink(force){const p=linkPayload(),j=JSON.stringify(p);if(!force&&j===lastLink)return;lastLink=j;CONSUMERS.forEach(id=>post(id,p))}
-function renderLink(){const el=$("linkbar"),L=linkPayload();el.className="linkbar"+(linkOn?"":" off");
-  el.innerHTML=linkOn?`<span>🔗 <b>Tools are linked to the P&amp;L.</b> ${L&&L.rev!=null?"Company, revenue, costs, EBITDA and the margin benchmark feed the EBITDA Bridge and Hidden Factory; the company name goes to every tool.":"The company name goes to every tool. Fill in the P&amp;L to share revenue, costs and EBITDA too."}</span><button class="btn" type="button" id="btnLink">Unlink tools</button>`
-    :`<span><b>Tools are not linked.</b> Each tool keeps its own numbers.</span><button class="btn" type="button" id="btnLink">Link to the P&amp;L</button>`}
-document.addEventListener("click",e=>{if(e.target.id!=="btnLink")return;linkOn=!linkOn;try{localStorage.setItem("dexm-link",linkOn?"on":"off")}catch(err){}sendLink(true);render()});
+  if(m.dexm==="summary"&&m.s&&BY[m.s.id]){S[m.s.id]=m.s;schedule()}});
 window.addEventListener("storage",e=>{if(!e.key||!e.key.startsWith("dexm-dash-"))return;try{const x=JSON.parse(e.newValue||"null");if(x&&BY[x.id]){S[x.id]=x;schedule()}}catch(err){}});
 let raf=0;function schedule(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;render()})}
 
@@ -275,7 +259,7 @@ function renderOpp(){const o=opportunities(),el=$("opp");const be=baseEbitda();
   const max=Math.max(1,...o.map(x=>x.v));
   el.innerHTML=`<span class="label">EBITDA upside per year, by source</span><h3>${be>0?`Current EBITDA ${usd(be)}. Where more can come from:`:"Where more EBITDA can come from:"}</h3>
     ${o.map(x=>`<div class="opp-row"><button type="button" data-open="${x.id}" title="Open ${esc(BY[x.id].name)}">${esc(x.label)}</button><span class="opp-val">${x.v>0?usd(x.v):"—"}${be>0&&x.v>0?`<small>${pct(x.v/be*100)}</small>`:""}</span><div class="bar"><i style="width:${Math.max(0,x.v/max*100)}%"></i></div></div>`).join("")}
-    <p class="foot-note">Estimates come from different tools and overlap, so they do not add up. Percentages are of current EBITDA${linkOn&&S.pl&&S.pl.d.rev?" from the P&amp;L":""}.</p>`}
+    <p class="foot-note">Estimates come from different tools and overlap, so they do not add up. Percentages are of current EBITDA.</p>`}
 
 const TILE={
   pl:s=>{const d=s.d,u=s.units;return[["EBITDA",money(d.ebitda,u),`margin ${pct(d.em)}`,d.ebitda<0],["Gap to benchmark",money(d.up,u),`benchmark ${pct(d.bE)}`,d.up>0]]},
@@ -315,7 +299,7 @@ const MINI={
   sku:(cv,s)=>{const v=s.d.cms||[];bars(cv,v,x=>x<0?css("--bad"):css("--good"))}};
 function draw(){if(view!=="dashboard")return;TOOLS.forEach(t=>{const cv=$("mini-"+t.id);if(cv&&S[t.id])MINI[t.id](cv,S[t.id])})}
 
-function render(){renderLink();$("sampleNote").hidden=!TOOLS.some(t=>S[t.id]&&S[t.id].sample);renderTabs();renderOverall();renderOpp();renderTiles();renderNext();draw()}
+function render(){$("sampleNote").hidden=!TOOLS.some(t=>S[t.id]&&S[t.id].sample);renderTabs();renderOverall();renderOpp();renderTiles();renderNext();draw()}
 window.addEventListener("resize",()=>{clearTimeout(window.__rz);window.__rz=setTimeout(draw,120)});
 const mq=matchMedia("(prefers-color-scheme: dark)");mq.addEventListener&&mq.addEventListener("change",draw);
 $("btnPrint").addEventListener("click",()=>{show("dashboard");setTimeout(()=>window.print(),50)});

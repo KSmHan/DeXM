@@ -470,11 +470,8 @@ function kpiData(c){const u=model.settings.units;return[
   [T.k.ebitda,fmt(c.tot.ebitda),u,c.tot.ebitda<0],[T.k.em,pct(c.emY),T.k.vsB(pct(c.bE)),c.emY!=null&&c.emY<c.bE],
   [T.k.ni,fmt(c.tot.ni),`${u} · ${pct(c.nmY)}`,c.tot.ni<0],[T.k.up,fmt(c.upside),c.negM?T.k.neg(c.negM):u,c.upside>0]]}
 
-// Shared numbers the toolkit passes to the other tools (P&L is the source)
-function linkData(c){const line=id=>model.lines.filter(l=>l.id===id).reduce((a,l)=>a+sum12(l.vals),0);const mat=line("mat"),dl=line("lab");
-  return{company:model.settings.company||"",units:model.settings.units||"",rev:c.tot.rev,mat,dl,oc:c.tot.cogs-mat-dl,sga:c.tot.opex,ebitda:c.tot.ebitda,benchE:c.bE}}
 // Summary for the toolkit dashboard (/toolkit): saved locally and sent to the parent frame
-function publish(c){try{const v=verdictData(c),S=model.settings;const out={id:"pl",ts:Date.now(),sample:!!isSample,company:S.company||"",units:S.units||"",sev:v.sev,h:String(v.h||""),p:String(v.p||""),act:String((v.levers||[])[0]||""),d:{rev:c.tot.rev,ebitda:c.tot.ebitda,em:c.emY,bE:c.bE,gm:c.gmY,bG:c.bG,up:c.upside,series:c.ebitda,link:linkData(c)}};
+function publish(c){try{const v=verdictData(c),S=model.settings;const out={id:"pl",ts:Date.now(),sample:!!isSample,company:S.company||"",units:S.units||"",sev:v.sev,h:String(v.h||""),p:String(v.p||""),act:String((v.levers||[])[0]||""),d:{rev:c.tot.rev,ebitda:c.tot.ebitda,em:c.emY,bE:c.bE,gm:c.gmY,bG:c.bG,up:c.upside,series:c.ebitda}};
   try{localStorage.setItem("dexm-dash-pl",JSON.stringify(out))}catch(e){}if(window.parent!==window)parent.postMessage({dexm:"summary",s:out},location.origin)}catch(e){console.error(e)}}
 function update(){const c=compute(model);publish(c);
   const set=(id,v,isPct,bad)=>{const el=$(id);if(!el)return;el.textContent=isPct?pct(v):fmt(v);el.classList.toggle("neg",v!=null&&v<0);if(bad!=null)el.classList.toggle("below",bad)};
