@@ -3,7 +3,7 @@
 <meta name="description" content="DeXM tools in one place: baseline P&amp;L, 13-week cash forecast, hidden factory, SKU analysis and EBITDA bridge, ending in a Pro Forma P&amp;L and a one-sight dashboard. Your data stays in your browser.">
 <link rel="icon" href="img/dexm-mark.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
 /* Layout: page header, sticky tab bar, then either the dashboard (overall + upside, five tool tiles, next steps) or one tool in a frame */
 :root{
@@ -161,6 +161,45 @@ footer.site{border-top:1px solid var(--line);padding-block:14px 28px;font-size:1
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <link rel="stylesheet" href="css/site-header.css">
+<link rel="stylesheet" href="css/toolkit-theme.css">
+<style>
+/* Toolkit look: navy hero, numbered steps, report-style panels */
+.hero{background:#0b1322;color:#e9edf3;border-bottom:1px solid #1c2a40}
+.hero .page-head{padding-block:40px 34px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end}
+@media (max-width:860px){.hero .page-head{grid-template-columns:1fr;padding-block:30px 26px}}
+.hero .brand{color:#c9a65c}
+.hero h1{color:#fff;font:600 clamp(30px,3.8vw,46px)/1.08 var(--display);letter-spacing:-.02em;margin-top:10px}
+.hero .lede{color:#a9b3c4;max-width:70ch;margin-top:12px}
+.hero-meta{display:flex;flex-direction:column;align-items:flex-end;gap:6px;font:500 12px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#8e9ab0;text-align:right}
+.hero-meta b{font:600 15px/1.3 var(--body);letter-spacing:0;text-transform:none;color:#fff}
+@media (max-width:860px){.hero-meta{align-items:flex-start;text-align:left}}
+.tabbar{background:var(--surface);border-bottom:1px solid var(--line);box-shadow:0 1px 0 rgba(15,26,43,.03)}
+.tab{font:500 14px var(--body);padding:15px 16px 13px;border-bottom:2px solid transparent;margin-bottom:-1px;gap:9px}
+.tab[aria-selected="true"]{border-bottom-color:var(--gold);color:var(--fg)}
+.step{display:inline-grid;place-items:center;width:22px;height:22px;padding:0;border-radius:50%;border:1px solid var(--line);font:600 11px/1 var(--mono);color:var(--muted)}
+.tab[aria-selected="true"] .step{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.tab .dot{width:7px;height:7px}
+.panel{border-radius:4px;box-shadow:var(--shadow)}
+.overall h2,.pf-intro h2{font:600 clamp(23px,2.5vw,30px)/1.18 var(--display);letter-spacing:-.015em}
+.opp h3,.next h3{font:600 20px/1.25 var(--display);letter-spacing:-.01em}
+.chip{border-radius:2px;font:600 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:5px 8px}
+.metric b{font:600 23px/1.2 var(--mono);letter-spacing:-.01em}
+.metrics,.pf-kpis{border-radius:3px}
+.bar{height:8px;border-radius:1px}.bar i{border-radius:1px}
+.tile{border-radius:4px;box-shadow:var(--shadow);border-top-width:3px;padding:16px}
+.tile-head strong{font:600 17px/1.2 var(--display)}
+.tile .step{width:20px;height:20px;font-size:10px}
+.tile .open,.next button,.opp-row button:hover{color:var(--accent)}
+.notice{border-left:3px solid var(--accent)}
+.callout{border-radius:3px}
+table.pf thead th{color:var(--fg);border-bottom:1.5px solid var(--fg)}
+table.pf tr.key td,table.pf tr.key td.l{background:var(--gold-soft);border-top:1px solid var(--gold);border-bottom:1px solid var(--gold)}
+table.pf td.pf,table.pf th.pf,table.pf tr.sub td.pf,table.pf tr.key td.pf{background:var(--accent-soft)}
+table.pf tr.key td.pf{background:var(--gold-soft)}
+.btn{border-radius:3px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+footer.site{border-top-color:var(--line)}
+</style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
 </head><body>
@@ -178,11 +217,12 @@ footer.site{border-top:1px solid var(--line);padding-block:14px 28px;font-size:1
   </div>
 </div>
 
-<div class="wrap page-head">
-  <a href="/tools" class="brand" style="display:block;text-decoration:none">DeXM Management · toolkit</a>
-  <h1>DeXM Toolkit: the whole picture on one screen</h1>
-  <p class="lede">Work through it in order: 1 baseline P&amp;L, 2 13-week cash, 3 hidden factory, 4 SKU analysis, 5 EBITDA bridge. Step 6, the Pro Forma P&amp;L, puts the baseline and the P&amp;L after the plan side by side. The dashboard updates as you go. Your data stays in your browser.</p>
-</div>
+<div class="hero"><div class="wrap page-head"><div>
+  <a href="/tools" class="brand" style="display:block;text-decoration:none">DeXM Management · value creation toolkit</a>
+  <h1>From baseline P&amp;L to Pro Forma, on one screen</h1>
+  <p class="lede">Work through it in order: 1 baseline P&amp;L, 2 13-week cash, 3 hidden factory, 4 SKU analysis, 5 EBITDA bridge. Step 6, the Pro Forma P&amp;L, puts the baseline and the P&amp;L after the plan side by side. The dashboard updates as you go. Your data stays in your browser.</p></div>
+  <div class="hero-meta" id="heroMeta"></div>
+</div></div>
 
 <div class="tabbar"><div class="wrap"><div class="tabs" role="tablist" id="tabs"></div></div></div>
 
@@ -308,7 +348,7 @@ function renderTiles(){
   $("tiles").innerHTML=TOOLS.map(t=>{const s=S[t.id];
     if(!s)return `<article class="tile"><div class="tile-head"><strong>${esc(t.name)}</strong></div><p class="wait">Calculating…</p><button class="open" type="button" data-open="${t.id}">Open ${esc(t.name)} →</button></article>`;
     const sv=sevOf(s);const two=TILE[t.id](s);
-    return `<article class="tile${sv>=0?" s"+sv:""}"><div class="tile-head"><strong>${esc(t.name)}</strong>${sv>=0?`<span class="chip s${sv}">${SEV[sv]}</span>`:`<span class="chip">No data</span>`}</div>
+    return `<article class="tile${sv>=0?" s"+sv:""}"><div class="tile-head"><strong><span class="step">${t.step}</span> ${esc(t.name)}</strong>${sv>=0?`<span class="chip s${sv}">${SEV[sv]}</span>`:`<span class="chip">No data</span>`}</div>
       <p class="h">${esc(s.h)}</p><canvas id="mini-${t.id}" aria-hidden="true"></canvas>
       <div class="two">${two.map(([l,v,sub,bad])=>`<div><small>${esc(l)}</small><b class="${bad?"bad":""}">${esc(v)}</b><small>${esc(sub)}</small></div>`).join("")}</div>
       <button class="open" type="button" data-open="${t.id}">Open ${esc(t.name)} →</button></article>`}).join("")}
@@ -396,7 +436,7 @@ function renderPF(){const el=$("view-proforma");if(!el||view!=="proforma")return
           <li><b>SKU Analysis:</b> repricing to target margin adds revenue; exiting loss-making SKUs removes their revenue, materials, labor and other variable costs.</li>
           <li><b>EBITDA Bridge:</b> price and mix add revenue; volume adds revenue with its variable costs; purchasing and scrap reduce materials; labor, overhead and SG&amp;A levers reduce those lines; inflation raises all cost lines.</li>
           <li>Amounts from tools in other units are converted to ${U}.</li></ul></details></div></div>
-    <div class="actions pf-actions"><span>Baseline from step 1. Each source keeps its own inputs; this page only adds them up.</span><span><button class="btn" type="button" id="btnPfXlsx">Download Excel</button> <button class="btn" type="button" id="btnPfPrint">Print</button></span></div>
+    <div class="actions pf-actions"><span>Baseline from step 1. Each source keeps its own inputs; this page only adds them up.</span><span><button class="btn primary" type="button" id="btnPfXlsx">Download Excel</button> <button class="btn" type="button" id="btnPfPrint">Print</button></span></div>
     <p class="foot-note" id="pfStatus" role="status"></p>`;
   drawPF(m)}
 function drawPF(m){const cv=$("pfChart");if(!cv||!m)return;const c=prep(cv);if(!c)return;const{g,w,h}=c;
@@ -432,7 +472,9 @@ async function pfXlsx(){const m=pfModel(),st=$("pfStatus");if(!m)return;try{st.t
   a.download=`${(company||"DeXM").replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-|-$/g,"")||"DeXM"}-Pro-Forma-PL.xlsx`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);st.textContent="Excel file saved"}
   catch(err){console.error(err);st.textContent="Could not create the file. Try again."}}
 
-function render(){$("sampleNote").hidden=!TOOLS.some(t=>S[t.id]&&S[t.id].sample);renderTabs();renderOverall();renderOpp();renderTiles();renderNext();draw();if(view==="proforma")renderPF()}
+function renderHero(){const el=$("heroMeta");if(!el)return;const company=(TOOLS.map(t=>S[t.id]&&S[t.id].company).find(Boolean))||"";const m=pfModel();
+  el.innerHTML=(company?`<span>Company<br><b>${esc(company)}</b></span>`:"")+(m?`<span>EBITDA, baseline → Pro Forma<br><b>${money(m.base.ebitda,m.U)} → ${money(m.plan.ebitda,m.U)}</b></span>`:"")}
+function render(){renderHero();$("sampleNote").hidden=!TOOLS.some(t=>S[t.id]&&S[t.id].sample);renderTabs();renderOverall();renderOpp();renderTiles();renderNext();draw();if(view==="proforma")renderPF()}
 window.addEventListener("resize",()=>{clearTimeout(window.__rz);window.__rz=setTimeout(()=>{draw();if(view==="proforma")drawPF(pfModel())},120)});
 const mq=matchMedia("(prefers-color-scheme: dark)");mq.addEventListener&&mq.addEventListener("change",draw);
 $("btnPrint").addEventListener("click",()=>{show("dashboard");setTimeout(()=>window.print(),50)});
