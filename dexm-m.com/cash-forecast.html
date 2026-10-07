@@ -3,7 +3,7 @@
 <meta name="description" content="Free 13-week cash flow forecast: enter weekly receipts and disbursements or import Excel to see which week cash drops below your minimum. Data stays in your browser.">
 <link rel="icon" href="img/dexm-mark.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
 /* Layout: header + toolbar, settings strip, summary (KPIs + chart + verdict), then the full-width 13-week ledger with a sticky label column */
 :root{
@@ -93,6 +93,7 @@ footer span{user-select:all}
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Inter:wght@400;500&display=swap">
 <link rel="stylesheet" href="css/site-header.css">
+<link rel="stylesheet" href="css/toolkit-theme.css">
 <script>if(/[?&]embed\b/.test(location.search))document.documentElement.classList.add("embed")</script>
 <style>.embed .dxh,.embed .wrap>footer{display:none}.embed body{background:transparent}.embed .wrap{padding-block:20px 32px}.embed #t-brand{pointer-events:none}</style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
@@ -170,6 +171,7 @@ ru:{brand:"DeXM Management · управление ликвидностью",h1:
   warn:(w)=>`Остаток падает ниже минимума на неделе ${w}`,warnP:(n,g)=>`Недель ниже минимума: ${n}. Максимальная нехватка: ${g}. Кредитная линия покрывает разрыв, но запас тонкий.`,
   crit:(w)=>`Денег не хватает на неделе ${w}, даже с кредитной линией`,critP:g=>`Нехватка ликвидности с учётом линии: ${g}. Нужны действия до этой недели.`,
   noLine:(w)=>`Остаток падает ниже минимума на неделе ${w}`,noLineP:(n,g)=>`Недель ниже минимума: ${n}. Максимальная нехватка: ${g}. Свободного лимита по линии не хватает.`,
+  over:(w)=>`Кредитная линия превышена на неделе ${w}`,overP:g=>`Выборка превышает лимит на ${g}. Согласуйте больший лимит или сократите выборку.`,
   sev:["в норме","внимание","критично"],levers:"Рычаги",
   L:["Ускорить сбор просроченной дебиторки и запросить предоплаты по крупным заказам.","Согласовать перенос платежей ключевым поставщикам на 2–3 недели.","Сократить закупки сырья под склад до уровня текущих заказов.","Перенести несрочные капзатраты за пределы окна.","Заранее согласовать выборку или расширение кредитной линии с банком."],
   cta:"<strong>Нужен разбор прогноза?</strong> DeXM проверяет допущения и строит план высвобождения денег за 2 недели. info@dexm-m.com"},
@@ -196,6 +198,7 @@ en:{brand:"DeXM Management · liquidity management",h1:"13-Week Cash Flow Foreca
   warn:(w)=>`Cash falls below the minimum in week ${w}`,warnP:(n,g)=>`Weeks below minimum: ${n}. Largest gap: ${g}. The credit line covers it, but the cushion is thin.`,
   crit:(w)=>`Cash runs out in week ${w}, even with the credit line`,critP:g=>`Liquidity shortfall after the credit line: ${g}. Act before that week.`,
   noLine:(w)=>`Cash falls below the minimum in week ${w}`,noLineP:(n,g)=>`Weeks below minimum: ${n}. Largest gap: ${g}. Undrawn credit line is not enough to close it.`,
+  over:(w)=>`Credit line overdrawn in week ${w}`,overP:g=>`Draws exceed the limit by ${g}. Agree a higher limit or cut the draw.`,
   sev:["on track","watch","critical"],levers:"Levers",
   L:["Collect overdue receivables and ask for deposits on large orders.","Agree a 2–3 week payment shift with key suppliers.","Cut raw material buying to current order levels.","Move non-urgent capex outside the 13-week window.","Line up a credit line draw or increase with the bank in advance."],
   cta:"<strong>Want a second pair of eyes?</strong> DeXM tests the assumptions and builds a cash release plan in 2 weeks. info@dexm-m.com"},
@@ -237,11 +240,11 @@ const zeros=()=>Array(W).fill(0);
 function blankModel(){return{settings:{company:"",start:nextMonday(),units:T.unitsDef,opening:0,min:0,limit:0},
   lines:BUILT.map(([id,sec])=>({id,sec,vals:zeros()}))}}
 function sampleModel(){const m=blankModel();m.settings.company=T.companyDef;m.settings.opening=600;m.settings.min=500;m.settings.limit=1500;
-  const S={ar:[560,540,610,575,520,590,480,600,620,585,560,610,640],pre:[0,80,0,0,60,0,0,90,0,0,70,0,0],orec:[0,0,0,15,0,0,0,0,0,25,0,0,0],
-   sup:[320,290,340,310,300,330,420,300,310,320,300,330,340],pay:[190,0,190,0,195,0,195,0,195,0,195,0,200],rent:[65,0,0,0,65,0,0,0,65,0,0,0,65],
-   frt:[35,32,38,34,33,36,35,34,37,35,34,36,38],mnt:[12,15,10,40,12,10,14,12,11,35,12,10,13],tax:[0,0,0,0,0,0,140,0,0,0,0,0,0],
-   oops:[20,18,22,20,19,21,20,20,22,20,19,21,22],capex:[0,0,0,0,0,300,0,0,0,0,0,0,0],debt:[0,0,0,48,0,0,0,48,0,0,0,48,0],
-   own:zeros(),rev:zeros()};
+  const S={ar:[560,545,590,575,560,555,430,560,600,580,565,590,610],pre:[0,70,0,0,50,0,0,80,0,0,60,0,0],orec:[0,0,0,12,0,0,0,0,0,18,0,0,0],
+   sup:[290,280,295,290,285,300,365,280,285,290,280,290,300],pay:[148,0,150,0,150,0,150,0,150,0,150,0,152],rent:[0,195,0,0,0,200,0,0,0,205,0,0,0],
+   frt:[32,30,34,32,30,33,31,32,34,32,31,33,34],mnt:[12,14,10,35,12,10,14,12,11,30,12,10,13],tax:[0,0,0,0,0,0,150,0,0,0,0,0,0],
+   oops:[42,40,45,42,41,44,42,42,45,42,41,44,45],capex:[0,0,20,0,0,280,0,0,20,0,0,20,0],debt:[0,0,0,48,0,0,0,48,0,0,0,48,0],
+   own:[0,0,0,0,0,0,0,0,0,0,0,0,75],rev:[0,0,0,0,0,100,0,0,0,0,0,-50,-50]};
   m.lines.forEach(l=>l.vals=S[l.id].slice());return m}
 const labelOf=l=>l.id?T.lines[l.id]:(l.label||T.newLine);
 
@@ -252,14 +255,14 @@ function compute(m){
   const open=[],end=[],avail=[],liq=[],min=zeros().map(()=>+m.settings.min||0),head=[];
   let cash=+m.settings.opening||0,cum=0;
   for(let i=0;i<W;i++){open[i]=cash;cash+=ncf[i];end[i]=cash;cum+=tfin[i];
-    avail[i]=Math.max(0,(+m.settings.limit||0)-Math.max(0,m.lines.filter(l=>l.id==="rev").reduce((s,l)=>s+l.vals.slice(0,i+1).reduce((a,b)=>a+(+b||0),0),0)));
+    avail[i]=(+m.settings.limit||0)-Math.max(0,m.lines.filter(l=>l.id==="rev").reduce((s,l)=>s+l.vals.slice(0,i+1).reduce((a,b)=>a+(+b||0),0),0));
     head[i]=end[i]-min[i];liq[i]=end[i]+avail[i]}
   const revCum=[];let rc=0;const rev=m.lines.find(l=>l.id==="rev");for(let i=0;i<W;i++){rc+=rev?(+rev.vals[i]||0):0;revCum[i]=rc}
   let lowI=0;end.forEach((v,i)=>{if(v<end[lowI])lowI=i});
   let tightI=0;head.forEach((v,i)=>{if(v<head[tightI])tightI=i});
   const below=end.map((v,i)=>v<min[i]);
-  const firstBelow=below.indexOf(true),firstOut=liq.findIndex(v=>v<0);
-  return{tr,tod,ocf,tno,tfin,ncf,open,end,min,head,avail,liq,lowI,tightI,below,firstBelow,firstOut,
+  const firstBelow=below.indexOf(true),firstOut=liq.findIndex(v=>v<0),firstOver=avail.findIndex(v=>v<0);
+  return{tr,tod,ocf,tno,tfin,ncf,open,end,min,head,avail,liq,lowI,tightI,below,firstBelow,firstOut,firstOver,overGap:Math.max(0,...avail.map(v=>-v)),
     nBelow:below.filter(Boolean).length,maxGap:Math.max(0,...head.map(v=>-v)),liqGap:Math.max(0,...liq.map(v=>-v)),
     ocf13:ocf.reduce((a,b)=>a+b,0),peakRev:Math.max(0,...revCum)};
 }
@@ -337,7 +340,7 @@ function exportPlan(m,blank){
   push([T.calc,T.r.end,...zeros()],F(x=>`${x}${rO}+${x}${rNcf}`));
   push([T.calc,T.r.min,...zeros()],F(()=>`$C$${rMin}`));const rM=rows.length;
   push([T.calc,T.r.head,...zeros()],F(x=>`${x}${rE}-${x}${rM}`));
-  push([T.calc,T.r.avail,...zeros()],F(x=>revRow?`MAX(0,$C$${rLim}-MAX(0,SUM($C${revRow}:${x}${revRow})))`:`$C$${rLim}`));const rA=rows.length;
+  push([T.calc,T.r.avail,...zeros()],F(x=>revRow?`$C$${rLim}-MAX(0,SUM($C${revRow}:${x}${revRow}))`:`$C$${rLim}`));const rA=rows.length;
   push([T.calc,T.r.liq,...zeros()],F(x=>`${x}${rE}+${x}${rA}`));
   return{rows,f,c};
 }
@@ -418,6 +421,7 @@ const pagePal=()=>({fg:css("--fg"),muted:css("--muted"),line:css("--line"),good:
 
 function verdictData(c){
   if(c.firstOut>=0)return{sev:2,h:T.v.crit(c.firstOut+1),p:T.v.critP(fmtU(c.liqGap))};
+  if(c.firstOver>=0)return{sev:2,h:T.v.over(c.firstOver+1),p:T.v.overP(fmtU(c.overGap))};
   if(c.firstBelow>=0){const covered=c.below.every((b,i)=>!b||c.liq[i]>=c.min[i]);
     return covered?{sev:1,h:T.v.warn(c.firstBelow+1),p:T.v.warnP(c.nBelow,fmtU(c.maxGap))}:{sev:2,h:T.v.noLine(c.firstBelow+1),p:T.v.noLineP(c.nBelow,fmtU(c.maxGap))}}
   return{sev:0,h:T.v.ok,p:T.v.okP(fmtU(c.head[c.tightI]),c.tightI+1)}}
@@ -477,8 +481,8 @@ $("btnReset").onclick=()=>{model=blankModel();isSample=false;$("sample").hidden=
 
 function reportPages(){
   const c=compute(model),s=model.settings,v=verdictData(c),PW=1500,PH=1060,SC=2,M=50,CW=PW-2*M;
-  const F={sans:'"IBM Plex Sans","Segoe UI",Arial,sans-serif',mono:'"IBM Plex Mono",Menlo,monospace',disp:'"Archivo","Helvetica Neue",Arial,sans-serif'};
-  const P={fg:"#1b2224",muted:"#5d686b",line:"#d6dbd9",band:"#eef1ef",acc:"#0e6b6b",accSoft:"#dcecea",bad:"#b4442d",good:"#2f7d4f",warn:"#b7791f"};
+  const F={sans:'"Inter","Segoe UI",Arial,sans-serif',mono:'"IBM Plex Mono",Menlo,monospace',disp:'"Source Serif 4",Georgia,serif'};
+  const P={fg:"#0f1a2b",muted:"#5a6476",line:"#dcdad2",band:"#f3f1eb",acc:"#1d3a63",accSoft:"#f8f1e2",bad:"#b23f2a",good:"#2e7a4e",warn:"#b07418"};
   const pages=[];
   const newPage=()=>{const cv=document.createElement("canvas");cv.width=PW*SC;cv.height=PH*SC;const g=cv.getContext("2d");g.scale(SC,SC);g.fillStyle="#fff";g.fillRect(0,0,PW,PH);g.textBaseline="alphabetic";pages.push(cv);return g};
   const foot=(g,n)=>{g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.textAlign="left";g.fillText("DeXM Management · info@dexm-m.com · +1 917 523 0461 · dexm-m.com",M,PH-28);g.textAlign="right";g.fillText(String(n),PW-M,PH-28);g.textAlign="left"};

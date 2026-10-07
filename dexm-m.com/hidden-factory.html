@@ -3,7 +3,7 @@
 <meta name="description" content="Free hidden factory calculator: enter planned time, breakdowns, changeovers, speed losses and scrap per line to see OEE, lost hours, their cost and what you can recover at your target OEE. Data stays in your browser.">
 <link rel="icon" href="img/dexm-mark.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
 /* Layout: header + toolbar, settings strip, summary (KPIs + loss Pareto + verdict), then the lines table (OEE losses) and the other-losses table */
 :root{
@@ -101,6 +101,7 @@ footer span{user-select:all}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <link rel="stylesheet" href="css/site-header.css">
+<link rel="stylesheet" href="css/toolkit-theme.css">
 <script>if(/[?&]embed\b/.test(location.search))document.documentElement.classList.add("embed")</script>
 <style>.embed .dxh,.embed .wrap>footer{display:none}.embed body{background:transparent}.embed .wrap{padding-block:20px 32px}.embed #t-brand{pointer-events:none}</style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
@@ -228,26 +229,27 @@ const T=L[LANG];
 const LIN=["plan","down","co","spd","scrap","cph","mat","bn","cmh"];
 const OTH=["ot","exp","war","inv","oth"];
 function blankModel(){return{settings:{company:"",cur:T.curDef,target:85,rev:0,ebitda:0,carry:20},lines:[],other:OTH.map(id=>({id,amt:0,recp:id==="inv"?50:id==="war"?40:50}))}}
-function sampleModel(){const m=blankModel();Object.assign(m.settings,{company:T.companyDef,rev:30000000,ebitda:3800000});
+function sampleModel(){const m=blankModel();Object.assign(m.settings,{company:T.companyDef,rev:30179000,ebitda:3755000});
   const N=LANG==="ru"?["Пресс 1","Пресс 2","Анодирование","Порошковая покраска","Механообработка ЧПУ"]:["Press 1","Press 2","Anodizing","Powder coating","CNC fabrication"];
-  const D=[[6000,420,600,12,6,420,9000000,1,700],[5000,380,450,10,5,380,6000000,0,0],[4500,250,200,8,3,260,800000,0,0],[4000,300,520,9,4,240,600000,0,0],[3800,180,340,15,2,180,300000,0,0]];
+  const D=[[6000,420,600,12,6,420,8200000,1,1100],[5000,380,450,10,5,380,5900000,0,0],[4500,250,200,8,3,260,520000,0,0],[4000,300,520,9,4,240,380000,0,0],[3800,180,340,15,2,180,185000,0,0]];
   m.lines=D.map((d,i)=>({name:N[i],plan:d[0],down:d[1],co:d[2],spd:d[3],scrap:d[4],cph:d[5],mat:d[6],bn:d[7],cmh:d[8]}));
-  const A={ot:[280000,50],exp:[150000,60],war:[120000,40],inv:[2500000,50],oth:[0,50]};m.other.forEach(o=>{[o.amt,o.recp]=A[o.id]});return m}
+  const A={ot:[280000,50],exp:[150000,60],war:[120000,40],inv:[2500000,50],oth:[90000,50]};m.other.forEach(o=>{[o.amt,o.recp]=A[o.id]});return m}
 
 function compute(m){
-  const n=x=>+x||0,s=m.settings,tgt=n(s.target)/100;
+  const n=x=>{x=+x;return isFinite(x)?x:0},cl=(x,a,b)=>Math.min(b,Math.max(a,x)),s=m.settings,tgt=cl(n(s.target),0,100)/100;
   const cat={down:0,co:0,spd:0,qual:0,mat:0,bnm:0,ot:0,exp:0,war:0,inv:0,oth:0},recCat={...cat};
   const lines=m.lines.map((l,i)=>{const P=n(l.plan);if(P<=0)return{i,name:l.name||T.newLine,valid:false};
-    const down=Math.min(n(l.down),P),co=Math.min(n(l.co),P-down),run=Math.max(0,P-down-co);
-    const A=P?run/P:0,Pf=1-n(l.spd)/100,Q=1-n(l.scrap)/100,oee=A*Pf*Q;
-    const spdH=run*(n(l.spd)/100),qualH=run*Pf*(n(l.scrap)/100),lost=down+co+spdH+qualH;
-    const rate=n(l.cph)+(l.bn?n(l.cmh):0);
-    const parts={down:down*n(l.cph),co:co*n(l.cph),spd:spdH*n(l.cph),qual:qualH*n(l.cph),mat:n(l.mat)*n(l.scrap)/100,bnm:l.bn?lost*n(l.cmh):0};
+    const down=cl(n(l.down),0,P),co=cl(n(l.co),0,P-down),run=Math.max(0,P-down-co),sp=cl(n(l.spd),0,100)/100,sc=cl(n(l.scrap),0,100)/100;
+    const A=P?run/P:0,Pf=1-sp,Q=1-sc,oee=A*Pf*Q;
+    const spdH=run*sp,qualH=run*Pf*sc,lost=down+co+spdH+qualH;
+    // a lost bottleneck hour is worth its margin; the cost part is already in time-at-cost, so only the margin above it is added
+    const xm=l.bn?Math.max(0,n(l.cmh)-n(l.cph)):0,rate=n(l.cph)+xm;
+    const parts={down:down*n(l.cph),co:co*n(l.cph),spd:spdH*n(l.cph),qual:qualH*n(l.cph),mat:n(l.mat)*sc,bnm:lost*xm};
     const loss=Object.values(parts).reduce((a,b)=>a+b,0);
     const rec=oee<tgt&&oee<1?loss*(tgt-oee)/(1-oee):0;
     Object.keys(parts).forEach(k=>{cat[k]+=parts[k];recCat[k]+=loss?parts[k]*rec/loss:0});
     return{i,name:l.name||T.newLine,valid:true,P,A,Pf,Q,oee,lost,loss,rec,bn:!!l.bn,cmh:n(l.cmh),rate}});
-  const other=m.other.map((o,j)=>{const amt=n(o.amt);const loss=o.id==="inv"?amt*n(s.carry)/100:amt;const rec=loss*n(o.recp)/100,ck=o.id&&cat[o.id]!==undefined?o.id:"oth";cat[ck]+=loss;recCat[ck]+=rec;
+  const other=m.other.map((o,j)=>{const amt=n(o.amt);const loss=o.id==="inv"?amt*n(s.carry)/100:amt;const rec=loss*cl(n(o.recp),0,100)/100,ck=o.id&&cat[o.id]!==undefined?o.id:"oth";cat[ck]+=loss;recCat[ck]+=rec;
     return{j,id:o.id,name:o.id?T.other[o.id]:(o.label||T.newItem),amt,loss,rec}});
   const v=lines.filter(x=>x.valid);const PT=v.reduce((a,x)=>a+x.P,0);
   const oeeAvg=PT?v.reduce((a,x)=>a+x.oee*x.P,0)/PT:null;const lost=v.reduce((a,x)=>a+x.lost,0);
@@ -291,7 +293,7 @@ function importAOA(rows){
     const nums=row.slice(li+1).map(parseNum).filter(x=>x!=null);if(!nums.length)continue;if(/^(total|итого|calc|расч)/i.test(label)||/(hidden factory|скрытый завод|recoverable|можно вернуть|% of|% выручки|% ebitda)/i.test(label))continue;
     const hit=OTH_RE.find(([,re])=>re.test(label));
     if(hit){const o=m.other.find(x=>x.id===hit[0]);o.amt=nums[0];if(nums[1]!=null)o.recp=nums[1]<=1&&nums[1]>0?nums[1]*100:nums[1];nOther++}
-    else if(nums.length>=1&&nums[0]>0&&!SET.some(([,re])=>re.test(label))){m.other.push({id:null,label,amt:nums[0],recp:nums[1]!=null?nums[1]:50});nOther++}}
+    else if(nums.length>=1&&nums[0]>0&&!SET.some(([,re])=>re.test(label))){m.other.push({id:null,label,amt:nums[0],recp:nums[1]!=null?(nums[1]<=1&&nums[1]>0?nums[1]*100:nums[1]):50});nOther++}}
   return{model:m,n:m.lines.length,m:nOther,settings:found}
 }
 
@@ -303,15 +305,15 @@ function exportPlan(m,blank){
   push([T.t1]);
   const H=["name","plan","down","co","spd","scrap","cph","mat","bn","cmh","a","p","q","oee","lost","loss","rec"];push(H.map(k=>T.col[k]));
   const first=rows.length+1;
-  const lines=blank?[{name:"",plan:0,down:0,co:0,spd:0,scrap:0,cph:0,mat:0,bn:0,cmh:0}]:m.lines;
+  const lines=blank||!m.lines.length?[{name:"",plan:0,down:0,co:0,spd:0,scrap:0,cph:0,mat:0,bn:0,cmh:0}]:m.lines;
   lines.forEach(l=>push([l.name,+l.plan||0,+l.down||0,+l.co||0,+l.spd||0,+l.scrap||0,+l.cph||0,+l.mat||0,l.bn?T.yes:"",+l.cmh||0],
-    [[10,"IF(B{r}=0,0,(B{r}-C{r}-D{r})/B{r})","pct"],[11,"1-E{r}/100","pct"],[12,"1-F{r}/100","pct"],[13,"K{r}*L{r}*M{r}","pct"],
-     [14,"C{r}+D{r}+(B{r}-C{r}-D{r})*E{r}/100+(B{r}-C{r}-D{r})*(1-E{r}/100)*F{r}/100","n"],
-     [15,`O{r}*G{r}+H{r}*F{r}/100+IF(I{r}<>"",O{r}*J{r},0)`,"n"],[16,`IF(N{r}<$B$${rT}/100,P{r}*($B$${rT}/100-N{r})/(1-N{r}),0)`,"n"]]));
+    [[10,"IF(B{r}<=0,0,MAX(0,B{r}-MAX(0,C{r})-MAX(0,D{r}))/B{r})","pct"],[11,"1-MIN(100,MAX(0,E{r}))/100","pct"],[12,"1-MIN(100,MAX(0,F{r}))/100","pct"],[13,"K{r}*L{r}*M{r}","pct"],
+     [14,"IF(B{r}<=0,0,B{r}*(1-N{r}))","n"],
+     [15,`IF(B{r}<=0,0,O{r}*G{r}+H{r}*(1-M{r})+IF(I{r}<>"",O{r}*MAX(0,J{r}-G{r}),0))`,"n"],[16,`IF(N{r}<MIN(1,$B$${rT}/100),P{r}*(MIN(1,$B$${rT}/100)-N{r})/(1-N{r}),0)`,"n"]]));
   const last=rows.length;
-  push([T.total],[[1,`SUM(B${first}:B${last})`,"n"],[13,`IF(B{r}=0,0,SUMPRODUCT(N${first}:N${last},B${first}:B${last})/B{r})`,"pct"],[14,`SUM(O${first}:O${last})`,"n"],[15,`SUM(P${first}:P${last})`,"n"],[16,`SUM(Q${first}:Q${last})`,"n"]]);const rLT=rows.length;
+  push([T.total],[[1,`SUMIF(B${first}:B${last},">0")`,"n"],[13,`IF(B{r}=0,0,SUMPRODUCT(N${first}:N${last},B${first}:B${last})/B{r})`,"pct"],[14,`SUM(O${first}:O${last})`,"n"],[15,`SUM(P${first}:P${last})`,"n"],[16,`SUM(Q${first}:Q${last})`,"n"]]);const rLT=rows.length;
   push([]);push([T.t2]);push([T.col2.name,T.col2.amt,T.col2.recp,T.col2.loss,T.col2.rec]);const f2=rows.length+1;
-  m.other.forEach(o=>push([o.id?T.other[o.id]:(o.label||T.newItem),blank?0:+o.amt||0,+o.recp||0],[[3,o.id==="inv"?`B{r}*$B$${rC}/100`:"B{r}","n"],[4,"D{r}*C{r}/100","n"]]));
+  m.other.forEach(o=>push([o.id?T.other[o.id]:(o.label||T.newItem),blank?0:+o.amt||0,+o.recp||0],[[3,o.id==="inv"?`B{r}*$B$${rC}/100`:"B{r}","n"],[4,"D{r}*MIN(100,MAX(0,C{r}))/100","n"]]));
   const l2=rows.length;push([T.total],[[3,`SUM(D${f2}:D${l2})`,"n"],[4,`SUM(E${f2}:E${l2})`,"n"]]);const rOT=rows.length;
   push([]);
   push([T.k.hf],[[1,`P${rLT}+D${rOT}`,"n"]]);const rHF=rows.length;
@@ -462,8 +464,8 @@ $("btnReset").onclick=()=>{model=blankModel();model.lines=[{name:"",plan:0,down:
 
 function reportPages(){
   const c=compute(model),s=model.settings,v=verdictData(c),PW=1500,PH=1060,SC=2,M=50,CW=PW-2*M;
-  const F={sans:'"IBM Plex Sans","Segoe UI",Arial,sans-serif',mono:'"IBM Plex Mono",Menlo,monospace',disp:'"Archivo","Helvetica Neue",Arial,sans-serif'};
-  const P={fg:"#1b2224",muted:"#5d686b",line:"#d6dbd9",band:"#eef1ef",acc:"#0e6b6b",accSoft:"#dcecea",bad:"#b4442d",good:"#2f7d4f",warn:"#b7791f"};
+  const F={sans:'"Inter","Segoe UI",Arial,sans-serif',mono:'"IBM Plex Mono",Menlo,monospace',disp:'"Source Serif 4",Georgia,serif'};
+  const P={fg:"#0f1a2b",muted:"#5a6476",line:"#dcdad2",band:"#f3f1eb",acc:"#1d3a63",accSoft:"#f8f1e2",bad:"#b23f2a",good:"#2e7a4e",warn:"#b07418"};
   const pages=[];
   const newPage=()=>{const cv=document.createElement("canvas");cv.width=PW*SC;cv.height=PH*SC;const g=cv.getContext("2d");g.scale(SC,SC);g.fillStyle="#fff";g.fillRect(0,0,PW,PH);pages.push(cv);return g};
   const foot=(g,n)=>{g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.textAlign="left";g.fillText("DeXM Management · info@dexm-m.com · +1 917 523 0461 · dexm-m.com",M,PH-28);g.textAlign="right";g.fillText(String(n),PW-M,PH-28);g.textAlign="left"};

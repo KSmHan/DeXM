@@ -3,7 +3,7 @@
 <meta name="description" content="Free 12-month P&amp;L template for manufacturers: enter monthly revenue and costs or import Excel to see gross margin, EBITDA and the EBITDA upside to your industry benchmark. Data stays in your browser.">
 <link rel="icon" href="img/dexm-mark.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
 /* Layout: header + toolbar, settings strip, summary (KPIs + chart + verdict), then the full-width 12-month P&L with a sticky label column */
 :root{
@@ -95,6 +95,7 @@ footer span{user-select:all}
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Inter:wght@400;500&display=swap">
 <link rel="stylesheet" href="css/site-header.css">
+<link rel="stylesheet" href="css/toolkit-theme.css">
 <script>if(/[?&]embed\b/.test(location.search))document.documentElement.classList.add("embed")</script>
 <style>.embed .dxh,.embed .wrap>footer{display:none}.embed body{background:transparent}.embed .wrap{padding-block:20px 32px}.embed #t-brand{pointer-events:none}</style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
@@ -280,7 +281,7 @@ function compute(m){
   const P=(a,b)=>b?a/b*100:null;
   const gmY=P(T_.gp,T_.rev),emY=P(T_.ebitda,T_.rev),nmY=P(T_.ni,T_.rev);
   const bE=+m.settings.benchE||0,bG=+m.settings.benchGM||0;
-  const upside=T_.rev?Math.max(0,(bE-(emY||0))/100*T_.rev):0;
+  const upside=Math.max(0,bE/100*T_.rev-T_.ebitda);
   const negM=ebitda.filter((v,i)=>v<0&&(rev[i]||ebitda[i])).length;
   const h1=sum12(rev.slice(0,6)),h2=sum12(rev.slice(6));
   const mat=m.lines.find(l=>l.id==="mat");const matShare=T_.rev&&mat?sum12(mat.vals)/T_.rev*100:null;
@@ -460,7 +461,7 @@ function verdictData(c){const gap=(c.emY||0)-c.bE,notes=[];
   if(c.half!=null)notes.push(T.v.half(`${c.half>=0?"+":""}${pf.format(c.half)}%`));
   if(c.matShare)notes.push(T.v.matShare(pct(c.matShare)));
   const levers=c.gmY!=null&&c.gmY<c.bG?T.v.Lgm:T.v.Lop;
-  if(!c.tot.rev)return{sev:0,h:"—",p:"",notes:[],levers:[]};
+  if(!c.tot.rev&&c.tot.ebitda>=0)return{sev:0,h:"—",p:"",notes:[],levers:[]};
   if(c.tot.ebitda<0)return{sev:2,h:T.v.loss,p:T.v.lossP(fmtU(c.upside)),notes,levers};
   if(gap>=0)return{sev:0,h:T.v.ok,p:T.v.okP(pct(c.emY),pct(c.bE)),notes,levers:[]};
   if(gap>-5)return{sev:1,h:T.v.warn(pp(-gap)),p:T.v.warnP(fmtU(c.upside)),notes,levers};
@@ -521,8 +522,8 @@ $("btnReset").onclick=()=>{model=blankModel();isSample=false;$("sample").hidden=
 
 function reportPages(){
   const c=compute(model),s=model.settings,v=verdictData(c),PW=1500,PH=1060,SC=2,M=50,CW=PW-2*M;
-  const F={sans:'"IBM Plex Sans","Segoe UI",Arial,sans-serif',mono:'"IBM Plex Mono",Menlo,monospace',disp:'"Archivo","Helvetica Neue",Arial,sans-serif'};
-  const P={fg:"#1b2224",muted:"#5d686b",line:"#d6dbd9",band:"#eef1ef",acc:"#0e6b6b",accSoft:"#dcecea",bad:"#b4442d",good:"#2f7d4f",warn:"#b7791f"};
+  const F={sans:'"Inter","Segoe UI",Arial,sans-serif',mono:'"IBM Plex Mono",Menlo,monospace',disp:'"Source Serif 4",Georgia,serif'};
+  const P={fg:"#0f1a2b",muted:"#5a6476",line:"#dcdad2",band:"#f3f1eb",acc:"#1d3a63",accSoft:"#f8f1e2",bad:"#b23f2a",good:"#2e7a4e",warn:"#b07418"};
   const pages=[];
   const newPage=()=>{const cv=document.createElement("canvas");cv.width=PW*SC;cv.height=PH*SC;const g=cv.getContext("2d");g.scale(SC,SC);g.fillStyle="#fff";g.fillRect(0,0,PW,PH);pages.push(cv);return g};
   const foot=(g,n)=>{g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.textAlign="left";g.fillText("DeXM Management · info@dexm-m.com · +1 917 523 0461 · dexm-m.com",M,PH-28);g.textAlign="right";g.fillText(String(n),PW-M,PH-28);g.textAlign="left"};
