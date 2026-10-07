@@ -102,7 +102,7 @@ footer span{user-select:all}
 </style>
 <link rel="stylesheet" href="css/site-header.css">
 <script>if(/[?&]embed\b/.test(location.search))document.documentElement.classList.add("embed")</script>
-<style>.embed .dxh,.embed .wrap>footer{display:none}.embed body{background:transparent}.embed .wrap{padding-block:20px 32px}.embed #t-brand{pointer-events:none}</style>
+<style>.embed .dxh,.embed .wrap>footer{display:none}.embed body{background:transparent}.embed .wrap{padding-block:20px 32px}.embed #t-brand{pointer-events:none}[data-linked]{background:var(--accent-soft)!important;cursor:not-allowed}.linknote::before{content:"\1F517  "}</style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
 </head><body>
@@ -517,6 +517,24 @@ $("btnPdf").onclick=async()=>{try{status(T.st.loading);await lib("jspdf");if(doc
   pages.forEach((cv,i)=>{if(i)pdf.addPage();pdf.addImage(cv.toDataURL("image/jpeg",.92),"JPEG",0,0,pw,ph)});
   await offer(fname("pdf"),pdf.output("arraybuffer"),T.st.pdf)}catch(e){console.error(e);status(T.st.fail,"err")}};
 
+const LINK_TITLE="Linked to the P&L tab of the toolkit. Change it there.";
+const LINK_NOTE="Linked to the P&L tab: company, annual revenue and annual EBITDA come from there.";
+function linkApply(L){const s=model.settings,k=["#set-company"];s.company=L.company;
+  if(L.rev!=null){const u=L.units||"",m=/000|\bk\b|тыс/i.test(u)?1e3:/\b(m|mm|mn)\b|млн/i.test(u)?1e6:1,cur=(u.match(/[$€£₽¥₸]/)||[])[0];
+    s.rev=Math.round(L.rev*m);s.ebitda=Math.round(L.ebitda*m);k.push("#set-rev","#set-ebitda");if(cur){s.cur=cur;k.push("#set-cur")}}
+  return k}
+// Toolkit link: inside /toolkit the shared numbers come from the P&L tab and are read-only here
+let LINK=null,LOCK=[];
+function enforceLink(){if(!LINK)return;const before=JSON.stringify(model);LOCK=linkApply(LINK);if(JSON.stringify(model)!==before&&!isSample)save()}
+function markLinked(){document.querySelectorAll("[data-linked]").forEach(el=>{el.readOnly=false;el.removeAttribute("data-linked");el.removeAttribute("title")});
+  let note=document.getElementById("linkNote");if(!LINK||!LOCK.length){if(note)note.hidden=true;return}
+  LOCK.forEach(sel=>{const el=document.querySelector(sel);if(el){el.readOnly=true;el.dataset.linked="1";el.title=LINK_TITLE}});
+  if(!note){note=document.createElement("div");note.id="linkNote";note.className="notice linknote";const p=document.querySelector("section.panel");p.parentNode.insertBefore(note,p)}
+  note.hidden=false;note.textContent=LINK_NOTE}
+{const rs=renderSettings,rg=renderGrid,up=update;renderSettings=function(){enforceLink();rs();markLinked()};renderGrid=function(){enforceLink();rg();markLinked()};update=function(){enforceLink();up()}}
+window.addEventListener("message",e=>{if(e.origin!==location.origin||e.source!==window.parent)return;const m=e.data;
+  if(m&&m.dexm==="link"){LINK=m.link||null;LOCK=[];renderSettings();renderGrid();markLinked()}});
+if(window.parent!==window)parent.postMessage({dexm:"ready"},location.origin);
 texts();renderSettings();renderGrid();$("sample").hidden=!isSample;
 })()}
 
