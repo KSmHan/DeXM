@@ -236,7 +236,7 @@ function sampleModel(){const m=blankModel();Object.assign(m.settings,{company:T.
 
 function compute(m){
   const n=x=>+x||0,s=m.settings,tgt=n(s.target)/100;
-  const cat={down:0,co:0,spd:0,qual:0,mat:0,bnm:0,ot:0,exp:0,war:0,inv:0,oth:0};
+  const cat={down:0,co:0,spd:0,qual:0,mat:0,bnm:0,ot:0,exp:0,war:0,inv:0,oth:0},recCat={...cat};
   const lines=m.lines.map((l,i)=>{const P=n(l.plan);if(P<=0)return{i,name:l.name||T.newLine,valid:false};
     const down=Math.min(n(l.down),P),co=Math.min(n(l.co),P-down),run=Math.max(0,P-down-co);
     const A=P?run/P:0,Pf=1-n(l.spd)/100,Q=1-n(l.scrap)/100,oee=A*Pf*Q;
@@ -245,9 +245,9 @@ function compute(m){
     const parts={down:down*n(l.cph),co:co*n(l.cph),spd:spdH*n(l.cph),qual:qualH*n(l.cph),mat:n(l.mat)*n(l.scrap)/100,bnm:l.bn?lost*n(l.cmh):0};
     const loss=Object.values(parts).reduce((a,b)=>a+b,0);
     const rec=oee<tgt&&oee<1?loss*(tgt-oee)/(1-oee):0;
-    Object.keys(parts).forEach(k=>cat[k]+=parts[k]);
+    Object.keys(parts).forEach(k=>{cat[k]+=parts[k];recCat[k]+=loss?parts[k]*rec/loss:0});
     return{i,name:l.name||T.newLine,valid:true,P,A,Pf,Q,oee,lost,loss,rec,bn:!!l.bn,cmh:n(l.cmh),rate}});
-  const other=m.other.map((o,j)=>{const amt=n(o.amt);const loss=o.id==="inv"?amt*n(s.carry)/100:amt;const rec=loss*n(o.recp)/100;cat[o.id&&cat[o.id]!==undefined?o.id:"oth"]+=loss;
+  const other=m.other.map((o,j)=>{const amt=n(o.amt);const loss=o.id==="inv"?amt*n(s.carry)/100:amt;const rec=loss*n(o.recp)/100,ck=o.id&&cat[o.id]!==undefined?o.id:"oth";cat[ck]+=loss;recCat[ck]+=rec;
     return{j,id:o.id,name:o.id?T.other[o.id]:(o.label||T.newItem),amt,loss,rec}});
   const v=lines.filter(x=>x.valid);const PT=v.reduce((a,x)=>a+x.P,0);
   const oeeAvg=PT?v.reduce((a,x)=>a+x.oee*x.P,0)/PT:null;const lost=v.reduce((a,x)=>a+x.lost,0);
@@ -257,7 +257,7 @@ function compute(m){
   const bnLine=v.filter(x=>x.bn).sort((a,b)=>a.oee-b.oee)[0]||null;const worst=[...v].sort((a,b)=>a.oee-b.oee)[0]||null;
   const avgPlan=v.length?PT/v.length:0;
   return{lines,other,valid:v,PT,oeeAvg,lost,lineLoss,otherLoss,HF,REC,cats,cum,bnLine,worst,linesIdle:avgPlan?lost/avgPlan:0,
-    rev:n(s.rev),ebitda:n(s.ebitda),target:n(s.target)}
+    rev:n(s.rev),ebitda:n(s.ebitda),target:n(s.target),recCat}
 }
 
 function parseNum(x){if(typeof x==="number")return isFinite(x)?x:null;if(x==null)return null;
@@ -417,7 +417,7 @@ function kpiData(c){const tgt=pct(c.target);return[
   [T.k.ofE,c.ebitda?pct(c.REC/c.ebitda*100):"—",T.k.ofESub,false]]}
 
 // Summary for the toolkit dashboard (/toolkit): saved locally and sent to the parent frame
-function publish(c){try{const v=verdictData(c),S=model.settings;const out={id:"hf",ts:Date.now(),sample:!!isSample,company:S.company||"",units:S.cur||"",sev:v.sev,h:String(v.h||""),p:String((v.notes||[])[0]||""),act:String((v.levers||[])[0]||""),d:{HF:c.HF,REC:c.REC,oee:c.oeeAvg,target:c.target,rev:c.rev,ebitda:c.ebitda,cats:c.cats.slice(0,5).map(([k,x])=>[T.cat[k],x])}};
+function publish(c){try{const v=verdictData(c),S=model.settings;const out={id:"hf",ts:Date.now(),sample:!!isSample,company:S.company||"",units:S.cur||"",sev:v.sev,h:String(v.h||""),p:String((v.notes||[])[0]||""),act:String((v.levers||[])[0]||""),d:{HF:c.HF,REC:c.REC,oee:c.oeeAvg,target:c.target,rev:c.rev,ebitda:c.ebitda,cats:c.cats.slice(0,5).map(([k,x])=>[T.cat[k],x]),recCat:c.recCat}};
   try{localStorage.setItem("dexm-dash-hf",JSON.stringify(out))}catch(e){}if(window.parent!==window)parent.postMessage({dexm:"summary",s:out},location.origin)}catch(e){console.error(e)}}
 function update(){const c=compute(model);publish(c);
   const set=(id,t,cls)=>{const el=$(id);if(!el)return;el.textContent=t;if(cls!==undefined)el.classList.toggle("below",!!cls)};

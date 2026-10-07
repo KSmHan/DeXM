@@ -416,8 +416,20 @@ function verdictData(c){
 function kpiData(c){return[[T.k.e0,fmt(c.E0),T.k.margin(pct(c.m0)),false],[T.k.e1,fmt(c.E1),T.k.margin(pct(c.m1)),false],[T.k.up,sgn(c.up),T.k.riskUp(sgn(c.upR)),c.up<0],
   [T.k.er,fmt(c.Er),T.k.margin(pct(c.mr)),false],[T.k.val,sgn(c.val),T.k.at(pf.format(c.mult)),c.val<0],[T.k.gap,c.m1==null?"—":(c.m1-c.bench>=0?"+":"")+pp(c.m1-c.bench),T.k.bench(pct(c.bench)),c.m1!=null&&c.m1<c.bench]]}
 
+// Lever effects by P&L line for the toolkit's Pro Forma P&L (+ = the line goes up)
+function bridgeDelta(c){const b=model.base,n=x=>+x||0,s=model.settings,R=n(b.rev),M=n(b.mat),DL=n(b.dl),OC=n(b.oc),S=n(b.sga),vl=n(s.varL)/100,vo=n(s.varO)/100;
+  const z=()=>({rev:0,mat:0,dl:0,oc:0,sga:0}),full=z(),risk=z();
+  c.items.forEach(x=>{const d=z(),p=x.val/100;
+    if(x.custom){if(x.g==="rev")d.rev=x.imp;else d.oc=-x.imp}
+    else if(x.key==="price"||x.key==="mix")d.rev=x.imp;
+    else if(x.key==="vol"){d.rev=R*p;d.mat=M*p;d.dl=DL*vl*p;d.oc=OC*vo*p}
+    else if(x.key==="mat"||x.key==="scrap")d.mat=-x.imp;
+    else if(x.key==="lab")d.dl=-x.imp;else if(x.key==="oh")d.oc=-x.imp;else if(x.key==="sga")d.sga=-x.imp;
+    else if(x.key==="infl"){d.mat=M*p;d.dl=DL*p;d.oc=OC*p;d.sga=S*p}
+    Object.keys(d).forEach(k=>{full[k]+=d[k];risk[k]+=d[k]*x.w})});
+  return{full,risk}}
 // Summary for the toolkit dashboard (/toolkit): saved locally and sent to the parent frame
-function publish(c){try{const v=verdictData(c),S=model.settings;const out={id:"bridge",ts:Date.now(),sample:!!isSample,company:S.company||"",units:S.units||"",sev:v.sev,h:String(v.h||""),p:String((v.notes||[])[0]||v.p||""),act:String((v.top||[]).length?`${T.v.top}: ${v.top.map(x=>x.name).join(", ")}`:""),d:{E0:c.E0,E1:c.E1,Er:c.Er,up:c.up,upR:c.upR,val:c.val,valR:c.valR,m0:c.m0,m1:c.m1,bench:c.bench,mult:c.mult}};
+function publish(c){try{const v=verdictData(c),S=model.settings;const out={id:"bridge",ts:Date.now(),sample:!!isSample,company:S.company||"",units:S.units||"",sev:v.sev,h:String(v.h||""),p:String((v.notes||[])[0]||v.p||""),act:String((v.top||[]).length?`${T.v.top}: ${v.top.map(x=>x.name).join(", ")}`:""),d:{E0:c.E0,E1:c.E1,Er:c.Er,up:c.up,upR:c.upR,val:c.val,valR:c.valR,m0:c.m0,m1:c.m1,bench:c.bench,mult:c.mult,delta:bridgeDelta(c)}};
   try{localStorage.setItem("dexm-dash-bridge",JSON.stringify(out))}catch(e){}if(window.parent!==window)parent.postMessage({dexm:"summary",s:out},location.origin)}catch(e){console.error(e)}}
 function update(){const c=compute(model);publish(c);
   const set=(id,v,txt)=>{const el=$(id);if(!el)return;el.textContent=txt!=null?txt:fmt(v);el.classList.toggle("neg",v!=null&&Math.round(v)<0);el.classList.toggle("posv",v!=null&&Math.round(v)>0&&txt===undefined?false:false)};

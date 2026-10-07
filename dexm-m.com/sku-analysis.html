@@ -381,7 +381,7 @@ function kpiData(c){return[[T.k.n,String(c.n),T.k.pareto(c.nA,pct(c.n?c.nA/c.n*1
 const ACT_COL={loss:"var(--bad)",core:"var(--good)",fix:"var(--warn)",niche:"var(--accent)",tail:"var(--warn)"};
 
 // Summary for the toolkit dashboard (/toolkit): saved locally and sent to the parent frame
-function publish(c){try{const v=verdictData(c),S=model.settings;const out={id:"sku",ts:Date.now(),sample:!!isSample,company:S.company||"",units:S.cur||"",sev:v.sev,h:String(v.h||""),p:String((v.notes||[])[0]||""),act:String((v.levers||[])[0]||""),d:{n:c.n,nA:c.nA,R:c.R,CM:c.CM,cmp:c.cmp,losers:c.losers.length,lossAmt:c.lossAmt,pot:c.pot,peak:c.whalePeak,cms:c.byCm.map(r=>r.cm)}};
+function publish(c){try{const v=verdictData(c),S=model.settings;const out={id:"sku",ts:Date.now(),sample:!!isSample,company:S.company||"",units:S.cur||"",sev:v.sev,h:String(v.h||""),p:String((v.notes||[])[0]||""),act:String((v.levers||[])[0]||""),d:{n:c.n,nA:c.nA,R:c.R,CM:c.CM,cmp:c.cmp,losers:c.losers.length,lossAmt:c.lossAmt,pot:c.pot,peak:c.whalePeak,cms:c.byCm.map(r=>r.cm),repr:c.reprAmt,exit:c.losers.reduce((a,r)=>{const k=model.skus[r.i],n=x=>+x||0;a.rev+=r.rev;a.mat+=r.vol*n(k.mat);a.lab+=r.vol*n(k.lab);a.oth+=r.vol*n(k.oth);return a},{rev:0,mat:0,lab:0,oth:0})}};
   try{localStorage.setItem("dexm-dash-sku",JSON.stringify(out))}catch(e){}if(window.parent!==window)parent.postMessage({dexm:"summary",s:out},location.origin)}catch(e){console.error(e)}}
 function update(){const c=compute(model);publish(c);
   c.rows.forEach(r=>{const set=(id,txt,neg)=>{const el=$(id);if(!el)return;el.textContent=txt;el.classList.toggle("neg",!!neg)};

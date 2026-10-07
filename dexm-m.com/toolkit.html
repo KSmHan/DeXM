@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>DeXM Toolkit — DeXM Management</title>
-<meta name="description" content="Five DeXM tools in one place with a one-sight dashboard: P&amp;L, 13-week cash forecast, EBITDA bridge, hidden factory and SKU analysis. Your data stays in your browser.">
+<meta name="description" content="DeXM tools in one place: baseline P&amp;L, 13-week cash forecast, hidden factory, SKU analysis and EBITDA bridge, ending in a Pro Forma P&amp;L and a one-sight dashboard. Your data stays in your browser.">
 <link rel="icon" href="img/dexm-mark.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -39,6 +39,8 @@ h1{font:800 clamp(26px,4vw,38px)/1.1 var(--display);margin:6px 0 0;letter-spacin
 .tab:hover{color:var(--fg)}
 .tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent);font-weight:600}
 .tab:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.step{font:600 11px/1 var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:3px 5px}
+.tab[aria-selected="true"] .step{color:var(--accent);border-color:var(--accent)}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--line);flex:none}
 
 /* Dashboard */
@@ -115,10 +117,42 @@ h1{font:800 clamp(26px,4vw,38px)/1.1 var(--display);margin:6px 0 0;letter-spacin
 .frame-wrap{max-width:1320px;margin:0 auto}
 [hidden]{display:none!important}
 
+#view-proforma{padding-block:22px 48px;display:flex;flex-direction:column;gap:18px}
+.pf-intro h2{font:700 clamp(21px,2.4vw,26px)/1.2 var(--display);margin:6px 0 6px}
+.pf-intro p{margin:0;color:var(--muted);font-size:14px;max-width:90ch}
+.pf-ctrl{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;font-size:14px}
+.pf-ctrl label{display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+.pf-ctrl input{accent-color:var(--accent);width:16px;height:16px}
+.pf-ctrl select{font:14px var(--body);padding:5px 8px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg)}
+.pf-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+@media (max-width:900px){.pf-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pf-kpis .metric:last-child:nth-child(odd){grid-column:1/-1}}
+@media (max-width:620px){table.pf{min-width:640px;font-size:12.5px}table.pf th.l,table.pf td.l{white-space:normal;min-width:130px;max-width:150px}table.pf th,table.pf td{padding:8px 9px}}
+.pf-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:980px){.pf-grid{grid-template-columns:1fr}}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table.pf{border-collapse:separate;border-spacing:0;width:100%;font-size:13.5px;min-width:720px}
+table.pf th,table.pf td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;font-family:var(--mono);font-variant-numeric:tabular-nums}
+table.pf thead th{font:500 11px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface);vertical-align:bottom}
+table.pf thead th small{display:block;letter-spacing:0;text-transform:none;font-size:11px}
+table.pf th.l,table.pf td.l{text-align:left;font-family:var(--body);position:sticky;left:0;background:var(--surface);z-index:1;border-right:1px solid var(--line)}
+table.pf tr.sub td{font-weight:600;background:var(--band)} table.pf tr.sub td.l{background:var(--band)}
+table.pf tr.key td{font-weight:700;background:var(--accent-soft)} table.pf tr.key td.l{background:var(--accent-soft)}
+table.pf tr.pct td{color:var(--muted);font-size:12.5px}
+table.pf td.pf,table.pf th.pf{background:var(--accent-soft);font-weight:600}
+table.pf tr.sub td.pf,table.pf tr.key td.pf{background:var(--accent-soft)}
+table.pf .off{opacity:.38}
+table.pf .g{color:var(--good)} table.pf .r{color:var(--bad)}
+.pf-chart canvas{width:100%;height:260px;display:block}
+.pf-notes{font-size:13px;color:var(--muted)}
+.pf-notes summary{cursor:pointer;color:var(--fg);font-weight:500}
+.pf-notes ul{margin:8px 0 0;padding-left:18px;display:grid;gap:4px}
+.callout{font-size:13.5px;padding:10px 14px;border-radius:6px;border:1px solid var(--line);background:var(--surface);border-left:4px solid var(--warn)}
+.callout.ok{border-left-color:var(--good)} .callout.bad{border-left-color:var(--bad)}
+.empty{padding:28px;text-align:center;color:var(--muted)}
 footer.site{border-top:1px solid var(--line);padding-block:14px 28px;font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
 
 @media print{
-  .dxh,.tabbar,.frames,.actions .btn,footer.site,.tile .open,.next button{display:none!important}
+  .dxh,.tabbar,.frames,.actions .btn,.pf-actions,.pf-ctrl,footer.site,.tile .open,.next button{display:none!important}
   body{background:#fff}
   .panel,.tile{break-inside:avoid}
   .tiles{grid-template-columns:repeat(5,minmax(0,1fr))}
@@ -147,7 +181,7 @@ footer.site{border-top:1px solid var(--line);padding-block:14px 28px;font-size:1
 <div class="wrap page-head">
   <a href="/tools" class="brand" style="display:block;text-decoration:none">DeXM Management · toolkit</a>
   <h1>DeXM Toolkit: the whole picture on one screen</h1>
-  <p class="lede">Five tools in one place: P&amp;L, 13-week cash, EBITDA bridge, hidden factory and SKU analysis. Fill in any tool or import Excel, and the dashboard updates right away. Your data stays in your browser.</p>
+  <p class="lede">Work through it in order: 1 baseline P&amp;L, 2 13-week cash, 3 hidden factory, 4 SKU analysis, 5 EBITDA bridge. Step 6, the Pro Forma P&amp;L, puts the baseline and the P&amp;L after the plan side by side. The dashboard updates as you go. Your data stays in your browser.</p>
 </div>
 
 <div class="tabbar"><div class="wrap"><div class="tabs" role="tablist" id="tabs"></div></div></div>
@@ -166,6 +200,7 @@ footer.site{border-top:1px solid var(--line);padding-block:14px 28px;font-size:1
       <button class="btn" id="btnPrint" type="button">Print dashboard</button>
     </div>
   </section>
+  <section class="wrap" id="view-proforma" role="tabpanel" aria-labelledby="tab-proforma" hidden></section>
   <div class="frames idle" id="frames"><div class="frame-wrap" id="frameWrap"></div></div>
 </main>
 
@@ -173,12 +208,13 @@ footer.site{border-top:1px solid var(--line);padding-block:14px 28px;font-size:1
 
 <script>
 (function(){
+// Fill-in order: baseline P&L, cash, hidden factory, SKUs, EBITDA bridge, then the Pro Forma P&L built from all of them
 const TOOLS=[
-  {id:"pl",file:"pl",name:"P&L"},
-  {id:"cash",file:"cash-forecast",name:"13-Week Cash"},
-  {id:"bridge",file:"ebitda-bridge",name:"EBITDA Bridge"},
-  {id:"hf",file:"hidden-factory",name:"Hidden Factory"},
-  {id:"sku",file:"sku-analysis",name:"SKU Analysis"}];
+  {id:"pl",file:"pl",name:"P&L",step:1},
+  {id:"cash",file:"cash-forecast",name:"13-Week Cash",step:2},
+  {id:"hf",file:"hidden-factory",name:"Hidden Factory",step:3},
+  {id:"sku",file:"sku-analysis",name:"SKU Analysis",step:4},
+  {id:"bridge",file:"ebitda-bridge",name:"EBITDA Bridge",step:5}];
 const BY=Object.fromEntries(TOOLS.map(t=>[t.id,t]));
 const PRIORITY=["cash","pl","hf","sku","bridge"];   // which tool speaks first when several share the worst status
 const SEV=["On track","Watch","Critical"];
@@ -200,19 +236,19 @@ const pct=v=>v==null||!isFinite(v)?"—":(Math.round(v*10)/10).toFixed(1)+"%";
 
 /* Tabs and frames */
 const ext=/\.html$/.test(location.pathname)?".html":"";   // local preview serves files with .html
-const VIEWS=[{id:"dashboard",name:"Dashboard"},...TOOLS];
-$("tabs").innerHTML=VIEWS.map(v=>`<button class="tab" role="tab" id="tab-${v.id}" data-view="${v.id}" aria-selected="false">${v.id==="dashboard"?"":`<span class="dot" id="dot-${v.id}"></span>`}${esc(v.name)}</button>`).join("");
+const VIEWS=[{id:"dashboard",name:"Dashboard"},...TOOLS,{id:"proforma",name:"Pro Forma P&L",step:6}];
+$("tabs").innerHTML=VIEWS.map(v=>`<button class="tab" role="tab" id="tab-${v.id}" data-view="${v.id}" aria-selected="false">${BY[v.id]?`<span class="dot" id="dot-${v.id}"></span>`:""}${v.step?`<span class="step">${v.step}</span>`:""}${esc(v.name)}</button>`).join("");
 const frames={};
 TOOLS.forEach(t=>{const f=document.createElement("iframe");f.title=t.name;f.src=`${t.file}${ext}?embed=1`;f.loading="eager";f.setAttribute("role","tabpanel");$("frameWrap").appendChild(f);frames[t.id]=f});
 let view="dashboard";
 function show(id,push){if(!VIEWS.some(v=>v.id===id))id="dashboard";view=id;
   VIEWS.forEach(v=>$("tab-"+v.id).setAttribute("aria-selected",String(v.id===id)));
-  $("view-dashboard").hidden=id!=="dashboard";$("frames").classList.toggle("idle",id==="dashboard");
+  $("view-dashboard").hidden=id!=="dashboard";$("view-proforma").hidden=id!=="proforma";$("frames").classList.toggle("idle",!BY[id]);
   TOOLS.forEach(t=>frames[t.id].classList.toggle("active",t.id===id));
   if(push!==false)history.replaceState(null,"",id==="dashboard"?location.pathname+location.search:"#"+id);
   const bar=document.querySelector(".tabbar");if(bar.getBoundingClientRect().top<0||window.scrollY>bar.offsetTop)window.scrollTo({top:bar.offsetTop,behavior:"instant"});
   $("tab-"+id).scrollIntoView({block:"nearest",inline:"nearest"});
-  if(id==="dashboard")draw()}
+  if(id==="dashboard")draw();if(id==="proforma")renderPF()}
 $("tabs").addEventListener("click",e=>{const b=e.target.closest("[data-view]");if(b)show(b.dataset.view)});
 $("tabs").addEventListener("keydown",e=>{if(!["ArrowLeft","ArrowRight"].includes(e.key))return;const i=VIEWS.findIndex(v=>v.id===view),n=VIEWS[(i+(e.key==="ArrowRight"?1:VIEWS.length-1))%VIEWS.length];show(n.id);$("tab-"+n.id).focus()});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-open]");if(b)show(b.dataset.open)});
@@ -246,8 +282,9 @@ function renderOverall(){const have=TOOLS.filter(t=>S[t.id]);const el=$("overall
   if(S.pl&&S.pl.d.rev){const d=S.pl.d,u=S.pl.units;m.push(["Revenue, 12 months",money(d.rev,u),"P&L",false]);
     m.push(["EBITDA",money(d.ebitda,u),`margin ${pct(d.em)} · benchmark ${pct(d.bE)}`,d.ebitda<0||(d.em!=null&&d.em<d.bE)])}
   if(S.cash){const d=S.cash.d,u=S.cash.units;m.push(["Lowest cash, 13 weeks",money(d.low,u),d.firstBelow>=0?`week ${d.lowW} · below minimum`:`week ${d.lowW}`,d.firstBelow>=0||d.low<0])}
-  const op=opportunities().filter(o=>o.v>0).sort((a,b)=>b.v-a.v)[0];
-  if(op){const be=baseEbitda();m.push(["Largest EBITDA upside",usd(op.v),`${BY[op.id].name}${be>0?` · ${pct(op.v/be*100)} of EBITDA`:""}`,false])}
+  const pfm=pfModel(),op=opportunities().filter(o=>o.v>0).sort((a,b)=>b.v-a.v)[0];
+  if(pfm){const up=pfm.plan.ebitda-pfm.base.ebitda;m.push(["Pro Forma EBITDA",money(pfm.plan.ebitda,pfm.U),`${up>=0?"+":""}${money(up,pfm.U)} · margin ${pct(pfm.plan.em)} (step 6)`,false])}
+  else if(op){const be=baseEbitda();m.push(["Largest EBITDA upside",usd(op.v),`${BY[op.id].name}${be>0?` · ${pct(op.v/be*100)} of EBITDA`:""}`,false])}
   el.className="panel overall"+(worst>=0?" s"+worst:"");
   el.innerHTML=`<div class="ov-head"><span class="label">Overall</span>${worst>=0?`<span class="chip s${worst}">${SEV[worst]}</span>`:""}<span class="meta">${esc(company)}${company&&ts?" · ":""}${ts?"updated "+new Date(ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}):""}</span></div>
     <h2>${esc(h)}</h2><p class="sub">${esc(sub)}</p>
@@ -299,8 +336,104 @@ const MINI={
   sku:(cv,s)=>{const v=s.d.cms||[];bars(cv,v,x=>x<0?css("--bad"):css("--good"))}};
 function draw(){if(view!=="dashboard")return;TOOLS.forEach(t=>{const cv=$("mini-"+t.id);if(cv&&S[t.id])MINI[t.id](cv,S[t.id])})}
 
-function render(){$("sampleNote").hidden=!TOOLS.some(t=>S[t.id]&&S[t.id].sample);renderTabs();renderOverall();renderOpp();renderTiles();renderNext();draw()}
-window.addEventListener("resize",()=>{clearTimeout(window.__rz);window.__rz=setTimeout(draw,120)});
+/* Pro Forma P&L: the baseline from step 1 plus the effects of Hidden Factory, SKU Analysis and the EBITDA Bridge, mapped to P&L lines */
+const PFKEY="dexm-proforma";const PF={hf:true,sku:true,bridge:true,basis:"risk"};
+try{Object.assign(PF,JSON.parse(localStorage.getItem(PFKEY)||"{}"))}catch(e){}
+const PF_LINES=[["rev","Revenue"],["mat","Raw materials"],["dl","Direct labor"],["oc","Other COGS (energy, overhead, freight)"],["gp","Gross profit","sub"],["gm","Gross margin, %","pct"],["sga","Operating expenses (SG&A)"],["ebitda","EBITDA","key"],["em","EBITDA margin, %","pct"]];
+const PF_SRC=[["hf","Hidden Factory","recoverable at target OEE"],["sku","SKU Analysis","repricing and exits"],["bridge","EBITDA Bridge",""]];
+const COST={mat:1,dl:1,oc:1,sga:1};
+const zero=()=>({rev:0,mat:0,dl:0,oc:0,sga:0});
+function pfModel(){
+  if(!S.pl||!S.pl.d.base||!(S.pl.d.base.rev>0))return null;
+  const U=S.pl.units,mU=mult(U),B=S.pl.d.base,conv=(v,u)=>abs(v,u)/mU,cols={};
+  if(S.hf&&S.hf.d.recCat){const r=S.hf.d.recCat,c=k=>conv(r[k]||0,S.hf.units),d=zero();
+    // lost machine time is priced at conversion cost: split between direct labor and other COGS by the baseline mix
+    const time=c("down")+c("co")+c("spd")+c("qual"),dlSh=B.dl+B.oc>0?B.dl/(B.dl+B.oc):.5;
+    d.dl=-(time*dlSh+c("ot"));d.oc=-(time*(1-dlSh)+c("exp")+c("war")+c("inv")+c("oth"));d.mat=-c("mat");
+    // bottleneck margin comes back as extra sales at the baseline material share
+    const ms=Math.min(.9,Math.max(0,B.mat/B.rev)),xr=c("bnm")/(1-ms);d.rev=xr;d.mat+=xr*ms;cols.hf=d}
+  if(S.sku&&S.sku.d.exit){const u=S.sku.units,e=S.sku.d.exit,d=zero();
+    d.rev=conv(S.sku.d.repr||0,u)-conv(e.rev,u);d.mat=-conv(e.mat,u);d.dl=-conv(e.lab,u);d.oc=-conv(e.oth,u);cols.sku=d}
+  if(S.bridge&&S.bridge.d.delta){const src=S.bridge.d.delta[PF.basis==="full"?"full":"risk"],d=zero();Object.keys(d).forEach(k=>d[k]=conv(src[k]||0,S.bridge.units));cols.bridge=d}
+  const inc=id=>PF[id]&&!!cols[id];
+  const plan={rev:B.rev,mat:B.mat,dl:B.dl,oc:B.oc,sga:B.sga};PF_SRC.forEach(([id])=>{if(inc(id))Object.keys(plan).forEach(k=>plan[k]+=cols[id][k])});
+  const fill=x=>{const gp=x.rev-x.mat-x.dl-x.oc,e=gp-x.sga;return{...x,gp,ebitda:e,gm:x.rev?gp/x.rev*100:null,em:x.rev?e/x.rev*100:null}};
+  const adj=d=>{const gp=d.rev-d.mat-d.dl-d.oc;return{...d,gp,ebitda:gp-d.sga}};
+  Object.keys(cols).forEach(k=>cols[k]=adj(cols[k]));
+  return{U,base:fill({rev:B.rev,mat:B.mat,dl:B.dl,oc:B.oc,sga:B.sga}),plan:fill(plan),cols,inc,mult:S.bridge&&S.bridge.d.mult}}
+const nf0=new Intl.NumberFormat("en-US",{maximumFractionDigits:0});
+const num=v=>{if(v==null||!isFinite(v))return "—";v=Math.round(v);return v<0?`(${nf0.format(-v)})`:nf0.format(v)};
+const sgn=v=>{v=Math.round(v||0);return !v?"—":(v>0?"+":"−")+nf0.format(Math.abs(v))};
+const pp=v=>v==null||!isFinite(v)?"—":(v>=0?"+":"−")+Math.abs(Math.round(v*10)/10).toFixed(1)+" pts";
+function renderPF(){const el=$("view-proforma");if(!el||view!=="proforma")return;const m=pfModel();
+  if(!m){el.innerHTML=`<div class="panel empty"><p><b>Start with step 1, the P&amp;L.</b> The Pro Forma P&amp;L uses its 12-month totals as the baseline.</p><button class="btn" type="button" data-open="pl">Open the P&amp;L</button></div>`;return}
+  const b=m.base,p=m.plan,U=esc(m.U),up=p.ebitda-b.ebitda;
+  const cash=S.cash?S.cash.d:null;
+  const cashNote=!cash?"":cash.firstOut>=0?`<div class="callout bad"><b>Cash check (step 2):</b> cash runs out in week ${cash.firstOut+1} even with the credit line. Secure funding before starting changes that cost money upfront.</div>`
+    :cash.firstBelow>=0?`<div class="callout"><b>Cash check (step 2):</b> cash drops to ${money(cash.low,S.cash.units)} in week ${cash.lowW}, below the minimum. Phase the plan so the costly steps come after that week.</div>`
+    :`<div class="callout ok"><b>Cash check (step 2):</b> cash stays above the minimum for all 13 weeks (lowest ${money(cash.low,S.cash.units)} in week ${cash.lowW}).</div>`;
+  const k=[["Baseline EBITDA",money(b.ebitda,m.U),`margin ${pct(b.em)}`],["Pro Forma EBITDA",money(p.ebitda,m.U),`margin ${pct(p.em)}`],
+    ["EBITDA uplift",(up>=0?"+":"")+money(up,m.U),pp(p.em-b.em)+" of margin"],["Pro Forma revenue",money(p.rev,m.U),`baseline ${money(b.rev,m.U)}`],
+    m.mult?["Value created",(up>=0?"+":"")+money(up*m.mult,m.U),`at ${m.mult}x EBITDA (from step 5)`]:["Change in costs",money(p.mat+p.dl+p.oc+p.sga-(b.mat+b.dl+b.oc+b.sga),m.U),"all cost lines"]];
+  const hdr=PF_SRC.map(([id,n,sub])=>`<th class="${m.inc(id)?"":"off"}">${esc(n)}<small>${m.cols[id]?(m.inc(id)?(id==="bridge"?(PF.basis==="full"?"full plan":"risk-weighted"):sub):"not included"):"no data yet"}</small></th>`).join("");
+  const rows=PF_LINES.map(([key,label,cls])=>{const isPct=cls==="pct";
+    const cell=(v,col)=>{if(isPct)return `<td></td>`;if(v==null)return `<td>—</td>`;const good=COST[key]?v<0:v>0;return `<td class="${m.inc(col)?"":"off"} ${Math.round(v)?good?"g":"r":""}">${sgn(v)}</td>`};
+    const ch=isPct?pp(p[key]-b[key]):sgn(p[key]-b[key]),chGood=COST[key]?p[key]<b[key]:p[key]>b[key];
+    return `<tr class="${cls||""}"><td class="l">${esc(label)}</td><td>${isPct?pct(b[key]):num(b[key])}</td>${PF_SRC.map(([id])=>cell(m.cols[id]?m.cols[id][key]:null,id)).join("")}<td class="pf">${isPct?pct(p[key]):num(p[key])}</td><td class="${Math.abs(p[key]-b[key])>.5?chGood?"g":"r":""}">${ch}</td></tr>`}).join("");
+  el.innerHTML=`<div class="panel pf-intro"><span class="label">Step 6 · result</span><h2>Pro Forma P&amp;L: baseline vs after the plan</h2>
+      <p>Two annual P&amp;Ls side by side: the baseline from step 1 and the Pro Forma after the effects found in Hidden Factory (step 3), SKU Analysis (step 4) and the EBITDA Bridge (step 5). Change any tool and this page updates. Figures in ${U}.</p></div>
+    <div class="panel pf-ctrl"><span class="label">Include</span>
+      ${PF_SRC.map(([id,n])=>`<label><input type="checkbox" data-pf="${id}" ${PF[id]?"checked":""}>${esc(n)}</label>`).join("")}
+      <label>EBITDA Bridge as <select data-pf="basis"><option value="risk" ${PF.basis!=="full"?"selected":""}>risk-weighted</option><option value="full" ${PF.basis==="full"?"selected":""}>full plan</option></select></label></div>
+    ${cashNote}
+    <div class="pf-kpis">${k.map(([l,v,s2])=>`<div class="metric"><span class="label">${esc(l)}</span><b>${esc(v)}</b><small>${esc(s2)}</small></div>`).join("")}</div>
+    <div class="tablewrap"><table class="pf"><thead><tr><th class="l">${U} · 12 months</th><th>Baseline<small>step 1 · P&amp;L</small></th>${hdr}<th class="pf">Pro Forma<small>after the plan</small></th><th>Change</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="pf-grid"><div class="panel pf-chart"><span class="label">EBITDA, baseline to Pro Forma</span><canvas id="pfChart" aria-label="EBITDA waterfall from baseline to Pro Forma"></canvas></div>
+      <div class="panel pf-notes"><span class="label">How the effects are mapped</span>
+        <p>Effects from different tools can overlap: for example, scrap appears in Hidden Factory and in the bridge's scrap lever, and SKU repricing in the bridge's price lever. Untick a source or zero the duplicate lever to avoid counting it twice.</p>
+        <details><summary>Mapping rules</summary><ul>
+          <li><b>Hidden Factory:</b> scrap materials reduce raw materials; lost machine time (breakdowns, changeovers, speed, scrap time) reduces direct labor and other COGS in the baseline mix; overtime reduces direct labor; expediting, warranty, inventory carrying and other losses reduce other COGS; recovered bottleneck margin becomes extra revenue with materials at the baseline share.</li>
+          <li><b>SKU Analysis:</b> repricing to target margin adds revenue; exiting loss-making SKUs removes their revenue, materials, labor and other variable costs.</li>
+          <li><b>EBITDA Bridge:</b> price and mix add revenue; volume adds revenue with its variable costs; purchasing and scrap reduce materials; labor, overhead and SG&amp;A levers reduce those lines; inflation raises all cost lines.</li>
+          <li>Amounts from tools in other units are converted to ${U}.</li></ul></details></div></div>
+    <div class="actions pf-actions"><span>Baseline from step 1. Each source keeps its own inputs; this page only adds them up.</span><span><button class="btn" type="button" id="btnPfXlsx">Download Excel</button> <button class="btn" type="button" id="btnPfPrint">Print</button></span></div>
+    <p class="foot-note" id="pfStatus" role="status"></p>`;
+  drawPF(m)}
+function drawPF(m){const cv=$("pfChart");if(!cv||!m)return;const c=prep(cv);if(!c)return;const{g,w,h}=c;
+  const steps=[["Baseline",m.base.ebitda,"base"],...PF_SRC.filter(([id])=>m.inc(id)).map(([id,n])=>[n,m.cols[id].ebitda,"d"]),["Pro Forma",m.plan.ebitda,"end"]];
+  let run=0;const bars=steps.map(([l,v,t])=>{if(t==="base"){run=v;return{l,lo:0,hi:v,t,v}}if(t==="end")return{l,lo:0,hi:v,t,v};const a=run;run+=v;return{l,lo:Math.min(a,run),hi:Math.max(a,run),t,v}});
+  const lo=Math.min(0,...bars.map(x=>x.lo)),hi=Math.max(1,...bars.map(x=>x.hi))*1.12,padB=26,padT=8,H=h-padB-padT,y=v=>padT+(hi-v)/(hi-lo)*H,bw=w/bars.length;
+  g.font=`11px ${css("--mono")}`;g.textAlign="center";
+  g.fillStyle=css("--line");g.fillRect(0,Math.round(y(0)),w,1);
+  bars.forEach((x,i)=>{const cx=i*bw+bw/2;g.fillStyle=x.t==="base"?css("--steel"):x.t==="end"?css("--accent"):x.v>=0?css("--good"):css("--bad");
+    g.fillRect(cx-bw*.3,y(x.hi),bw*.6,Math.max(1,y(x.lo)-y(x.hi)));g.fillStyle=css("--fg");g.textBaseline="bottom";g.fillText(x.t==="d"?sgn(x.v):num(x.v),cx,y(x.hi)-3);
+    g.fillStyle=css("--muted");g.textBaseline="top";let t=x.l;while(t.length>4&&g.measureText(t).width>bw-4)t=t.slice(0,-2)+"…";g.fillText(t,cx,h-padB+8)})}
+document.addEventListener("change",e=>{const k=e.target.dataset&&e.target.dataset.pf;if(!k)return;if(k==="basis")PF.basis=e.target.value;else PF[k]=e.target.checked;
+  try{localStorage.setItem(PFKEY,JSON.stringify(PF))}catch(err){}renderPF();schedule()});
+document.addEventListener("click",e=>{if(e.target.id==="btnPfPrint")window.print();if(e.target.id==="btnPfXlsx")pfXlsx()});
+let xlsxP=null;const loadXlsx=()=>xlsxP||(xlsxP=new Promise((res,rej)=>{const sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";sc.onload=res;sc.onerror=()=>{xlsxP=null;rej(new Error("load"))};document.head.appendChild(sc)}));
+async function pfXlsx(){const m=pfModel(),st=$("pfStatus");if(!m)return;try{st.textContent="Preparing Excel…";await loadXlsx();
+  const company=(TOOLS.map(t=>S[t.id]&&S[t.id].company).find(Boolean))||"";
+  const rows=[["Pro Forma P&L"],["Company",company],["Units",m.U],["Included",PF_SRC.filter(([id])=>m.inc(id)).map(([id,n])=>id==="bridge"?`${n} (${PF.basis==="full"?"full plan":"risk-weighted"})`:n).join(", ")||"none"],[],
+    ["Line","Baseline",...PF_SRC.map(([,n])=>n),"Pro Forma","Change"]];
+  const R0=rows.length+1,L={};const C=["B","C","D","E","F","G"];
+  PF_LINES.forEach(([key,label],i)=>{L[key]=R0+i;rows.push([label])});
+  const ws=XLSX.utils.aoa_to_sheet(rows);const set=(a,v)=>{ws[a]=v};
+  ["rev","mat","dl","oc","sga"].forEach(key=>{const r=L[key];set("B"+r,{t:"n",v:Math.round(m.base[key])});
+    PF_SRC.forEach(([id],j)=>set(C[j+1]+r,{t:"n",v:m.cols[id]?Math.round(m.cols[id][key]):0}));
+    set("F"+r,{t:"n",f:["B"+r,...PF_SRC.map(([id],j)=>m.inc(id)?C[j+1]+r:null).filter(Boolean)].join("+")})});
+  C.slice(0,5).forEach(col=>{set(col+L.gp,{t:"n",f:`${col}${L.rev}-${col}${L.mat}-${col}${L.dl}-${col}${L.oc}`});set(col+L.ebitda,{t:"n",f:`${col}${L.gp}-${col}${L.sga}`})});
+  ["B","F"].forEach(col=>{set(col+L.gm,{t:"n",f:`IF(${col}${L.rev}=0,0,${col}${L.gp}/${col}${L.rev})`,z:"0.0%"});set(col+L.em,{t:"n",f:`IF(${col}${L.rev}=0,0,${col}${L.ebitda}/${col}${L.rev})`,z:"0.0%"})});
+  PF_LINES.forEach(([key,,cls])=>{const r=L[key];set("G"+r,cls==="pct"?{t:"n",f:`F${r}-B${r}`,z:"0.0%"}:{t:"n",f:`F${r}-B${r}`})});
+  Object.keys(ws).forEach(a=>{if(a[0]!=="!"&&ws[a].t==="n"&&!ws[a].z&&+a.slice(1)>=R0)ws[a].z="#,##0;(#,##0)"});
+  ws["!ref"]=`A1:G${R0+PF_LINES.length-1}`;ws["!cols"]=[{wch:40},{wch:13},{wch:15},{wch:14},{wch:15},{wch:13},{wch:12}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Pro Forma P&L");const data=XLSX.write(wb,{bookType:"xlsx",type:"array"});
+  const url=URL.createObjectURL(new Blob([data],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));const a=document.createElement("a");a.href=url;
+  a.download=`${(company||"DeXM").replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-|-$/g,"")||"DeXM"}-Pro-Forma-PL.xlsx`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);st.textContent="Excel file saved"}
+  catch(err){console.error(err);st.textContent="Could not create the file. Try again."}}
+
+function render(){$("sampleNote").hidden=!TOOLS.some(t=>S[t.id]&&S[t.id].sample);renderTabs();renderOverall();renderOpp();renderTiles();renderNext();draw();if(view==="proforma")renderPF()}
+window.addEventListener("resize",()=>{clearTimeout(window.__rz);window.__rz=setTimeout(()=>{draw();if(view==="proforma")drawPF(pfModel())},120)});
 const mq=matchMedia("(prefers-color-scheme: dark)");mq.addEventListener&&mq.addEventListener("change",draw);
 $("btnPrint").addEventListener("click",()=>{show("dashboard");setTimeout(()=>window.print(),50)});
 
