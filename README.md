@@ -17,6 +17,8 @@ Operating partner for PE sponsors, owners and management teams of manufacturing 
 | P&L Statement | https://www.dexm-m.com/pl |
 | 13-Week Cash Forecast | https://www.dexm-m.com/cash-forecast |
 | EBITDA Bridge | https://www.dexm-m.com/ebitda-bridge |
+| Hidden Factory | https://www.dexm-m.com/hidden-factory |
+| SKU Analysis | https://www.dexm-m.com/sku-analysis |
 
 ## Repository layout
 

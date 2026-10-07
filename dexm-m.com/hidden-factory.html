@@ -1,0 +1,521 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Hidden Factory — DeXM Management</title>
+<meta name="description" content="Free hidden factory calculator: enter planned time, breakdowns, changeovers, speed losses and scrap per line to see OEE, lost hours, their cost and what you can recover at your target OEE. Data stays in your browser.">
+<link rel="icon" href="img/dexm-mark.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: header + toolbar, settings strip, summary (KPIs + loss Pareto + verdict), then the lines table (OEE losses) and the other-losses table */
+:root{
+  --bg:#f3f4f2; --surface:#ffffff; --fg:#1b2224; --muted:#5d686b; --line:#d6dbd9;
+  --accent:#0e6b6b; --accent-soft:#dcecea; --steel:#3c4a4f; --band:#eef1ef;
+  --good:#2f7d4f; --warn:#b7791f; --bad:#b4442d; --bad-soft:#f6e3de;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131819; --surface:#1b2224; --fg:#e6ebea; --muted:#9aa6a8; --line:#2e3739;
+  --accent:#4fb3ad; --accent-soft:#1f3534; --steel:#b9c5c7; --band:#20292b;
+  --good:#5fbf86; --warn:#e0a84a; --bad:#e2765f; --bad-soft:#3a2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131819; --surface:#1b2224; --fg:#e6ebea; --muted:#9aa6a8; --line:#2e3739;
+  --accent:#4fb3ad; --accent-soft:#1f3534; --steel:#b9c5c7; --band:#20292b;
+  --good:#5fbf86; --warn:#e0a84a; --bad:#e2765f; --bad-soft:#3a2420; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:20px;padding-block:28px 48px;display:flex;flex-direction:column;gap:20px}
+header{border-bottom:2px solid var(--fg);padding-bottom:14px}
+.brand{font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font:800 clamp(26px,4vw,38px)/1.1 var(--display);margin:6px 0 0;text-wrap:balance;letter-spacing:-.01em}
+.lede{max-width:72ch;color:var(--muted);margin:8px 0 0}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,.filebtn{font:500 14px var(--body);border-radius:4px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg);display:inline-flex;align-items:center}
+button.primary,.filebtn{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.filebtn input{position:absolute;width:1px;height:1px;opacity:0}
+.status{font-size:13px;color:var(--muted);min-height:1.2em;flex-basis:100%}
+.status.ok{color:var(--good)} .status.err{color:var(--bad)}
+.notice{font-size:13px;background:var(--accent-soft);padding:10px 12px;border-radius:4px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px}
+.label{font:500 11px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 16px}
+.field{display:flex;flex-direction:column;justify-content:space-between;gap:4px;min-width:0}
+.field input{font:15px var(--body);padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);width:100%;min-width:0}
+.field input.num{font-family:var(--mono);text-align:right}
+.summary{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px}
+@media (max-width:900px){.summary{grid-template-columns:1fr}}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-bottom:14px}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi b{font:600 20px/1.2 var(--mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.kpi small{font-size:12px;color:var(--muted)}
+.kpi.bad b{color:var(--bad)}
+canvas{width:100%;height:240px;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:12px;height:10px;margin-right:5px;vertical-align:-1px;border-radius:2px}
+.verdict h2{font:700 21px/1.25 var(--display);margin:8px 0 6px;text-wrap:balance}
+.verdict p{margin:0 0 8px;font-size:14px;color:var(--muted)}
+.verdict ul{margin:4px 0 10px;padding-left:18px;font-size:14px;display:grid;gap:3px}
+.sev{display:inline-block;font:500 12px var(--mono);padding:2px 8px;border-radius:3px;color:var(--surface)}
+.cta{border-top:1px solid var(--line);padding-top:10px;font-size:14px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:separate;border-spacing:0;font-size:13px;min-width:100%}
+th,td{padding:0;border-bottom:1px solid var(--line);white-space:nowrap}
+thead th{font:500 11px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:10px 6px;text-align:right;background:var(--surface);position:sticky;top:0}
+thead th small{display:block;font-size:11px;letter-spacing:0;text-transform:none}
+th.lab,td.lab{position:sticky;left:0;z-index:1;background:var(--surface);text-align:left;padding:6px 10px;min-width:230px;max-width:280px;border-right:1px solid var(--line)}
+thead th.lab{z-index:2}
+td.lab{white-space:normal}
+td.lab input{font:13px var(--body);border:1px dashed var(--line);border-radius:3px;padding:3px 6px;background:var(--bg);color:var(--fg);width:calc(100% - 30px)}
+td.lab .del{padding:0 6px;margin-left:4px;font-size:15px;line-height:1.4;border:0;background:none;color:var(--muted)}
+td.v{text-align:right;padding:0 2px}
+td.v input{width:84px;font:13px var(--mono);text-align:right;border:1px solid transparent;border-radius:3px;padding:5px 6px;background:var(--bg);color:var(--fg);font-variant-numeric:tabular-nums}
+td.v input:hover{border-color:var(--line)}
+td.c{text-align:right;padding:6px 8px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+td.tot{font-weight:600;background:var(--band)}
+tr.sec td{background:var(--band);font:600 12px var(--body);letter-spacing:.04em;text-transform:uppercase;padding:8px 10px}
+tr.sec td.lab{background:var(--band)}
+tr.sub td{font-weight:600}
+tr.key td{font-weight:600;background:var(--accent-soft)}
+tr.key td.lab{background:var(--accent-soft)}
+td.neg{color:var(--bad)}
+td.below{background:var(--bad-soft)!important;color:var(--bad)}
+tr.add td{padding:4px 10px;border-bottom:1px solid var(--line)}
+tr.add button{font-size:12px;padding:3px 8px;border-style:dashed;background:none;color:var(--accent)}
+input[type=number]{-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+footer{padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+th.tl,td.tl{text-align:left;padding:6px 8px}
+.tblh{font:700 18px/1.2 var(--display);margin:6px 0 -8px}
+td.lab .hint{display:block;font-size:12px;color:var(--muted);font-weight:400}
+input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
+#grid td.lab{min-width:220px}
+#grid td.lab input,#grid2 td.lab input{width:calc(100% - 30px)}
+#grid td.v input{width:88px}
+#grid2 td.lab{min-width:320px}
+#grid2 td.v input{width:120px}
+td.v input:disabled{opacity:.35}
+footer span{user-select:all}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<link rel="stylesheet" href="css/site-header.css">
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</head><body>
+<div class="dxh" id="dxh">
+  <div class="dxh-wrap">
+    <a href="/" class="dxh-logo"><img src="img/dexm-mark.png" alt=""><span>DeXM Management</span></a>
+    <nav class="dxh-nav" id="dxhNav" aria-label="Site">
+      <a href="/solutions">Solutions</a>
+      <a href="/dexm-os">DeXM OS</a>
+      <a href="/about">About</a>
+      <a href="/#contact" class="dxh-cta">Book an Intro Call</a>
+    </nav>
+    <a href="/#contact" class="dxh-cta">Book an Intro Call</a>
+    <button class="dxh-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="dxhNav"><span></span><span></span><span></span></button>
+  </div>
+</div>
+
+<div class="wrap">
+<header>
+  <a href="/" class="brand" id="t-brand" style="display:block;text-decoration:none"></a>
+  <h1 id="t-h1"></h1>
+  <p class="lede" id="t-lede"></p>
+</header>
+
+<div class="toolbar">
+  <label class="filebtn" id="importLbl"><span id="t-import"></span><input type="file" id="importFile" accept=".xlsx,.xls,.xlsm,.csv"></label>
+  <button id="btnTemplate"></button>
+  <button id="btnXlsx"></button>
+  <button id="btnPdf"></button>
+  <button id="btnReset"></button>
+  <div class="status" id="status" role="status"></div>
+</div>
+<div class="notice" id="sample"></div>
+
+<section class="panel">
+  <div class="settings" id="settings"></div>
+</section>
+
+<section class="summary">
+  <div class="panel">
+    <div class="kpis" id="kpis"></div>
+    <canvas id="chart" aria-label=""></canvas>
+    <div class="legend" id="legend"></div>
+  </div>
+  <div class="panel verdict" id="verdict" aria-live="polite"></div>
+</section>
+
+<h2 class="tblh" id="t1"></h2>
+<div class="tablewrap"><table id="grid"></table></div>
+<h2 class="tblh" id="t2"></h2>
+<div class="tablewrap"><table id="grid2"></table></div>
+
+<footer>
+  <span>DeXM Management</span><span>info@dexm-m.com</span><span>+1 917 523 0461</span><span>dexm-m.com</span>
+</footer>
+</div>
+
+<script>
+const LANG="en";
+const L={
+ru:{brand:"DeXM Management · скрытый завод",h1:"Скрытый завод: сколько денег теряется между планом и фактом",
+ lede:"Введите по каждой линии плановое время, простои, переналадки, потери скорости и брак, а также прочие скрытые потери. Расчёт покажет OEE, потерянные часы, их цену в деньгах и сколько можно вернуть при выходе на целевую OEE. Данные хранятся только в вашем браузере.",
+ imp:"Загрузить из Excel",tpl:"Скачать шаблон Excel",xlsx:"Скачать Excel",pdf:"Скачать PDF для печати",reset:"Очистить",
+ sample:"Показан пример завода алюминиевого профиля с 5 участками. Нажмите «Очистить» или загрузите свой Excel.",
+ set:{company:"Компания",cur:"Валюта",target:"Целевая OEE, %",rev:"Выручка за год",ebitda:"EBITDA за год",carry:"Стоимость хранения запасов, % в год"},
+ companyDef:"Пример: Завод",curDef:"$",
+ t1:"Линии и участки",t2:"Прочие скрытые потери",
+ col:{name:"Линия / участок",plan:"План, ч/год",down:"Аварийные простои, ч",co:"Переналадки, ч",spd:"Потери скорости, %",scrap:"Брак и переделка, %",cph:"Стоимость часа работы",mat:"Материалы за год",bn:"Узкое место",cmh:"Маржа на час (узкое место, если есть спрос)",a:"Доступность",p:"Производит.",q:"Качество",oee:"OEE",lost:"Потеряно, ч",loss:"Потери в деньгах",rec:"Можно вернуть"},
+ col2:{name:"Статья",amt:"Сумма за год",recp:"Можно вернуть, %",loss:"Потери в деньгах",rec:"Можно вернуть"},
+ other:{ot:"Сверхурочные (премия сверх обычной ставки)",exp:"Срочная доставка и экспедирование",war:"Гарантия, рекламации и возвраты",inv:"Избыточные запасы (стоимость запаса)",oth:"Прочие потери"},
+ invNote:"Потери = стоимость запаса × ставка хранения",
+ add:"+ Добавить линию",add2:"+ Добавить статью",del:"Удалить строку",newLine:"Новая линия",newItem:"Новая статья",total:"Итого",
+ cat:{down:"Аварийные простои",co:"Переналадки",spd:"Потери скорости",qual:"Брак: время",mat:"Брак: материалы",bnm:"Упущенная маржа узкого места",ot:"Сверхурочные",exp:"Срочная доставка",war:"Гарантия и возвраты",inv:"Избыточные запасы",oth:"Прочее"},
+ k:{oee:"Средняя OEE",lost:"Потеряно часов",hf:"Скрытый завод",rec:"Можно вернуть",bn:"OEE узкого места",ofE:"От EBITDA",vsT:t=>`цель ${t}`,lostSub:x=>`≈ ${x} линии простаивают весь год`,ofRev:p=>`${p} выручки`,recSub:t=>`при выходе на OEE ${t}`,bnSub:v=>`час узкого места = ${v}`,ofESub:"возвращаемые потери к EBITDA"},
+ lg:{bar:"Потери по категориям",line:"Накопленная доля, %"},
+ v:{label:"Вывод",sev:["в норме","внимание","критично"],
+  h:(x,p)=>`Скрытый завод стоит ${x} в год, это ${p} выручки`,
+  rec:(x,p)=>`При выходе на целевую OEE можно вернуть ${x}, это ${p} к текущей EBITDA.`,
+  top:(c,s)=>`Крупнейшая категория: «${c}», ${s} всех потерь.`,
+  worst:(n,o)=>`Самая низкая OEE у участка «${n}»: ${o}.`,
+  bn:(n,o,v)=>`Узкое место «${n}» работает с OEE ${o}. Каждый потерянный час там стоит ${v} маржи, потому что не выпущенную там продукцию не наверстать на других участках.`,
+  levers:"С чего начать",
+  L:{down:"Аварийные простои: анализ причин отказов и плановое ТО на узком месте.",co:"Переналадки: SMED, планирование партий, стандарт переналадки.",spd:"Потери скорости: стандарт режимов и контроль мелких остановок.",qual:"Брак: контроль качества до узкого места, анализ причин дефектов.",mat:"Брак материалов: нормы расхода и выход годного.",bnm:"Узкое место: буфер перед ним, работа без перерывов, приоритет по марже.",ot:"Сверхурочные: выровнять загрузку и график смен.",exp:"Срочные доставки: S&OP и стабильный план производства.",war:"Рекламации: анализ причин, входной и выходной контроль.",inv:"Запасы: нормативы, снижение партий, ликвидация неликвидов.",oth:"Прочие потери: разобрать по причинам."},
+  none:"Добавьте линии с плановым временем",noneP:"Расчёт появится сразу.",
+  cta:"<strong>Нужна оценка на месте?</strong> DeXM замеряет потери на линиях и строит план возврата скрытого завода за 2 недели. info@dexm-m.com"},
+ st:{tpl:"Шаблон готов к сохранению",xlsx:"Excel готов к сохранению",pdf:"PDF готов к сохранению",saved:"Файл сохранён",declined:"Сохранение отменено",
+  noDl:"Скачивание недоступно в этом просмотре. Откройте страницу по ссылке в браузере.",fail:"Не удалось создать файл. Попробуйте ещё раз.",loading:"Загружаю модуль…",
+  imported:(n,m,s)=>`Загружено линий: ${n}. Статей прочих потерь: ${m}${s?`. Настройки: ${s}`:""}.`,noHeader:"Не нашёл таблицу линий. Нужны столбцы с названием линии и плановыми часами. Скачайте шаблон, чтобы увидеть формат.",
+  cleared:"Таблицы очищены",readFail:"Не удалось прочитать файл. Проверьте, что это .xlsx, .xls или .csv.",pasted:n=>`Вставлено строк: ${n}`},
+ sheetTitle:"Скрытый завод: потери",prepared:"Подготовлено",chartAria:"Потери скрытого завода по категориям",yes:"да"},
+en:{brand:"DeXM Management · hidden factory",h1:"Hidden Factory: how much money is lost between plan and actual",
+ lede:"Enter planned time, breakdowns, changeovers, speed losses and scrap for each line, plus other hidden losses. The calculation shows OEE, lost hours, what they cost in money and how much you can recover at your target OEE. Your data stays in your browser.",
+ imp:"Import from Excel",tpl:"Download Excel template",xlsx:"Download Excel",pdf:"Download PDF to print",reset:"Clear",
+ sample:"This is a sample aluminum extrusion plant with 5 work centers. Select “Clear” or import your own Excel file.",
+ set:{company:"Company",cur:"Currency",target:"Target OEE, %",rev:"Annual revenue",ebitda:"Annual EBITDA",carry:"Inventory carrying cost, % per year"},
+ companyDef:"Sample: Plant",curDef:"$",
+ t1:"Lines and work centers",t2:"Other hidden losses",
+ col:{name:"Line / work center",plan:"Planned, hrs/yr",down:"Breakdowns, hrs",co:"Changeovers, hrs",spd:"Speed loss, %",scrap:"Scrap and rework, %",cph:"Cost per running hour",mat:"Materials per year",bn:"Bottleneck",cmh:"Margin per hour (bottleneck, if demand exists)",a:"Availability",p:"Performance",q:"Quality",oee:"OEE",lost:"Lost, hrs",loss:"Loss in money",rec:"Recoverable"},
+ col2:{name:"Item",amt:"Amount per year",recp:"Recoverable, %",loss:"Loss in money",rec:"Recoverable"},
+ other:{ot:"Overtime premium",exp:"Expediting and premium freight",war:"Warranty, claims and returns",inv:"Excess inventory (inventory value)",oth:"Other losses"},
+ invNote:"Loss = inventory value × carrying rate",
+ add:"+ Add line",add2:"+ Add item",del:"Delete row",newLine:"New line",newItem:"New item",total:"Total",
+ cat:{down:"Breakdowns",co:"Changeovers",spd:"Speed losses",qual:"Scrap: time",mat:"Scrap: materials",bnm:"Bottleneck lost margin",ot:"Overtime",exp:"Expediting",war:"Warranty and returns",inv:"Excess inventory",oth:"Other"},
+ k:{oee:"Average OEE",lost:"Hours lost",hf:"Hidden factory",rec:"Recoverable",bn:"Bottleneck OEE",ofE:"Of EBITDA",vsT:t=>`target ${t}`,lostSub:x=>`≈ ${x} lines idle all year`,ofRev:p=>`${p} of revenue`,recSub:t=>`at OEE ${t}`,bnSub:v=>`bottleneck hour = ${v}`,ofESub:"recoverable losses vs EBITDA"},
+ lg:{bar:"Losses by category",line:"Cumulative share, %"},
+ v:{label:"Verdict",sev:["on track","watch","critical"],
+  h:(x,p)=>`The hidden factory costs ${x} a year, ${p} of revenue`,
+  rec:(x,p)=>`Reaching target OEE recovers ${x}, equal to ${p} of current EBITDA.`,
+  top:(c,s)=>`Largest category: “${c}”, ${s} of all losses.`,
+  worst:(n,o)=>`Lowest OEE is at “${n}”: ${o}.`,
+  bn:(n,o,v)=>`The bottleneck “${n}” runs at ${o} OEE. Every lost hour there costs ${v} of margin, because output lost there cannot be made up elsewhere.`,
+  levers:"Where to start",
+  L:{down:"Breakdowns: root-cause failures and planned maintenance on the bottleneck.",co:"Changeovers: SMED, batch sequencing, a standard changeover.",spd:"Speed losses: standard settings and tracking of minor stops.",qual:"Scrap: quality checks before the bottleneck, defect root-cause analysis.",mat:"Material scrap: usage standards and yield.",bnm:"Bottleneck: a buffer in front, no idle breaks, priority by margin.",ot:"Overtime: level the load and the shift pattern.",exp:"Expediting: S&OP and a stable production plan.",war:"Claims: root-cause analysis, incoming and outgoing inspection.",inv:"Inventory: stock norms, smaller batches, clear obsolete stock.",oth:"Other losses: break them down by cause."},
+  none:"Add lines with planned time",noneP:"The calculation appears right away.",
+  cta:"<strong>Want an on-site assessment?</strong> DeXM measures line losses and builds a plan to recover the hidden factory in 2 weeks. info@dexm-m.com"},
+ st:{tpl:"Template ready to save",xlsx:"Excel file ready to save",pdf:"PDF ready to save",saved:"File saved",declined:"Save cancelled",
+  noDl:"Downloads are not available in this view. Open the page from its link in a browser.",fail:"Could not create the file. Try again.",loading:"Loading module…",
+  imported:(n,m,s)=>`Imported ${n} lines and ${m} other loss items${s?`, settings: ${s}`:""}.`,noHeader:"Could not find the lines table. You need columns for the line name and planned hours. Download the template to see the format.",
+  cleared:"Tables cleared",readFail:"Could not read the file. Check that it is .xlsx, .xls or .csv.",pasted:n=>`Pasted ${n} rows`},
+ sheetTitle:"Hidden Factory Losses",prepared:"Prepared",chartAria:"Hidden factory losses by category",yes:"yes"}
+};
+const T=L[LANG];
+const LIN=["plan","down","co","spd","scrap","cph","mat","bn","cmh"];
+const OTH=["ot","exp","war","inv","oth"];
+function blankModel(){return{settings:{company:"",cur:T.curDef,target:85,rev:0,ebitda:0,carry:20},lines:[],other:OTH.map(id=>({id,amt:0,recp:id==="inv"?50:id==="war"?40:50}))}}
+function sampleModel(){const m=blankModel();Object.assign(m.settings,{company:T.companyDef,rev:30000000,ebitda:3800000});
+  const N=LANG==="ru"?["Пресс 1","Пресс 2","Анодирование","Порошковая покраска","Механообработка ЧПУ"]:["Press 1","Press 2","Anodizing","Powder coating","CNC fabrication"];
+  const D=[[6000,420,600,12,6,420,9000000,1,700],[5000,380,450,10,5,380,6000000,0,0],[4500,250,200,8,3,260,800000,0,0],[4000,300,520,9,4,240,600000,0,0],[3800,180,340,15,2,180,300000,0,0]];
+  m.lines=D.map((d,i)=>({name:N[i],plan:d[0],down:d[1],co:d[2],spd:d[3],scrap:d[4],cph:d[5],mat:d[6],bn:d[7],cmh:d[8]}));
+  const A={ot:[280000,50],exp:[150000,60],war:[120000,40],inv:[2500000,50],oth:[0,50]};m.other.forEach(o=>{[o.amt,o.recp]=A[o.id]});return m}
+
+function compute(m){
+  const n=x=>+x||0,s=m.settings,tgt=n(s.target)/100;
+  const cat={down:0,co:0,spd:0,qual:0,mat:0,bnm:0,ot:0,exp:0,war:0,inv:0,oth:0};
+  const lines=m.lines.map((l,i)=>{const P=n(l.plan);if(P<=0)return{i,name:l.name||T.newLine,valid:false};
+    const down=Math.min(n(l.down),P),co=Math.min(n(l.co),P-down),run=Math.max(0,P-down-co);
+    const A=P?run/P:0,Pf=1-n(l.spd)/100,Q=1-n(l.scrap)/100,oee=A*Pf*Q;
+    const spdH=run*(n(l.spd)/100),qualH=run*Pf*(n(l.scrap)/100),lost=down+co+spdH+qualH;
+    const rate=n(l.cph)+(l.bn?n(l.cmh):0);
+    const parts={down:down*n(l.cph),co:co*n(l.cph),spd:spdH*n(l.cph),qual:qualH*n(l.cph),mat:n(l.mat)*n(l.scrap)/100,bnm:l.bn?lost*n(l.cmh):0};
+    const loss=Object.values(parts).reduce((a,b)=>a+b,0);
+    const rec=oee<tgt&&oee<1?loss*(tgt-oee)/(1-oee):0;
+    Object.keys(parts).forEach(k=>cat[k]+=parts[k]);
+    return{i,name:l.name||T.newLine,valid:true,P,A,Pf,Q,oee,lost,loss,rec,bn:!!l.bn,cmh:n(l.cmh),rate}});
+  const other=m.other.map((o,j)=>{const amt=n(o.amt);const loss=o.id==="inv"?amt*n(s.carry)/100:amt;const rec=loss*n(o.recp)/100;cat[o.id&&cat[o.id]!==undefined?o.id:"oth"]+=loss;
+    return{j,id:o.id,name:o.id?T.other[o.id]:(o.label||T.newItem),amt,loss,rec}});
+  const v=lines.filter(x=>x.valid);const PT=v.reduce((a,x)=>a+x.P,0);
+  const oeeAvg=PT?v.reduce((a,x)=>a+x.oee*x.P,0)/PT:null;const lost=v.reduce((a,x)=>a+x.lost,0);
+  const lineLoss=v.reduce((a,x)=>a+x.loss,0),otherLoss=other.reduce((a,x)=>a+x.loss,0),HF=lineLoss+otherLoss;
+  const REC=v.reduce((a,x)=>a+x.rec,0)+other.reduce((a,x)=>a+x.rec,0);
+  const cats=Object.entries(cat).filter(([,x])=>x>0).sort((a,b)=>b[1]-a[1]);let cu=0;const cum=cats.map(([,x])=>(cu+=x,HF?cu/HF*100:0));
+  const bnLine=v.filter(x=>x.bn).sort((a,b)=>a.oee-b.oee)[0]||null;const worst=[...v].sort((a,b)=>a.oee-b.oee)[0]||null;
+  const avgPlan=v.length?PT/v.length:0;
+  return{lines,other,valid:v,PT,oeeAvg,lost,lineLoss,otherLoss,HF,REC,cats,cum,bnLine,worst,linesIdle:avgPlan?lost/avgPlan:0,
+    rev:n(s.rev),ebitda:n(s.ebitda),target:n(s.target)}
+}
+
+function parseNum(x){if(typeof x==="number")return isFinite(x)?x:null;if(x==null)return null;
+  let s=String(x).trim().replace(/[\s $€£₽%]/g,"");if(!s||s==="-"||s==="—")return null;
+  let neg=false;if(/^\(.*\)$/.test(s)){neg=true;s=s.slice(1,-1)}
+  if(s.includes(",")&&s.includes("."))s=s.lastIndexOf(",")>s.lastIndexOf(".")?s.replace(/\./g,"").replace(",","."):s.replace(/,/g,"");
+  else if(s.includes(","))s=/,\d{3}$/.test(s)&&!/,\d{3},?\d{1,2}$/.test(s)?s.replace(/,/g,""):s.replace(",",".");
+  const v=parseFloat(s);return isFinite(v)?(neg?-v:v):null}
+const HDR=[["cmh",/(margin per hour|маржа на час|contribution per hour)/i],["bn",/(bottleneck|узкое место)$/i],["name",/(line|work center|линия|участок|оборудован|machine|станок)/i],["plan",/(planned|план)/i],["down",/(breakdown|downtime|простои|отказ)/i],["co",/(changeover|setup|переналад)/i],
+ ["spd",/(speed|скорост|performance loss)/i],["scrap",/(scrap|rework|брак|переделк)/i],["cph",/(cost per (running )?hour|стоимость часа|cost\/hr)/i],["mat",/(material|материал)/i]];
+const OTH_RE=[["ot",/(overtime|сверхуроч)/i],["exp",/(expedit|premium freight|срочн)/i],["war",/(warranty|claims|return|гарант|рекламац|возврат)/i],["inv",/(inventory|запас)/i],["oth",/^(other losses|прочие потери)$/i]];
+const YES=/^(1|y|yes|да|true|x|✓|\+)$/i;
+function importAOA(rows){
+  const txt=c=>c==null?"":String(c).trim();let hdr=-1,map={};
+  for(let r=0;r<Math.min(rows.length,60);r++){const mm={};(rows[r]||[]).forEach((c,ci)=>{const t=txt(c);if(!t||typeof c==="number")return;
+      if(/(availability|доступност|performance$|производит|quality$|качество$|^oee$|lost|потеряно|loss in money|потери в деньгах|recoverable|можно вернуть)/i.test(t))return;
+      for(const [k,re] of HDR)if(re.test(t)&&mm[k]==null){mm[k]=ci;break}});
+    if(mm.name!=null&&mm.plan!=null){hdr=r;map=mm;break}}
+  if(hdr<0)return{error:"noHeader"};
+  const m=blankModel();m.other.forEach(o=>o.amt=0);const found=[];
+  const SET=[["company",/^(company|компания)$/i],["cur",/^(currency|валюта)$/i],["target",/(target oee|целевая oee)/i],["rev",/(annual revenue|выручка за год)/i],["ebitda",/(annual ebitda|ebitda за год)/i],["carry",/(carrying|стоимость хранения)/i]];
+  rows.forEach((row,r)=>{if(r>=hdr&&r<hdr+1)return;(row||[]).forEach((c,ci)=>{const t=txt(c);for(const [k,re] of SET)if(re.test(t)&&!found.includes(k)){const v=(row||[]).slice(ci+1).find(x=>x!=null&&txt(x)!=="");if(v==null)continue;
+      m.settings[k]=k==="company"||k==="cur"?txt(v):(parseNum(v)??0);if((k==="target"||k==="carry")&&m.settings[k]>0&&m.settings[k]<=1)m.settings[k]*=100;found.push(k);break}})});
+  let r=hdr+1;
+  for(;r<rows.length;r++){const row=rows[r]||[];const name=txt(row[map.name]);if(!name)break;if(/^(total|итого)/i.test(name))break;
+    const g=k=>map[k]!=null?parseNum(row[map[k]]):null;const plan=g("plan");if(plan==null)break;
+    const pc=k=>{const v=g(k)||0;return v>0&&v<1?v*100:v};
+    m.lines.push({name,plan,down:g("down")||0,co:g("co")||0,spd:pc("spd"),scrap:pc("scrap"),cph:g("cph")||0,mat:g("mat")||0,bn:map.bn!=null&&YES.test(txt(row[map.bn]))?1:0,cmh:g("cmh")||0})}
+  let nOther=0;
+  for(;r<rows.length;r++){const row=rows[r]||[];const cells=row.map(txt);const li=cells.findIndex(t=>t&&parseNum(t)==null);if(li<0)continue;const label=cells[li];
+    const nums=row.slice(li+1).map(parseNum).filter(x=>x!=null);if(!nums.length)continue;if(/^(total|итого|calc|расч)/i.test(label)||/(hidden factory|скрытый завод|recoverable|можно вернуть|% of|% выручки|% ebitda)/i.test(label))continue;
+    const hit=OTH_RE.find(([,re])=>re.test(label));
+    if(hit){const o=m.other.find(x=>x.id===hit[0]);o.amt=nums[0];if(nums[1]!=null)o.recp=nums[1]<=1&&nums[1]>0?nums[1]*100:nums[1];nOther++}
+    else if(nums.length>=1&&nums[0]>0&&!SET.some(([,re])=>re.test(label))){m.other.push({id:null,label,amt:nums[0],recp:nums[1]!=null?nums[1]:50});nOther++}}
+  return{model:m,n:m.lines.length,m:nOther,settings:found}
+}
+
+// Excel: settings, lines table with OEE formulas, other losses table, summary
+function exportPlan(m,blank){
+  const rows=[],f=[];const s=m.settings;const push=(r,fx)=>{rows.push(r);if(fx)f.push([rows.length,fx])};
+  push([T.sheetTitle]);push([T.set.company,blank?"":s.company]);push([T.set.cur,s.cur]);push([T.set.target,+s.target||0]);const rT=rows.length;
+  push([T.set.rev,blank?0:+s.rev||0]);const rR=rows.length;push([T.set.ebitda,blank?0:+s.ebitda||0]);const rE=rows.length;push([T.set.carry,+s.carry||0]);const rC=rows.length;push([]);
+  push([T.t1]);
+  const H=["name","plan","down","co","spd","scrap","cph","mat","bn","cmh","a","p","q","oee","lost","loss","rec"];push(H.map(k=>T.col[k]));
+  const first=rows.length+1;
+  const lines=blank?[{name:"",plan:0,down:0,co:0,spd:0,scrap:0,cph:0,mat:0,bn:0,cmh:0}]:m.lines;
+  lines.forEach(l=>push([l.name,+l.plan||0,+l.down||0,+l.co||0,+l.spd||0,+l.scrap||0,+l.cph||0,+l.mat||0,l.bn?T.yes:"",+l.cmh||0],
+    [[10,"IF(B{r}=0,0,(B{r}-C{r}-D{r})/B{r})","pct"],[11,"1-E{r}/100","pct"],[12,"1-F{r}/100","pct"],[13,"K{r}*L{r}*M{r}","pct"],
+     [14,"C{r}+D{r}+(B{r}-C{r}-D{r})*E{r}/100+(B{r}-C{r}-D{r})*(1-E{r}/100)*F{r}/100","n"],
+     [15,`O{r}*G{r}+H{r}*F{r}/100+IF(I{r}<>"",O{r}*J{r},0)`,"n"],[16,`IF(N{r}<$B$${rT}/100,P{r}*($B$${rT}/100-N{r})/(1-N{r}),0)`,"n"]]));
+  const last=rows.length;
+  push([T.total],[[1,`SUM(B${first}:B${last})`,"n"],[13,`IF(B{r}=0,0,SUMPRODUCT(N${first}:N${last},B${first}:B${last})/B{r})`,"pct"],[14,`SUM(O${first}:O${last})`,"n"],[15,`SUM(P${first}:P${last})`,"n"],[16,`SUM(Q${first}:Q${last})`,"n"]]);const rLT=rows.length;
+  push([]);push([T.t2]);push([T.col2.name,T.col2.amt,T.col2.recp,T.col2.loss,T.col2.rec]);const f2=rows.length+1;
+  m.other.forEach(o=>push([o.id?T.other[o.id]:(o.label||T.newItem),blank?0:+o.amt||0,+o.recp||0],[[3,o.id==="inv"?`B{r}*$B$${rC}/100`:"B{r}","n"],[4,"D{r}*C{r}/100","n"]]));
+  const l2=rows.length;push([T.total],[[3,`SUM(D${f2}:D${l2})`,"n"],[4,`SUM(E${f2}:E${l2})`,"n"]]);const rOT=rows.length;
+  push([]);
+  push([T.k.hf],[[1,`P${rLT}+D${rOT}`,"n"]]);const rHF=rows.length;
+  push([T.k.rec],[[1,`Q${rLT}+E${rOT}`,"n"]]);const rRC=rows.length;
+  push([LANG==="ru"?"Скрытый завод, % выручки":"Hidden factory, % of revenue"],[[1,`IF(B${rR}=0,0,B${rHF}/B${rR})`,"pct"]]);
+  push([LANG==="ru"?"Можно вернуть, % EBITDA":"Recoverable, % of EBITDA"],[[1,`IF(B${rE}=0,0,B${rRC}/B${rE})`,"pct"]]);
+  return{rows,f}
+}
+
+</script>
+<script>
+if(typeof document!=="undefined"){(function(){
+const KEY="dexm-hf-v1-"+LANG;
+let model,isSample=false;
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.lines&&s.other){model=s}}catch(e){}
+if(!model){model=sampleModel();isSample=true}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(model))}catch(e){}};
+const loc=LANG==="ru"?"ru-RU":"en-US";
+const nf=new Intl.NumberFormat(loc,{maximumFractionDigits:0}),pf=new Intl.NumberFormat(loc,{minimumFractionDigits:1,maximumFractionDigits:1});
+const fmt=v=>{if(v==null||!isFinite(v))return "—";v=Math.round(v);if(!v)return "0";return v<0?`(${nf.format(-v)})`:nf.format(v)};
+const pct=v=>v==null||!isFinite(v)?"—":`${pf.format(v)}%`;
+const short=v=>{const a=Math.abs(v),s=v<0?"-":"";if(a>=1e6)return s+pf.format(a/1e6)+(LANG==="ru"?" млн":"M");if(a>=1e4)return s+nf.format(a/1e3)+(LANG==="ru"?" тыс.":"k");return fmt(v)};
+const C=()=>model.settings.cur||"";
+const money=v=>LANG==="ru"?`${short(v)} ${C()}`:`${C()}${short(v)}`;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function status(msg,cls){const s=$("status");s.textContent=msg||"";s.className="status"+(cls?" "+cls:"")}
+function texts(){$("t-brand").textContent=T.brand;$("t-h1").textContent=T.h1;$("t-lede").textContent=T.lede;
+  $("t-import").textContent=T.imp;$("btnTemplate").textContent=T.tpl;$("btnXlsx").textContent=T.xlsx;$("btnPdf").textContent=T.pdf;$("btnReset").textContent=T.reset;
+  $("sample").textContent=T.sample;$("chart").setAttribute("aria-label",T.chartAria);$("t1").textContent=T.t1;$("t2").textContent=T.t2;
+  $("legend").innerHTML=`<span><i style="background:var(--bad)"></i>${T.lg.bar}</span><span><i style="background:var(--accent);height:3px"></i>${T.lg.line}</span>`}
+function renderSettings(){const s=model.settings;
+  const f=(k,type,cls)=>`<div class="field"><label class="label" for="set-${k}">${T.set[k]}</label><input id="set-${k}" data-k="${k}" type="${type}" ${cls?`class="${cls}" inputmode="decimal" step="any"`:""} value="${esc(s[k]??"")}"></div>`;
+  $("settings").innerHTML=f("company","text")+f("cur","text")+f("target","number","num")+f("rev","number","num")+f("ebitda","number","num")+f("carry","number","num")}
+$("settings").addEventListener("input",e=>{const k=e.target.dataset.k;if(!k)return;model.settings[k]=["company","cur"].includes(k)?e.target.value:(parseFloat(e.target.value)||0);touch();update()});
+
+const LC=["plan","down","co","spd","scrap","cph","mat"];
+function renderGrid(){
+  const H=["name",...LC,"bn","cmh","a","p","q","oee","lost","loss","rec"];
+  let h=`<thead><tr>${H.map((k,i)=>`<th class="${i===0?"lab":k==="bn"?"tl":""}">${T.col[k]}</th>`).join("")}</tr></thead><tbody>`;
+  model.lines.forEach((l,i)=>{h+=`<tr><td class="lab"><input id="n-${i}" data-r="${i}" data-k="name" class="labin" value="${esc(l.name||"")}" placeholder="${T.newLine}"><button class="del" data-del="${i}" aria-label="${T.del}">×</button></td>`;
+    LC.forEach(k=>h+=`<td class="v"><input type="number" step="any" inputmode="decimal" id="f-${k}-${i}" data-r="${i}" data-k="${k}" value="${l[k]||""}" placeholder="0" aria-label="${esc(l.name||T.newLine)}: ${T.col[k]}"></td>`);
+    h+=`<td class="tl"><input type="checkbox" id="f-bn-${i}" data-r="${i}" data-k="bn" ${l.bn?"checked":""} aria-label="${T.col.bn}"></td><td class="v"><input type="number" step="any" inputmode="decimal" id="f-cmh-${i}" data-r="${i}" data-k="cmh" value="${l.cmh||""}" placeholder="0" ${l.bn?"":"disabled"} aria-label="${T.col.cmh}"></td>`;
+    ["a","p","q","oee","lost","loss","rec"].forEach(k=>h+=`<td class="c" id="o-${k}-${i}"></td>`);h+="</tr>"});
+  h+=`<tr class="add"><td class="lab"><button data-add="line">${T.add}</button></td><td colspan="16"></td></tr>`;
+  h+=`<tr class="key"><td class="lab">${T.total}</td><td class="c" id="t-plan"></td><td colspan="11"></td><td class="c" id="t-oee"></td><td class="c" id="t-lost"></td><td class="c" id="t-loss"></td><td class="c" id="t-rec"></td></tr>`;
+  $("grid").innerHTML=h+"</tbody>";
+  let h2=`<thead><tr><th class="lab">${T.col2.name}</th><th>${T.col2.amt}</th><th>${T.col2.recp}</th><th>${T.col2.loss}</th><th>${T.col2.rec}</th></tr></thead><tbody>`;
+  model.other.forEach((o,j)=>{h2+=`<tr><td class="lab">${o.id?`${T.other[o.id]}${o.id==="inv"?`<span class="hint">${T.invNote}</span>`:""}`:`<input id="on-${j}" data-o="${j}" data-k="label" class="labin" value="${esc(o.label||"")}" placeholder="${T.newItem}"><button class="del" data-odel="${j}" aria-label="${T.del}">×</button>`}</td>
+    <td class="v"><input type="number" step="any" inputmode="decimal" id="oa-${j}" data-o="${j}" data-k="amt" value="${o.amt||""}" placeholder="0"></td><td class="v"><input type="number" step="any" inputmode="decimal" id="or-${j}" data-o="${j}" data-k="recp" value="${o.recp??""}" placeholder="0"></td><td class="c" id="ol-${j}"></td><td class="c" id="orc-${j}"></td></tr>`});
+  h2+=`<tr class="add"><td class="lab"><button data-add="other">${T.add2}</button></td><td colspan="4"></td></tr><tr class="key"><td class="lab">${T.total}</td><td colspan="2"></td><td class="c" id="t2-loss"></td><td class="c" id="t2-rec"></td></tr>`;
+  $("grid2").innerHTML=h2+"</tbody>";update()}
+function onInput(e){const t=e.target,d=t.dataset;
+  if(d.r!=null){const l=model.lines[+d.r];if(d.k==="bn"){l.bn=t.checked?1:0;touch();renderGrid();return}l[d.k]=d.k==="name"?t.value:(parseFloat(t.value)||0)}
+  else if(d.o!=null){const o=model.other[+d.o];o[d.k]=d.k==="label"?t.value:(parseFloat(t.value)||0)}else return;touch();update()}
+["grid","grid2"].forEach(id=>{$(id).addEventListener("input",onInput);$(id).addEventListener("change",e=>{if(e.target.type==="checkbox")onInput(e)})});
+document.addEventListener("click",e=>{const d=e.target.dataset;if(!d)return;
+  if(d.add==="line"){model.lines.push({name:"",plan:0,down:0,co:0,spd:0,scrap:0,cph:0,mat:0,bn:0,cmh:0});touch();renderGrid();$(`n-${model.lines.length-1}`)?.focus()}
+  else if(d.add==="other"){model.other.push({id:null,label:"",amt:0,recp:50});touch();renderGrid();$(`on-${model.other.length-1}`)?.focus()}
+  else if(d.del!=null){model.lines.splice(+d.del,1);touch();renderGrid()}
+  else if(d.odel!=null){model.other.splice(+d.odel,1);touch();renderGrid()}});
+$("grid").addEventListener("paste",e=>{const t=e.target,d=t.dataset;if(d.r==null)return;const txt=e.clipboardData?e.clipboardData.getData("text"):"";
+  if(!/[\t\n]/.test(txt))return;e.preventDefault();const F=["name",...LC,"bn","cmh"],f0=F.indexOf(d.k);const r0=+d.r;
+  const lines=txt.replace(/\r/g,"").split("\n").filter(x=>x.trim()!=="");
+  lines.forEach((ln,li)=>{const ri=r0+li;while(model.lines.length<=ri)model.lines.push({name:"",plan:0,down:0,co:0,spd:0,scrap:0,cph:0,mat:0,bn:0,cmh:0});
+    ln.split("\t").forEach((cell,ci)=>{const k=F[f0+ci];if(!k)return;const L_=model.lines[ri];if(k==="name")L_.name=cell.trim();else if(k==="bn")L_.bn=YES.test(cell.trim())?1:0;else{let v=parseNum(cell)??0;if((k==="spd"||k==="scrap")&&v>0&&v<1)v*=100;L_[k]=v}})});
+  touch();renderGrid();status(T.st.pasted(lines.length),"ok")});
+function touch(){if(isSample){isSample=false;$("sample").hidden=true}save()}
+
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function niceStep(r){const p=Math.pow(10,Math.floor(Math.log10(Math.max(r,1e-9))));const n=r/p;return(n<1.5?1:n<3?2:n<7?5:10)*p}
+function drawChart(cv,c,pal,wpx,hpx,scale){
+  const dpr=scale||window.devicePixelRatio||1;const w=wpx||cv.clientWidth||600,hgt=hpx||cv.clientHeight||240;
+  cv.width=w*dpr;cv.height=hgt*dpr;const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,hgt);
+  const B=c.cats;if(!B.length)return;const padL=64,padR=44,padT=14,padB=34;
+  const hi=Math.max(...B.map(x=>x[1]))*1.12,y=v=>padT+(hi-v)/hi*(hgt-padT-padB),yp=v=>padT+(110-v)/110*(hgt-padT-padB),bw=(w-padL-padR)/B.length,x=i=>padL+bw*i+bw/2;
+  g.font=`11px ${pal.mono}`;g.textBaseline="middle";g.lineWidth=1;
+  const st=niceStep(hi/4);g.textAlign="right";for(let t=0;t<=hi+1e-9;t+=st){g.strokeStyle=pal.line;g.beginPath();g.moveTo(padL,y(t)+.5);g.lineTo(w-padR,y(t)+.5);g.stroke();g.fillStyle=pal.muted;g.fillText(short(t),padL-6,y(t))}
+  g.textAlign="left";[0,50,100].forEach(t=>{g.fillStyle=pal.muted;g.fillText(`${t}%`,w-padR+6,yp(t))});
+  B.forEach(([k,v],i)=>{g.fillStyle=pal.bad;g.globalAlpha=.25+.55*(1-i/Math.max(1,B.length));g.fillRect(x(i)-bw*.34,y(v),bw*.68,y(0)-y(v));g.globalAlpha=1;
+    g.fillStyle=pal.fg;g.textAlign="center";g.textBaseline="bottom";g.font=`600 11px ${pal.mono}`;g.fillText(short(v),x(i),y(v)-3)});
+  g.strokeStyle=pal.accent;g.lineWidth=2.5;g.beginPath();c.cum.forEach((v,i)=>i?g.lineTo(x(i),yp(v)):g.moveTo(x(i),yp(v)));g.stroke();
+  c.cum.forEach((v,i)=>{g.beginPath();g.arc(x(i),yp(v),3,0,7);g.fillStyle=pal.accent;g.fill()});
+  g.fillStyle=pal.muted;g.textAlign="center";g.textBaseline="top";g.font=`10.5px ${pal.mono}`;
+  B.forEach(([k],i)=>{const words=T.cat[k].split(" ");let l1="",l2="";words.forEach(wd=>{if(g.measureText((l1?l1+" ":"")+wd).width<=bw-4&&!l2)l1=(l1?l1+" ":"")+wd;else l2=(l2?l2+" ":"")+wd});
+    while(l2.length>2&&g.measureText(l2).width>bw-4)l2=l2.slice(0,-2)+"…";g.fillText(l1,x(i),hgt-padB+6);if(l2)g.fillText(l2,x(i),hgt-padB+19)})}
+const pagePal=()=>({fg:css("--fg"),muted:css("--muted"),line:css("--line"),good:css("--good"),bad:css("--bad"),accent:css("--accent"),surface:css("--surface"),mono:css("--mono")});
+
+function verdictData(c){
+  if(!c.valid.length&&!c.otherLoss)return{sev:-1,h:T.v.none,notes:[T.v.noneP],levers:[]};
+  const notes=[];if(c.REC>0)notes.push(T.v.rec(money(c.REC),c.ebitda?pct(c.REC/c.ebitda*100):"—"));
+  if(c.cats.length)notes.push(T.v.top(T.cat[c.cats[0][0]],pct(c.cats[0][1]/c.HF*100)));
+  if(c.worst&&(!c.bnLine||c.worst.i!==c.bnLine.i))notes.push(T.v.worst(c.worst.name,pct(c.worst.oee*100)));
+  if(c.bnLine)notes.push(T.v.bn(c.bnLine.name,pct(c.bnLine.oee*100),money(c.bnLine.rate)));
+  const r=c.ebitda?c.REC/c.ebitda:(c.rev?c.HF/c.rev*5:0);const sev=r>0.25?2:r>0.1?1:0;
+  return{sev,h:T.v.h(money(c.HF),c.rev?pct(c.HF/c.rev*100):"—"),notes,levers:c.cats.slice(0,3).map(([k])=>T.v.L[k])}}
+function kpiData(c){const tgt=pct(c.target);return[
+  [T.k.oee,c.oeeAvg==null?"—":pct(c.oeeAvg*100),T.k.vsT(tgt),c.oeeAvg!=null&&c.oeeAvg*100<c.target],
+  [T.k.lost,fmt(c.lost),T.k.lostSub(pf.format(c.linesIdle)),false],
+  [T.k.hf,money(c.HF),c.rev?T.k.ofRev(pct(c.HF/c.rev*100)):"",c.HF>0],
+  [T.k.rec,money(c.REC),T.k.recSub(tgt),false],
+  [T.k.bn,c.bnLine?pct(c.bnLine.oee*100):"—",c.bnLine?T.k.bnSub(money(c.bnLine.rate)):"",c.bnLine&&c.bnLine.oee*100<c.target],
+  [T.k.ofE,c.ebitda?pct(c.REC/c.ebitda*100):"—",T.k.ofESub,false]]}
+
+function update(){const c=compute(model);
+  const set=(id,t,cls)=>{const el=$(id);if(!el)return;el.textContent=t;if(cls!==undefined)el.classList.toggle("below",!!cls)};
+  c.lines.forEach(l=>{if(!l.valid){["a","p","q","oee","lost","loss","rec"].forEach(k=>set(`o-${k}-${l.i}`,"—",false));return}
+    set(`o-a-${l.i}`,pct(l.A*100));set(`o-p-${l.i}`,pct(l.Pf*100));set(`o-q-${l.i}`,pct(l.Q*100));set(`o-oee-${l.i}`,pct(l.oee*100),l.oee*100<c.target);
+    set(`o-lost-${l.i}`,fmt(l.lost));set(`o-loss-${l.i}`,fmt(l.loss));set(`o-rec-${l.i}`,fmt(l.rec))});
+  set("t-plan",fmt(c.PT));set("t-oee",c.oeeAvg==null?"—":pct(c.oeeAvg*100),c.oeeAvg!=null&&c.oeeAvg*100<c.target);set("t-lost",fmt(c.lost));set("t-loss",fmt(c.lineLoss));set("t-rec",fmt(c.valid.reduce((a,x)=>a+x.rec,0)));
+  c.other.forEach(o=>{set(`ol-${o.j}`,fmt(o.loss));set(`orc-${o.j}`,fmt(o.rec))});set("t2-loss",fmt(c.otherLoss));set("t2-rec",fmt(c.other.reduce((a,x)=>a+x.rec,0)));
+  $("kpis").innerHTML=kpiData(c).map(([l,v,s,bad])=>`<div class="kpi${bad?" bad":""}"><span class="label">${l}</span><b>${v}</b><small>${esc(s||"")}</small></div>`).join("");
+  drawChart($("chart"),c,pagePal());
+  const v=verdictData(c);$("verdict").innerHTML=`<span class="label">${T.v.label}</span> ${v.sev>=0?`<span class="sev" style="background:${["var(--good)","var(--warn)","var(--bad)"][v.sev]}">${T.v.sev[v.sev]}</span>`:""}<h2>${esc(v.h)}</h2><ul>${v.notes.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>${v.levers.length?`<span class="label">${T.v.levers}</span><ul>${v.levers.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}<p class="cta">${T.v.cta}</p>`}
+const redraw=()=>drawChart($("chart"),compute(model),pagePal());
+window.addEventListener("resize",redraw);
+const mq=window.matchMedia("(prefers-color-scheme: dark)");mq.addEventListener&&mq.addEventListener("change",redraw);
+new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+const LIBS={xlsx:"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",jspdf:"https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"};
+const loaded={};function lib(k){return loaded[k]||(loaded[k]=new Promise((res,rej)=>{const s=document.createElement("script");s.src=LIBS[k];s.onload=res;s.onerror=()=>{loaded[k]=null;rej(new Error("load"))};document.head.appendChild(s)}))}
+const browserDl={save:async({filename,data})=>{const url=URL.createObjectURL(new Blob([data]));const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);return{status:"saved"}}};
+let dl=null;const dlReady=window.claude&&window.claude.use?window.claude.use("downloads").then(d=>{dl=d||browserDl}).catch(()=>{dl=browserDl}):(dl=browserDl,Promise.resolve());
+function disableDl(){["btnTemplate","btnXlsx","btnPdf"].forEach(id=>{$(id).disabled=true;$(id).title=T.st.noDl})}
+async function offer(filename,data,okMsg){await dlReady;if(!dl){status(T.st.noDl,"err");return}
+  status(okMsg);try{await dl.save({filename,data});status(T.st.saved,"ok")}
+  catch(e){const code=e&&e.code;status(code==="declined"?T.st.declined:code==="unavailable"||code==="not_granted"?T.st.noDl:T.st.fail,code==="declined"?"":"err")}}
+const fname=ext=>`${(model.settings.company||"DeXM").replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-|-$/g,"")||"DeXM"}-hidden-factory.${ext}`;
+async function buildXlsx(blank){status(T.st.loading);await lib("xlsx");
+  const m=blank?blankModel():model;const {rows,f}=exportPlan(m,blank);
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  f.forEach(([r,list])=>list.forEach(([ci,fx,kind])=>{const addr=XLSX.utils.encode_cell({r:r-1,c:ci});ws[addr]={t:"n",f:fx.replace(/\{r\}/g,r),z:kind==="pct"?"0.0%":"#,##0;(#,##0)"}}));
+  ws["!cols"]=[{wch:36},...Array(16).fill({wch:13})];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,LANG==="ru"?"Скрытый завод":"Hidden factory");return XLSX.write(wb,{bookType:"xlsx",type:"array"})}
+$("btnTemplate").onclick=async()=>{try{const b=await buildXlsx(true);await offer(LANG==="ru"?"DeXM-шаблон-скрытый-завод.xlsx":"DeXM-hidden-factory-template.xlsx",new Uint8Array(b),T.st.tpl)}catch(e){console.error(e);status(T.st.fail,"err")}};
+$("btnXlsx").onclick=async()=>{try{const b=await buildXlsx(false);await offer(fname("xlsx"),new Uint8Array(b),T.st.xlsx)}catch(e){console.error(e);status(T.st.fail,"err")}};
+$("importFile").addEventListener("change",async e=>{const file=e.target.files[0];e.target.value="";if(!file)return;
+  try{status(T.st.loading);await lib("xlsx");const wb=XLSX.read(await file.arrayBuffer(),{type:"array"});
+    let best=null;for(const name of wb.SheetNames){const r=importAOA(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null}));if(!r.error){best=r;break}}
+    if(!best){status(T.st.noHeader,"err");return}
+    model=best.model;isSample=false;$("sample").hidden=true;save();renderSettings();renderGrid();
+    status(T.st.imported(best.n,best.m,best.settings.map(k=>T.set[k]).join(", ")),"ok")}
+  catch(err){console.error(err);status(T.st.readFail,"err")}});
+$("btnReset").onclick=()=>{model=blankModel();model.lines=[{name:"",plan:0,down:0,co:0,spd:0,scrap:0,cph:0,mat:0,bn:0,cmh:0}];isSample=false;$("sample").hidden=true;save();renderSettings();renderGrid();status(T.st.cleared,"ok")};
+
+function reportPages(){
+  const c=compute(model),s=model.settings,v=verdictData(c),PW=1500,PH=1060,SC=2,M=50,CW=PW-2*M;
+  const F={sans:'"IBM Plex Sans","Segoe UI",Arial,sans-serif',mono:'"IBM Plex Mono",Menlo,monospace',disp:'"Archivo","Helvetica Neue",Arial,sans-serif'};
+  const P={fg:"#1b2224",muted:"#5d686b",line:"#d6dbd9",band:"#eef1ef",acc:"#0e6b6b",accSoft:"#dcecea",bad:"#b4442d",good:"#2f7d4f",warn:"#b7791f"};
+  const pages=[];
+  const newPage=()=>{const cv=document.createElement("canvas");cv.width=PW*SC;cv.height=PH*SC;const g=cv.getContext("2d");g.scale(SC,SC);g.fillStyle="#fff";g.fillRect(0,0,PW,PH);pages.push(cv);return g};
+  const foot=(g,n)=>{g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.textAlign="left";g.fillText("DeXM Management · info@dexm-m.com · +1 917 523 0461 · dexm-m.com",M,PH-28);g.textAlign="right";g.fillText(String(n),PW-M,PH-28);g.textAlign="left"};
+  const wrap=(g,text,x,y,maxW,lh)=>{const words=String(text).split(" ");let line="";for(const w of words){const t=line?line+" "+w:w;if(g.measureText(t).width>maxW&&line){g.fillText(line,x,y);y+=lh;line=w}else line=t}if(line){g.fillText(line,x,y);y+=lh}return y};
+  const clip=(g,text,maxW)=>{text=String(text);if(g.measureText(text).width<=maxW)return text;while(text.length>1&&g.measureText(text+"…").width>maxW)text=text.slice(0,-1);return text+"…"};
+  let g=newPage(),y=M+24;
+  g.fillStyle=P.fg;g.font=`800 30px ${F.disp}`;g.fillText(T.sheetTitle,M,y);y+=28;
+  g.font=`14px ${F.sans}`;g.fillStyle=P.muted;g.fillText([s.company,`${T.set.cur}: ${C()}`,`${T.set.target}: ${pf.format(+s.target||0)}`,`${T.prepared}: ${new Date().toLocaleDateString(loc)}`].filter(Boolean).join("   ·   "),M,y);y+=14;
+  g.fillStyle=P.fg;g.fillRect(M,y,CW,2);y+=22;
+  const kw=(CW-5*12)/6;kpiData(c).forEach(([l,val,sub,bad],i)=>{const x=M+i*(kw+12);g.strokeStyle=P.line;g.lineWidth=1;g.strokeRect(x+.5,y+.5,kw,78);
+    g.font=`500 11px ${F.mono}`;g.fillStyle=P.muted;g.fillText(clip(g,l.toUpperCase(),kw-20),x+10,y+20);
+    g.font=`600 24px ${F.mono}`;g.fillStyle=bad?P.bad:P.fg;g.fillText(clip(g,val,kw-20),x+10,y+50);g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.fillText(clip(g,sub||"",kw-20),x+10,y+68)});
+  y+=104;const vy=y;
+  g.font=`700 19px ${F.disp}`;g.fillStyle=P.fg;y=wrap(g,v.h,M+18,y+18,CW-30,24);
+  g.font=`13px ${F.sans}`;v.notes.forEach(t=>{y=wrap(g,"•  "+t,M+18,y+2,CW-40,19)});
+  if(v.levers.length){g.font=`600 13px ${F.sans}`;g.fillText(T.v.levers,M+18,y+8);y+=28;g.font=`13px ${F.sans}`;v.levers.forEach(t=>{y=wrap(g,"•  "+t,M+18,y,CW-40,19)})}
+  g.fillStyle=v.sev<0?P.muted:[P.good,P.warn,P.bad][v.sev];g.fillRect(M,vy,5,y-vy);y+=20;
+  const ch=Math.max(220,PH-y-70),cc=document.createElement("canvas");
+  drawChart(cc,c,{fg:P.fg,muted:P.muted,line:P.line,good:P.good,bad:P.bad,accent:P.acc,surface:"#fff",mono:F.mono},CW,ch,SC);
+  g.drawImage(cc,M,y,CW,ch);foot(g,1);
+  // page 2: tables
+  g=newPage();g.fillStyle=P.fg;g.font=`700 18px ${F.disp}`;g.fillText(T.sheetTitle+(s.company?` · ${s.company}`:""),M,M+14);
+  g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.fillText(`${T.set.cur}: ${C()}`,M,M+32);
+  let ty=M+48;const RH=22;
+  const table=(cols,rowsData)=>{const sc=CW/cols.reduce((a,x)=>a+x[1],0);cols=cols.map(x=>[x[0],x[1]*sc,x[2]]);
+    rowsData.forEach(([vals,kind,colors])=>{if(kind==="title"){g.fillStyle=P.fg;g.font=`700 15px ${F.disp}`;g.textAlign="left";g.fillText(vals[0],M,ty+16);ty+=28;return}
+      if(kind==="head"){const HH=34;let x=M;g.font=`500 10.5px ${F.sans}`;g.fillStyle=P.muted;cols.forEach(([,w,al],i)=>{const words=String(vals[i]).split(" ");let l1="",l2="";
+          words.forEach(wd=>{if(!l2&&g.measureText((l1?l1+" ":"")+wd).width<=w-8)l1=(l1?l1+" ":"")+wd;else l2=(l2?l2+" ":"")+wd});l2=clip(g,l2,w-8);
+          g.textAlign=al==="r"?"right":"left";const tx=al==="r"?x+w-4:x+4;if(l2){g.fillText(l1,tx,ty+12);g.fillText(l2,tx,ty+25)}else g.fillText(l1,tx,ty+25);x+=w});
+        g.fillStyle=P.fg;g.fillRect(M,ty+HH-1,CW,1.5);ty+=HH;return}
+      if(kind==="key"){g.fillStyle=P.accSoft;g.fillRect(M,ty,CW,RH)}
+      let x=M;cols.forEach(([,w,al],i)=>{const t=vals[i]==null?"":String(vals[i]);g.font=kind==="head"?`500 10.5px ${F.sans}`:`${kind==="key"?"600 ":""}${i===0?"12px "+F.sans:"11.5px "+F.mono}`;
+        g.fillStyle=kind==="head"?P.muted:(colors&&colors[i])||P.fg;
+        if(al==="r"){g.textAlign="right";g.fillText(clip(g,t,w-8),x+w-4,ty+15)}else{g.textAlign="left";g.fillText(clip(g,t,w-8),x+4,ty+15)}x+=w});
+      g.fillStyle=kind==="head"?P.fg:P.line;g.fillRect(M,ty+RH-1,CW,kind==="head"?1.5:1);ty+=RH})};
+  const lc=[[T.col.name,250,"l"],[T.col.plan,80,"r"],[T.col.down,85,"r"],[T.col.co,80,"r"],[T.col.spd,80,"r"],[T.col.scrap,80,"r"],[T.col.cph,90,"r"],[T.col.mat,100,"r"],[T.col.bn,60,"l"],[T.col.cmh,90,"r"],[T.col.oee,70,"r"],[T.col.lost,80,"r"],[T.col.loss,110,"r"],[T.col.rec,110,"r"]];
+  const lr=[[[T.t1],"title"],[lc.map(x=>x[0]),"head"]];
+  c.lines.forEach((l,i)=>{const src=model.lines[i];lr.push([[l.name,fmt(src.plan),fmt(src.down),fmt(src.co),pf.format(+src.spd||0),pf.format(+src.scrap||0),fmt(src.cph),fmt(src.mat),src.bn?T.yes:"",src.bn?fmt(src.cmh):"",l.valid?pct(l.oee*100):"—",l.valid?fmt(l.lost):"—",l.valid?fmt(l.loss):"—",l.valid?fmt(l.rec):"—"],"",[null,null,null,null,null,null,null,null,null,null,l.valid&&l.oee*100<c.target?P.bad:null]])});
+  lr.push([[T.total,fmt(c.PT),"","","","","","","","",c.oeeAvg==null?"—":pct(c.oeeAvg*100),fmt(c.lost),fmt(c.lineLoss),fmt(c.valid.reduce((a,x)=>a+x.rec,0))],"key"]);
+  table(lc,lr);ty+=18;
+  const oc=[[T.col2.name,600,"l"],[T.col2.amt,200,"r"],[T.col2.recp,160,"r"],[T.col2.loss,220,"r"],[T.col2.rec,220,"r"]];
+  const or=[[[T.t2],"title"],[oc.map(x=>x[0]),"head"]];
+  c.other.forEach((o,j)=>or.push([[o.name,fmt(o.amt),pf.format(+model.other[j].recp||0),fmt(o.loss),fmt(o.rec)],""]));
+  or.push([[T.total,"","",fmt(c.otherLoss),fmt(c.other.reduce((a,x)=>a+x.rec,0))],"key"]);
+  or.push([[T.k.hf,"","",fmt(c.HF),fmt(c.REC)],"key"]);
+  table(oc,or);g.textAlign="left";foot(g,2);
+  return pages}
+$("btnPdf").onclick=async()=>{try{status(T.st.loading);await lib("jspdf");if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+  const pages=reportPages();const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:"landscape",unit:"pt",format:"a4"});
+  const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+  pages.forEach((cv,i)=>{if(i)pdf.addPage();pdf.addImage(cv.toDataURL("image/jpeg",.92),"JPEG",0,0,pw,ph)});
+  await offer(fname("pdf"),pdf.output("arraybuffer"),T.st.pdf)}catch(e){console.error(e);status(T.st.fail,"err")}};
+
+texts();renderSettings();renderGrid();$("sample").hidden=!isSample;
+})()}
+
+</script>
+
+<script src="js/site-header.js"></script>
+</body></html>

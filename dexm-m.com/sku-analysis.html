@@ -1,0 +1,475 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>SKU Analysis — DeXM Management</title>
+<meta name="description" content="Free SKU analysis: enter volume, price and variable cost per SKU or import Excel to see contribution, ABC classes, contribution per bottleneck hour and the upside from repricing and exiting loss-makers. Data stays in your browser.">
+<link rel="icon" href="img/dexm-mark.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: header + toolbar, settings strip, summary (KPIs + whale curve + verdict), then the full-width SKU table with a sticky SKU column */
+:root{
+  --bg:#f3f4f2; --surface:#ffffff; --fg:#1b2224; --muted:#5d686b; --line:#d6dbd9;
+  --accent:#0e6b6b; --accent-soft:#dcecea; --steel:#3c4a4f; --band:#eef1ef;
+  --good:#2f7d4f; --warn:#b7791f; --bad:#b4442d; --bad-soft:#f6e3de;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131819; --surface:#1b2224; --fg:#e6ebea; --muted:#9aa6a8; --line:#2e3739;
+  --accent:#4fb3ad; --accent-soft:#1f3534; --steel:#b9c5c7; --band:#20292b;
+  --good:#5fbf86; --warn:#e0a84a; --bad:#e2765f; --bad-soft:#3a2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131819; --surface:#1b2224; --fg:#e6ebea; --muted:#9aa6a8; --line:#2e3739;
+  --accent:#4fb3ad; --accent-soft:#1f3534; --steel:#b9c5c7; --band:#20292b;
+  --good:#5fbf86; --warn:#e0a84a; --bad:#e2765f; --bad-soft:#3a2420; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:20px;padding-block:28px 48px;display:flex;flex-direction:column;gap:20px}
+header{border-bottom:2px solid var(--fg);padding-bottom:14px}
+.brand{font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font:800 clamp(26px,4vw,38px)/1.1 var(--display);margin:6px 0 0;text-wrap:balance;letter-spacing:-.01em}
+.lede{max-width:72ch;color:var(--muted);margin:8px 0 0}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,.filebtn{font:500 14px var(--body);border-radius:4px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg);display:inline-flex;align-items:center}
+button.primary,.filebtn{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.filebtn input{position:absolute;width:1px;height:1px;opacity:0}
+.status{font-size:13px;color:var(--muted);min-height:1.2em;flex-basis:100%}
+.status.ok{color:var(--good)} .status.err{color:var(--bad)}
+.notice{font-size:13px;background:var(--accent-soft);padding:10px 12px;border-radius:4px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px}
+.label{font:500 11px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 16px}
+.field{display:flex;flex-direction:column;justify-content:space-between;gap:4px;min-width:0}
+.field input{font:15px var(--body);padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);width:100%;min-width:0}
+.field input.num{font-family:var(--mono);text-align:right}
+.summary{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px}
+@media (max-width:900px){.summary{grid-template-columns:1fr}}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-bottom:14px}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi b{font:600 20px/1.2 var(--mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.kpi small{font-size:12px;color:var(--muted)}
+.kpi.bad b{color:var(--bad)}
+canvas{width:100%;height:240px;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:12px;height:10px;margin-right:5px;vertical-align:-1px;border-radius:2px}
+.verdict h2{font:700 21px/1.25 var(--display);margin:8px 0 6px;text-wrap:balance}
+.verdict p{margin:0 0 8px;font-size:14px;color:var(--muted)}
+.verdict ul{margin:4px 0 10px;padding-left:18px;font-size:14px;display:grid;gap:3px}
+.sev{display:inline-block;font:500 12px var(--mono);padding:2px 8px;border-radius:3px;color:var(--surface)}
+.cta{border-top:1px solid var(--line);padding-top:10px;font-size:14px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:separate;border-spacing:0;font-size:13px;min-width:100%}
+th,td{padding:0;border-bottom:1px solid var(--line);white-space:nowrap}
+thead th{font:500 11px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:10px 6px;text-align:right;background:var(--surface);position:sticky;top:0}
+thead th small{display:block;font-size:11px;letter-spacing:0;text-transform:none}
+th.lab,td.lab{position:sticky;left:0;z-index:1;background:var(--surface);text-align:left;padding:6px 10px;min-width:230px;max-width:280px;border-right:1px solid var(--line)}
+thead th.lab{z-index:2}
+td.lab{white-space:normal}
+td.lab input{font:13px var(--body);border:1px dashed var(--line);border-radius:3px;padding:3px 6px;background:var(--bg);color:var(--fg);width:calc(100% - 30px)}
+td.lab .del{padding:0 6px;margin-left:4px;font-size:15px;line-height:1.4;border:0;background:none;color:var(--muted)}
+td.v{text-align:right;padding:0 2px}
+td.v input{width:84px;font:13px var(--mono);text-align:right;border:1px solid transparent;border-radius:3px;padding:5px 6px;background:var(--bg);color:var(--fg);font-variant-numeric:tabular-nums}
+td.v input:hover{border-color:var(--line)}
+td.c{text-align:right;padding:6px 8px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+td.tot{font-weight:600;background:var(--band)}
+tr.sec td{background:var(--band);font:600 12px var(--body);letter-spacing:.04em;text-transform:uppercase;padding:8px 10px}
+tr.sec td.lab{background:var(--band)}
+tr.sub td{font-weight:600}
+tr.key td{font-weight:600;background:var(--accent-soft)}
+tr.key td.lab{background:var(--accent-soft)}
+td.neg{color:var(--bad)}
+td.below{background:var(--bad-soft)!important;color:var(--bad)}
+tr.add td{padding:4px 10px;border-bottom:1px solid var(--line)}
+tr.add button{font-size:12px;padding:3px 8px;border-style:dashed;background:none;color:var(--accent)}
+input[type=number]{-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+footer{padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+th.tl,td.tl{text-align:left;padding:6px 8px}
+.tag{display:inline-block;font-size:12px;line-height:1.3;padding:2px 8px;border-radius:3px;border:1px solid var(--tc);color:var(--tc);white-space:nowrap}
+.tablehint{font-size:13px;color:var(--muted);margin:0}
+#grid td.lab{min-width:250px}
+#grid td.lab input{width:calc(100% - 30px)}
+#grid td.v input{width:92px}
+.field select{font:15px var(--body);padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);width:100%}
+footer span{user-select:all}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<link rel="stylesheet" href="css/site-header.css">
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</head><body>
+<div class="dxh" id="dxh">
+  <div class="dxh-wrap">
+    <a href="/" class="dxh-logo"><img src="img/dexm-mark.png" alt=""><span>DeXM Management</span></a>
+    <nav class="dxh-nav" id="dxhNav" aria-label="Site">
+      <a href="/solutions">Solutions</a>
+      <a href="/dexm-os">DeXM OS</a>
+      <a href="/about">About</a>
+      <a href="/#contact" class="dxh-cta">Book an Intro Call</a>
+    </nav>
+    <a href="/#contact" class="dxh-cta">Book an Intro Call</a>
+    <button class="dxh-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="dxhNav"><span></span><span></span><span></span></button>
+  </div>
+</div>
+
+<div class="wrap">
+<header>
+  <a href="/" class="brand" id="t-brand" style="display:block;text-decoration:none"></a>
+  <h1 id="t-h1"></h1>
+  <p class="lede" id="t-lede"></p>
+</header>
+
+<div class="toolbar">
+  <label class="filebtn" id="importLbl"><span id="t-import"></span><input type="file" id="importFile" accept=".xlsx,.xls,.xlsm,.csv"></label>
+  <button id="btnTemplate"></button>
+  <button id="btnXlsx"></button>
+  <button id="btnPdf"></button>
+  <button id="btnReset"></button>
+  <div class="status" id="status" role="status"></div>
+</div>
+<div class="notice" id="sample"></div>
+
+<section class="panel">
+  <div class="settings" id="settings"></div>
+</section>
+
+<section class="summary">
+  <div class="panel">
+    <div class="kpis" id="kpis"></div>
+    <canvas id="chart" aria-label=""></canvas>
+    <div class="legend" id="legend"></div>
+  </div>
+  <div class="panel verdict" id="verdict" aria-live="polite"></div>
+</section>
+
+<p class="tablehint" id="hint"></p>
+<div class="tablewrap"><table id="grid"></table></div>
+
+<footer>
+  <span>DeXM Management</span><span>info@dexm-m.com</span><span>+1 917 523 0461</span><span>dexm-m.com</span>
+</footer>
+</div>
+
+<script>
+const LANG="en";
+const L={
+ru:{brand:"DeXM Management · анализ ассортимента",h1:"SKU-анализ: какие позиции зарабатывают, а какие съедают прибыль",
+ lede:"Введите по каждому SKU объём, цену и переменные затраты на единицу прямо в таблице, вставьте блок из Excel или загрузите файл. Анализ покажет маржинальный доход, ABC-классы, доход на час узкого места и потенциал от переоценки и вывода убыточных позиций. Данные хранятся только в вашем браузере.",
+ imp:"Загрузить из Excel",tpl:"Скачать шаблон Excel",xlsx:"Скачать Excel",pdf:"Скачать PDF для печати",reset:"Очистить",
+ sample:"Показан пример завода с 18 позициями. Нажмите «Очистить», вставьте свои данные из Excel или загрузите файл.",
+ set:{company:"Компания",cur:"Валюта",target:"Целевая маржа вклада, %",fixed:"Постоянные затраты за год",sort:"Сортировка таблицы"},
+ companyDef:"Пример: Завод",curDef:"$",
+ sorts:["Как введено","По выручке","По маржинальному доходу","По марже, %"],
+ col:{sku:"SKU / наименование",vol:"Объём, ед./год",price:"Цена за ед.",mat:"Материалы на ед.",lab:"Труд на ед.",oth:"Прочие перем. на ед.",bn:"Узкое место, мин/ед.",rev:"Выручка",cm:"Маржинальный доход",cmp:"Маржа, %",cmh:"Доход на час узкого места",abc:"ABC",act:"Действие"},
+ hint:"Совет: скопируйте в Excel диапазон из 7 столбцов (SKU, объём, цена, материалы, труд, прочие, мин/ед.) и вставьте в первую ячейку строки.",
+ add:"+ Добавить SKU",del:"Удалить строку",newSku:"Новый SKU",total:"Итого",
+ act:{loss:"Убыточный: вывести или переоценить",core:"Ядро: защищать",fix:"Поднять цену или снизить затраты",niche:"Ниша: развивать",tail:"Хвост: пересмотреть"},
+ k:{n:"SKU в анализе",rev:"Выручка",cm:"Маржинальный доход",ebitda:"EBITDA после постоянных",loss:"Убыточные SKU",pot:"Потенциал",ofRev:p=>`маржа ${p}`,pareto:(a,b)=>`${a} SKU (${b}) дают 80% выручки`,lossSub:v=>`теряют ${v}`,potSub:"переоценка + вывод убыточных"},
+ lg:{bar:"Маржинальный доход SKU",line:"Накопленный доход, % от итога (кривая «кита»)",ref:"100%"},
+ v:{label:"Вывод",sev:["в норме","внимание","критично"],
+  h0:"Ассортимент в целом здоровый",h1:p=>`Потенциал улучшения ${p} маржинального дохода`,
+  pareto:(a,b)=>`${a} из ${b} SKU дают 80% выручки: остальные позиции стоит проверить на целесообразность.`,
+  loss:(n,v)=>`${n} SKU продаются ниже переменных затрат и теряют ${v} в год.`,
+  whale:p=>`Пик кривой «кита» ${p}: прибыльные позиции зарабатывают больше, чем остаётся в итоге.`,
+  fix:(n,v)=>`${n} SKU ниже целевой маржи. Переоценка до цели при том же объёме добавит ${v}.`,
+  bn:(s,v,a)=>`Меньше всего на час узкого места приносит «${s}»: ${v} против ${a} в среднем. При дефиците мощностей эти позиции стоит вытеснять.`,
+  levers:"Что делать",L:["Переоценить позиции ниже целевой маржи, начиная с крупнейших по выручке.","Вывести или перевести на заказ убыточные SKU и освободить мощности.","Освободившееся время узкого места отдать позициям с самым высоким доходом на час."],
+  none:"Добавьте SKU с объёмом и ценой",noneP:"Анализ появится сразу.",
+  cta:"<strong>Нужен разбор ассортимента?</strong> DeXM строит полную себестоимость по SKU и план переоценки и сокращения хвоста за 2 недели. info@dexm-m.com"},
+ st:{tpl:"Шаблон готов к сохранению",xlsx:"Excel готов к сохранению",pdf:"PDF готов к сохранению",saved:"Файл сохранён",declined:"Сохранение отменено",
+  noDl:"Скачивание недоступно в этом просмотре. Откройте страницу по ссылке в браузере.",fail:"Не удалось создать файл. Попробуйте ещё раз.",loading:"Загружаю модуль…",
+  imported:(n,s)=>`Загружено SKU: ${n}${s?`. Настройки: ${s}`:""}.`,noHeader:"Не нашёл строку заголовков. Нужны столбцы SKU, объём и цена. Скачайте шаблон, чтобы увидеть формат.",
+  cleared:"Таблица очищена",readFail:"Не удалось прочитать файл. Проверьте, что это .xlsx, .xls или .csv.",pasted:n=>`Вставлено строк: ${n}`},
+ sheetTitle:"SKU-анализ",prepared:"Подготовлено",chartAria:"Маржинальный доход по SKU и накопленная кривая"},
+en:{brand:"DeXM Management · portfolio analysis",h1:"SKU Analysis: which products make money and which eat it",
+ lede:"Enter volume, price and variable cost per unit for each SKU in the table, paste a block from Excel or import a file. The analysis shows contribution, ABC classes, contribution per bottleneck hour and the upside from repricing and exiting loss-makers. Your data stays in your browser.",
+ imp:"Import from Excel",tpl:"Download Excel template",xlsx:"Download Excel",pdf:"Download PDF to print",reset:"Clear",
+ sample:"This is a sample plant with 18 SKUs. Select “Clear”, paste your own data from Excel or import a file.",
+ set:{company:"Company",cur:"Currency",target:"Target contribution margin, %",fixed:"Annual fixed costs",sort:"Sort table"},
+ companyDef:"Sample: Plant",curDef:"$",
+ sorts:["As entered","By revenue","By contribution","By margin, %"],
+ col:{sku:"SKU / description",vol:"Volume, units/yr",price:"Price per unit",mat:"Material per unit",lab:"Labor per unit",oth:"Other variable per unit",bn:"Bottleneck, min/unit",rev:"Revenue",cm:"Contribution",cmp:"Margin, %",cmh:"Contribution per bottleneck hour",abc:"ABC",act:"Action"},
+ hint:"Tip: copy a 7-column range from Excel (SKU, volume, price, material, labor, other, min/unit) and paste it into the first cell of a row.",
+ add:"+ Add SKU",del:"Delete row",newSku:"New SKU",total:"Total",
+ act:{loss:"Loss-maker: exit or reprice",core:"Core: protect",fix:"Raise price or cut cost",niche:"Niche: grow",tail:"Tail: review"},
+ k:{n:"SKUs analyzed",rev:"Revenue",cm:"Contribution",ebitda:"EBITDA after fixed costs",loss:"Loss-making SKUs",pot:"Upside",ofRev:p=>`margin ${p}`,pareto:(a,b)=>`${a} SKUs (${b}) make 80% of revenue`,lossSub:v=>`losing ${v}`,potSub:"repricing + exiting loss-makers"},
+ lg:{bar:"SKU contribution",line:"Cumulative contribution, % of total (whale curve)",ref:"100%"},
+ v:{label:"Verdict",sev:["on track","watch","critical"],
+  h0:"The portfolio is broadly healthy",h1:p=>`Upside of ${p} of contribution`,
+  pareto:(a,b)=>`${a} of ${b} SKUs make 80% of revenue, so check whether the rest earn their place.`,
+  loss:(n,v)=>`${n} SKUs sell below variable cost and lose ${v} a year.`,
+  whale:p=>`The whale curve peaks at ${p}: profitable SKUs earn more than the business keeps.`,
+  fix:(n,v)=>`${n} SKUs are below target margin. Repricing them to target at the same volume adds ${v}.`,
+  bn:(s,v,a)=>`“${s}” earns the least per bottleneck hour: ${v} against an average of ${a}. When capacity is tight, push these out first.`,
+  levers:"What to do",L:["Reprice SKUs below target margin, starting with the largest by revenue.","Exit or move loss-making SKUs to make-to-order and free up capacity.","Give freed bottleneck time to the SKUs with the highest contribution per hour."],
+  none:"Add SKUs with volume and price",noneP:"The analysis appears right away.",
+  cta:"<strong>Want a portfolio review?</strong> DeXM builds full cost per SKU and a repricing and tail-reduction plan in 2 weeks. info@dexm-m.com"},
+ st:{tpl:"Template ready to save",xlsx:"Excel file ready to save",pdf:"PDF ready to save",saved:"File saved",declined:"Save cancelled",
+  noDl:"Downloads are not available in this view. Open the page from its link in a browser.",fail:"Could not create the file. Try again.",loading:"Loading module…",
+  imported:(n,s)=>`Imported ${n} SKUs${s?`, settings: ${s}`:""}.`,noHeader:"Could not find a header row. You need SKU, volume and price columns. Download the template to see the format.",
+  cleared:"Table cleared",readFail:"Could not read the file. Check that it is .xlsx, .xls or .csv.",pasted:n=>`Pasted ${n} rows`},
+ sheetTitle:"SKU Analysis",prepared:"Prepared",chartAria:"Contribution by SKU and cumulative whale curve"}
+};
+const T=L[LANG];
+const IN=["vol","price","mat","lab","oth","bn"];
+function blankModel(){return{settings:{company:"",cur:T.curDef,target:30,fixed:0,sort:0},skus:[]}}
+function sampleModel(){const m=blankModel();Object.assign(m.settings,{company:T.companyDef,target:30,fixed:2400000});
+  const names=LANG==="ru"?["AL-101 Оконный профиль","AL-102 Дверной профиль","AL-110 Фасадная стойка","AL-111 Фасадный ригель","AL-120 Радиаторный профиль","AL-130 Профиль для мебели","AL-140 Трубка 40×2","AL-141 Трубка 25×1,5","AL-150 Уголок 40×40","AL-151 Уголок 20×20","AL-160 Шина электротех.","AL-170 Профиль для LED","AL-180 Автокомпонент A","AL-181 Автокомпонент B","AL-190 Спецпрофиль заказной","AL-191 Спецпрофиль малый","AL-195 Образцы и опытные партии","AL-199 Профиль для теплиц"]
+   :["AL-101 Window profile","AL-102 Door profile","AL-110 Curtain wall mullion","AL-111 Curtain wall transom","AL-120 Heat sink profile","AL-130 Furniture profile","AL-140 Tube 40×2","AL-141 Tube 25×1.5","AL-150 Angle 40×40","AL-151 Angle 20×20","AL-160 Electrical busbar","AL-170 LED profile","AL-180 Automotive part A","AL-181 Automotive part B","AL-190 Custom profile","AL-191 Small custom profile","AL-195 Samples and trial runs","AL-199 Greenhouse profile"];
+  const D=[[180000,14.2,7.6,1.4,1.1,1.2],[95000,16.8,8.4,1.6,1.2,1.4],[60000,24.5,11.2,2.6,1.8,2.2],[52000,21.0,10.1,2.3,1.6,2.0],[40000,19.5,8.9,2.4,1.5,2.6],[75000,9.8,5.2,1.1,0.8,0.9],
+   [110000,7.4,4.6,0.7,0.6,0.5],[90000,5.1,3.4,0.6,0.5,0.6],[85000,6.2,3.9,0.6,0.5,0.4],[70000,3.9,2.7,0.5,0.4,0.5],[25000,22.0,13.5,1.8,1.4,1.6],[30000,12.6,5.4,1.5,1.0,1.8],
+   [45000,18.4,10.6,2.2,1.5,2.4],[38000,15.2,11.6,2.4,1.6,2.9],[8000,31.0,12.5,6.8,3.2,7.5],[6000,14.0,7.9,5.0,2.1,6.0],[1500,20.0,9.0,9.5,4.0,14.0],[20000,6.9,5.6,1.2,0.9,1.3]];
+  m.skus=D.map((d,i)=>({name:names[i],vol:d[0],price:d[1],mat:d[2],lab:d[3],oth:d[4],bn:d[5]}));return m}
+
+function compute(m){
+  const t=(+m.settings.target||0)/100,n=x=>+x||0;
+  const rows=m.skus.map((s,i)=>{const vol=n(s.vol),p=n(s.price),vc=n(s.mat)+n(s.lab)+n(s.oth),rev=vol*p,cmU=p-vc,cm=vol*cmU,cmp=rev?cm/rev*100:null,bn=n(s.bn);
+    const cmh=bn>0?cmU/(bn/60):null;const pT=t<1&&vc>0?vc/(1-t):null;const repr=cm>=0&&cmp!=null&&cmp<t*100&&pT?Math.max(0,(pT-p)*vol):0;
+    return{i,name:s.name||T.newSku,vol,p,vc,rev,cm,cmp,cmh,bn,bnHrs:bn*vol/60,repr,valid:vol>0&&p>0}});
+  const v=rows.filter(r=>r.valid);const R=v.reduce((a,r)=>a+r.rev,0),CM=v.reduce((a,r)=>a+r.cm,0);
+  const byRev=[...v].sort((a,b)=>b.rev-a.rev);let cum=0;byRev.forEach(r=>{const before=cum;cum+=r.rev;r.abc=R&&before/R<0.8?"A":R&&before/R<0.95?"B":"C"});
+  const nA=byRev.filter(r=>r.abc==="A").length;
+  v.forEach(r=>{const big=r.abc!=="C",ok=r.cmp!=null&&r.cmp>=t*100;r.act=r.cm<0?"loss":big?(ok?"core":"fix"):(ok?"niche":"tail")});
+  const byCm=[...v].sort((a,b)=>b.cm-a.cm);let c2=0;const whale=byCm.map(r=>(c2+=r.cm,CM?c2/CM*100:0));
+  const losers=v.filter(r=>r.cm<0),lossAmt=-losers.reduce((a,r)=>a+r.cm,0);
+  const fixers=v.filter(r=>r.repr>0),reprAmt=fixers.reduce((a,r)=>a+r.repr,0);
+  const withBn=v.filter(r=>r.cmh!=null);const bnH=withBn.reduce((a,r)=>a+r.bnHrs,0);
+  const avgCmh=bnH?withBn.reduce((a,r)=>a+r.cm,0)/bnH:null;const worstBn=[...withBn].sort((a,b)=>a.cmh-b.cmh)[0]||null;
+  const fixed=n(m.settings.fixed);
+  return{rows,valid:v,R,CM,cmp:R?CM/R*100:null,ebitda:CM-fixed,fixed,nA,n:v.length,byCm,whale,whalePeak:whale.length?Math.max(...whale):0,
+    losers,lossAmt,fixers,reprAmt,pot:lossAmt+reprAmt,avgCmh,worstBn,t:t*100}
+}
+
+function parseNum(x){if(typeof x==="number")return isFinite(x)?x:null;if(x==null)return null;
+  let s=String(x).trim().replace(/[\s $€£₽%]/g,"");if(!s||s==="-"||s==="—")return null;
+  let neg=false;if(/^\(.*\)$/.test(s)){neg=true;s=s.slice(1,-1)}
+  if(s.includes(",")&&s.includes("."))s=s.lastIndexOf(",")>s.lastIndexOf(".")?s.replace(/\./g,"").replace(",","."):s.replace(/,/g,"");
+  else if(s.includes(","))s=/,\d{3}$/.test(s)&&!/,\d{3},?\d{1,2}$/.test(s)?s.replace(/,/g,""):s.replace(",",".");
+  const v=parseFloat(s);return isFinite(v)?(neg?-v:v):null}
+const HDR=[["name",/(^sku|артикул|наимен|product|item|description|позиция|номенклатур|изделие)/i],["vol",/(volume|qty|quantity|units|объ[её]м|кол-?во|количество|шт)/i],["price",/(price|цена)/i],
+ ["rev",/(revenue|sales|выручк)/i],["mat",/(material|материал|сырь)/i],["lab",/(labou?r|труд|зарплат|работ)/i],["oth",/(other var|прочие перем|other|прочие|energy|энерг)/i],["bn",/(bottleneck|узк|min\/|мин\/|minutes|минут|cycle|цикл)/i]];
+const TOTAL_RE=/(total|итого|всего|сумма|за год|per year|annual)/i;
+function importAOA(rows){
+  const txt=c=>c==null?"":String(c).trim();let hdr=-1,map={},totals={};
+  for(let r=0;r<Math.min(rows.length,40);r++){const mm={},tt={};(rows[r]||[]).forEach((c,ci)=>{const t=txt(c);if(!t||typeof c==="number")return;
+      for(const [k,re] of HDR)if(re.test(t)&&mm[k]==null){        // skip computed columns from our own export
+        if(/(contribution|маржинальн|margin|маржа|доход на час|per bottleneck hour|abc|action|действие)/i.test(t))break;
+        mm[k]=ci;tt[k]=TOTAL_RE.test(t)&&!/(на ед|per unit|\/ед|\/unit)/i.test(t);break}});
+    if(mm.name!=null&&mm.vol!=null&&(mm.price!=null||mm.rev!=null)){hdr=r;map=mm;totals=tt;break}}
+  if(hdr<0)return{error:"noHeader"};
+  const m=blankModel();const found=[];
+  const SET=[["company",/^(company|компания)$/i],["cur",/^(currency|валюта)$/i],["target",/(target contribution|целевая маржа)/i],["fixed",/(fixed costs|постоянные затраты)/i]];
+  for(let r=0;r<hdr;r++){const row=rows[r]||[];row.forEach((c,ci)=>{const t=txt(c);for(const [k,re] of SET)if(re.test(t)&&!found.includes(k)){const v=row.slice(ci+1).find(x=>x!=null&&txt(x)!=="");if(v==null)continue;
+        m.settings[k]=k==="company"||k==="cur"?txt(v):(parseNum(v)??0);if(k==="target"&&Math.abs(m.settings.target)<=1&&m.settings.target)m.settings.target*=100;found.push(k);break}})}
+  for(let r=hdr+1;r<rows.length;r++){const row=rows[r]||[];const name=txt(row[map.name]);if(!name||TOTAL_RE.test(name)&&/^(total|итого)/i.test(name))continue;
+    const g=k=>map[k]!=null?parseNum(row[map[k]]):null;const vol=g("vol");if(vol==null)continue;
+    let price=g("price");if(price==null&&g("rev")!=null&&vol)price=g("rev")/vol;
+    const per=k=>{const v=g(k);if(v==null)return 0;return totals[k]&&vol?v/vol:v};
+    m.skus.push({name,vol,price:price||0,mat:per("mat"),lab:per("lab"),oth:per("oth"),bn:g("bn")||0})}
+  if(!m.skus.length)return{error:"noHeader"};
+  return{model:m,n:m.skus.length,settings:found}
+}
+
+// Excel export: settings block, then table with formulas
+function exportPlan(m,blank){
+  const rows=[],f=[];const s=m.settings;const push=(r,fx)=>{rows.push(r);if(fx)f.push([rows.length,fx])};
+  push([T.sheetTitle]);push([T.set.company,blank?"":s.company]);push([T.set.cur,s.cur]);push([T.set.target,+s.target||0]);const rT=rows.length;push([T.set.fixed,blank?0:+s.fixed||0]);const rF=rows.length;push([]);
+  const c=compute(m);const H=[T.col.sku,T.col.vol,T.col.price,T.col.mat,T.col.lab,T.col.oth,T.col.bn,T.col.rev,T.col.cm,T.col.cmp,T.col.cmh,T.col.abc,T.col.act];
+  push(H);const first=rows.length+1;
+  const list=blank?[{name:"",vol:0,price:0,mat:0,lab:0,oth:0,bn:0}]:m.skus;
+  list.forEach((sk,i)=>{const r=c.rows[i];push([sk.name,+sk.vol||0,+sk.price||0,+sk.mat||0,+sk.lab||0,+sk.oth||0,+sk.bn||0,null,null,null,null,blank||!r||!r.valid?"":r.abc,blank||!r||!r.valid?"":T.act[r.act]],
+    [[7,"B{r}*C{r}","n"],[8,"B{r}*(C{r}-D{r}-E{r}-F{r})","n"],[9,"IF(H{r}=0,0,I{r}/H{r})","pct"],[10,'IF(G{r}=0,"",(C{r}-D{r}-E{r}-F{r})/(G{r}/60))',"n"]])});
+  const last=rows.length;
+  push([T.total],[[1,`SUM(B${first}:B${last})`,"n"],[7,`SUM(H${first}:H${last})`,"n"],[8,`SUM(I${first}:I${last})`,"n"],[9,`IF(H{r}=0,0,I{r}/H{r})`,"pct"]]);const rTot=rows.length;
+  push([LANG==="ru"?"EBITDA после постоянных затрат":"EBITDA after fixed costs"],[[8,`I${rTot}-B${rF}`,"n"]]);
+  // settings values sit in column B
+  return{rows,f,rT,rF}
+}
+
+</script>
+<script>
+if(typeof document!=="undefined"){(function(){
+const KEY="dexm-sku-v1-"+LANG;
+let model,isSample=false;
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.skus){model=s}}catch(e){}
+if(!model){model=sampleModel();isSample=true}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(model))}catch(e){}};
+const loc=LANG==="ru"?"ru-RU":"en-US";
+const nf=new Intl.NumberFormat(loc,{maximumFractionDigits:0}),df=new Intl.NumberFormat(loc,{minimumFractionDigits:2,maximumFractionDigits:2}),pf=new Intl.NumberFormat(loc,{minimumFractionDigits:1,maximumFractionDigits:1});
+const fmt=v=>{if(v==null||!isFinite(v))return "—";v=Math.round(v);if(!v)return "0";return v<0?`(${nf.format(-v)})`:nf.format(v)};
+const fmt2=v=>v==null||!isFinite(v)?"—":(v<0?`(${df.format(-v)})`:df.format(v));
+const pct=v=>v==null||!isFinite(v)?"—":`${pf.format(v)}%`;
+const short=v=>{const a=Math.abs(v),s=v<0?"-":"";if(a>=1e6)return s+pf.format(a/1e6)+(LANG==="ru"?" млн":"M");if(a>=1e4)return s+nf.format(a/1e3)+(LANG==="ru"?" тыс.":"k");return fmt(v)};
+const C=()=>model.settings.cur||"";
+const money=v=>LANG==="ru"?`${short(v)} ${C()}`:`${C()}${short(v)}`;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function status(msg,cls){const s=$("status");s.textContent=msg||"";s.className="status"+(cls?" "+cls:"")}
+function texts(){$("t-brand").textContent=T.brand;$("t-h1").textContent=T.h1;$("t-lede").textContent=T.lede;
+  $("t-import").textContent=T.imp;$("btnTemplate").textContent=T.tpl;$("btnXlsx").textContent=T.xlsx;$("btnPdf").textContent=T.pdf;$("btnReset").textContent=T.reset;
+  $("sample").textContent=T.sample;$("chart").setAttribute("aria-label",T.chartAria);$("hint").textContent=T.hint;
+  $("legend").innerHTML=`<span><i style="background:var(--good)"></i>${T.lg.bar}</span><span><i style="background:var(--accent);height:3px"></i>${T.lg.line}</span><span><i style="background:var(--muted);height:2px"></i>${T.lg.ref}</span>`}
+function renderSettings(){const s=model.settings;
+  const f=(k,type,cls)=>`<div class="field"><label class="label" for="set-${k}">${T.set[k]}</label><input id="set-${k}" data-k="${k}" type="${type}" ${cls?`class="${cls}" inputmode="decimal" step="any"`:""} value="${esc(s[k]??"")}"></div>`;
+  $("settings").innerHTML=f("company","text")+f("cur","text")+f("target","number","num")+f("fixed","number","num")+
+   `<div class="field"><label class="label" for="set-sort">${T.set.sort}</label><select id="set-sort" data-k="sort">${T.sorts.map((t,i)=>`<option value="${i}" ${+s.sort===i?"selected":""}>${t}</option>`).join("")}</select></div>`}
+$("settings").addEventListener("input",e=>{const k=e.target.dataset.k;if(!k)return;
+  model.settings[k]=["company","cur"].includes(k)?e.target.value:(parseFloat(e.target.value)||0);touch(k==="sort");if(k==="sort"||k==="target")renderGrid();else update()});
+$("settings").addEventListener("change",e=>{if(e.target.dataset.k==="sort"){model.settings.sort=+e.target.value;save();renderGrid()}});
+
+function order(c){const idx=model.skus.map((_,i)=>i);const r=c.rows,so=+model.settings.sort;
+  if(so===1)idx.sort((a,b)=>r[b].rev-r[a].rev);if(so===2)idx.sort((a,b)=>r[b].cm-r[a].cm);if(so===3)idx.sort((a,b)=>(r[b].cmp??-1e9)-(r[a].cmp??-1e9));return idx}
+function renderGrid(){const c=compute(model);
+  const H=["sku","vol","price","mat","lab","oth","bn","rev","cm","cmp","cmh","abc","act"];
+  let h=`<thead><tr>${H.map((k,i)=>`<th class="${i===0?"lab":k==="act"||k==="abc"?"tl":""}">${T.col[k]}</th>`).join("")}</tr></thead><tbody>`;
+  order(c).forEach(i=>{const s=model.skus[i];
+    h+=`<tr><td class="lab"><input id="n-${i}" data-r="${i}" data-k="name" class="labin" value="${esc(s.name||"")}" placeholder="${T.newSku}"><button class="del" data-del="${i}" aria-label="${T.del}">×</button></td>`;
+    IN.forEach(k=>h+=`<td class="v"><input type="number" step="any" inputmode="decimal" id="f-${k}-${i}" data-r="${i}" data-k="${k}" value="${s[k]||""}" placeholder="0" aria-label="${esc(s.name||T.newSku)}: ${T.col[k]}"></td>`);
+    h+=`<td class="c" id="o-rev-${i}"></td><td class="c" id="o-cm-${i}"></td><td class="c" id="o-cmp-${i}"></td><td class="c" id="o-cmh-${i}"></td><td class="tl" id="o-abc-${i}"></td><td class="tl" id="o-act-${i}"></td></tr>`});
+  h+=`<tr class="add"><td class="lab"><button data-add="1">${T.add}</button></td><td colspan="12"></td></tr>`;
+  h+=`<tr class="key"><td class="lab">${T.total}</td><td class="c" id="t-vol"></td><td colspan="5"></td><td class="c" id="t-rev"></td><td class="c" id="t-cm"></td><td class="c" id="t-cmp"></td><td class="c" id="t-cmh"></td><td colspan="2"></td></tr>`;
+  $("grid").innerHTML=h+"</tbody>";update()}
+$("grid").addEventListener("input",e=>{const t=e.target,d=t.dataset;if(d.r==null)return;const s=model.skus[+d.r];
+  s[d.k]=d.k==="name"?t.value:(parseFloat(t.value)||0);touch();update()});
+$("grid").addEventListener("click",e=>{const d=e.target.dataset;
+  if(d.add){model.skus.push({name:"",vol:0,price:0,mat:0,lab:0,oth:0,bn:0});touch();renderGrid();const inp=$(`n-${model.skus.length-1}`);inp&&inp.focus()}
+  if(d.del!=null){model.skus.splice(+d.del,1);touch();renderGrid()}});
+$("grid").addEventListener("paste",e=>{const t=e.target,d=t.dataset;if(d.r==null)return;const txt=e.clipboardData?e.clipboardData.getData("text"):"";
+  if(!/[\t\n]/.test(txt))return;e.preventDefault();const F=["name",...IN],f0=F.indexOf(d.k);let r0=+d.r;
+  const lines=txt.replace(/\r/g,"").split("\n").filter(x=>x.trim()!=="");
+  lines.forEach((ln,li)=>{const ri=r0+li;while(model.skus.length<=ri)model.skus.push({name:"",vol:0,price:0,mat:0,lab:0,oth:0,bn:0});
+    ln.split("\t").forEach((cell,ci)=>{const k=F[f0+ci];if(!k)return;model.skus[ri][k]=k==="name"?cell.trim():(parseNum(cell)??0)})});
+  touch();renderGrid();status(T.st.pasted(lines.length),"ok")});
+function touch(noSample){if(isSample&&!noSample){isSample=false;$("sample").hidden=true}save()}
+
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function niceStep(r){const p=Math.pow(10,Math.floor(Math.log10(Math.max(r,1e-9))));const n=r/p;return(n<1.5?1:n<3?2:n<7?5:10)*p}
+function drawChart(cv,c,pal,wpx,hpx,scale){
+  const dpr=scale||window.devicePixelRatio||1;const w=wpx||cv.clientWidth||600,hgt=hpx||cv.clientHeight||240;
+  cv.width=w*dpr;cv.height=hgt*dpr;const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,hgt);
+  const B=c.byCm;if(!B.length)return;const padL=64,padR=46,padT=12,padB=c.n<=24?30:14;
+  let lo=Math.min(0,...B.map(r=>r.cm)),hi=Math.max(1,...B.map(r=>r.cm));const sp=hi-lo;hi+=sp*.08;if(lo<0)lo-=sp*.06;
+  let phi=Math.max(110,c.whalePeak*1.08),plo=hi>0?-phi*(-lo)/hi:0;
+  const H=hgt-padT-padB,y=v=>padT+(hi-v)/(hi-lo)*H,yp=v=>padT+(phi-v)/(phi-plo)*H,bw=(w-padL-padR)/B.length,x=i=>padL+bw*i+bw/2;
+  g.font=`11px ${pal.mono}`;g.textBaseline="middle";g.lineWidth=1;
+  const st=niceStep((hi-lo)/4);g.textAlign="right";for(let t=Math.ceil(lo/st)*st;t<=hi+1e-9;t+=st){g.strokeStyle=pal.line;g.beginPath();g.moveTo(padL,y(t)+.5);g.lineTo(w-padR,y(t)+.5);g.stroke();g.fillStyle=pal.muted;g.fillText(short(t),padL-6,y(t))}
+  const pst=niceStep(phi/3);g.textAlign="left";for(let t=0;t<=phi+1e-9;t+=pst){g.fillStyle=pal.muted;g.fillText(`${Math.round(t)}%`,w-padR+6,yp(t))}
+  B.forEach((r,i)=>{g.fillStyle=r.cm>=0?pal.good:pal.bad;g.globalAlpha=.55;const y0=y(0),y1=y(r.cm);g.fillRect(x(i)-bw*.36,Math.min(y0,y1),Math.max(1,bw*.72),Math.max(1,Math.abs(y1-y0)))});g.globalAlpha=1;
+  g.strokeStyle=pal.muted;g.setLineDash([4,4]);g.beginPath();g.moveTo(padL,yp(100));g.lineTo(w-padR,yp(100));g.stroke();g.setLineDash([]);
+  g.strokeStyle=pal.accent;g.lineWidth=2.5;g.beginPath();c.whale.forEach((v,i)=>i?g.lineTo(x(i),yp(v)):g.moveTo(x(i),yp(v)));g.stroke();
+  const pk=c.whale.indexOf(c.whalePeak);if(pk>=0){g.beginPath();g.arc(x(pk),yp(c.whalePeak),4.5,0,7);g.fillStyle=pal.accent;g.fill();g.strokeStyle=pal.surface;g.lineWidth=1.5;g.stroke();
+    g.fillStyle=pal.fg;g.textAlign=pk>B.length*.7?"right":"left";g.textBaseline="bottom";g.font=`600 11px ${pal.mono}`;g.fillText(pct(c.whalePeak),x(pk)+(pk>B.length*.7?-6:6),yp(c.whalePeak)-4)}
+  if(c.n<=24){g.fillStyle=pal.muted;g.textAlign="center";g.textBaseline="top";g.font=`10px ${pal.mono}`;B.forEach((r,i)=>{let lb=r.name.split(" ")[0];while(lb.length>2&&g.measureText(lb).width>bw-2)lb=lb.slice(0,-1);g.fillText(lb,x(i),hgt-padB+8)})}}
+const pagePal=()=>({fg:css("--fg"),muted:css("--muted"),line:css("--line"),good:css("--good"),bad:css("--bad"),accent:css("--accent"),surface:css("--surface"),mono:css("--mono")});
+
+function verdictData(c){
+  if(!c.n)return{sev:-1,h:T.v.none,notes:[T.v.noneP],levers:[]};
+  const notes=[T.v.pareto(c.nA,c.n)];
+  if(c.losers.length)notes.push(T.v.loss(c.losers.length,money(c.lossAmt)));
+  if(c.whalePeak>110)notes.push(T.v.whale(pct(c.whalePeak)));
+  if(c.fixers.length)notes.push(T.v.fix(c.fixers.length,money(c.reprAmt)));
+  if(c.worstBn&&c.avgCmh&&c.worstBn.cmh<0.6*c.avgCmh)notes.push(T.v.bn(c.worstBn.name,money(c.worstBn.cmh),money(c.avgCmh)));
+  const share=c.CM>0?c.pot/c.CM:1;const sev=share>0.15||c.CM<=0?2:(share>0.05||c.losers.length)?1:0;
+  return{sev,h:sev?T.v.h1(pct(share*100)):T.v.h0,notes,levers:sev?T.v.L:[]}}
+function kpiData(c){return[[T.k.n,String(c.n),T.k.pareto(c.nA,pct(c.n?c.nA/c.n*100:0)),false],[T.k.rev,money(c.R),LANG==="ru"?"за год":"per year",false],[T.k.cm,money(c.CM),T.k.ofRev(pct(c.cmp)),c.CM<0],
+  [T.k.ebitda,c.fixed?money(c.ebitda):"—",c.fixed?(LANG==="ru"?`постоянные ${money(c.fixed)}`:`fixed costs ${money(c.fixed)}`):"",c.fixed&&c.ebitda<0],[T.k.loss,String(c.losers.length),T.k.lossSub(money(c.lossAmt)),c.losers.length>0],[T.k.pot,money(c.pot),T.k.potSub,c.pot>0]]}
+const ACT_COL={loss:"var(--bad)",core:"var(--good)",fix:"var(--warn)",niche:"var(--accent)",tail:"var(--warn)"};
+
+function update(){const c=compute(model);
+  c.rows.forEach(r=>{const set=(id,txt,neg)=>{const el=$(id);if(!el)return;el.textContent=txt;el.classList.toggle("neg",!!neg)};
+    if(!r.valid){["rev","cm","cmp","cmh"].forEach(k=>set(`o-${k}-${r.i}`,"—"));set(`o-abc-${r.i}`,"");const a=$(`o-act-${r.i}`);if(a)a.innerHTML="";return}
+    set(`o-rev-${r.i}`,fmt(r.rev));set(`o-cm-${r.i}`,fmt(r.cm),r.cm<0);set(`o-cmp-${r.i}`,pct(r.cmp),r.cmp<c.t);set(`o-cmh-${r.i}`,r.cmh==null?"—":fmt(r.cmh),r.cmh<0);
+    set(`o-abc-${r.i}`,r.abc);const a=$(`o-act-${r.i}`);if(a)a.innerHTML=`<span class="tag" style="--tc:${ACT_COL[r.act]}">${T.act[r.act]}</span>`});
+  const tv=c.valid.reduce((a,r)=>a+r.vol,0);$("t-vol").textContent=fmt(tv);$("t-rev").textContent=fmt(c.R);$("t-cm").textContent=fmt(c.CM);$("t-cmp").textContent=pct(c.cmp);$("t-cmh").textContent=c.avgCmh==null?"—":fmt(c.avgCmh);
+  $("kpis").innerHTML=kpiData(c).map(([l,v,s,bad])=>`<div class="kpi${bad?" bad":""}"><span class="label">${l}</span><b>${v}</b><small>${esc(s||"")}</small></div>`).join("");
+  drawChart($("chart"),c,pagePal());
+  const v=verdictData(c),vd=$("verdict");
+  vd.innerHTML=`<span class="label">${T.v.label}</span> ${v.sev>=0?`<span class="sev" style="background:${["var(--good)","var(--warn)","var(--bad)"][v.sev]}">${T.v.sev[v.sev]}</span>`:""}<h2>${esc(v.h)}</h2><ul>${v.notes.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>${v.levers.length?`<span class="label">${T.v.levers}</span><ul>${v.levers.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}<p class="cta">${T.v.cta}</p>`}
+const redraw=()=>drawChart($("chart"),compute(model),pagePal());
+window.addEventListener("resize",redraw);
+const mq=window.matchMedia("(prefers-color-scheme: dark)");mq.addEventListener&&mq.addEventListener("change",redraw);
+new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+const LIBS={xlsx:"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",jspdf:"https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"};
+const loaded={};function lib(k){return loaded[k]||(loaded[k]=new Promise((res,rej)=>{const s=document.createElement("script");s.src=LIBS[k];s.onload=res;s.onerror=()=>{loaded[k]=null;rej(new Error("load"))};document.head.appendChild(s)}))}
+const browserDl={save:async({filename,data})=>{const url=URL.createObjectURL(new Blob([data]));const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);return{status:"saved"}}};
+let dl=null;const dlReady=window.claude&&window.claude.use?window.claude.use("downloads").then(d=>{dl=d||browserDl}).catch(()=>{dl=browserDl}):(dl=browserDl,Promise.resolve());
+function disableDl(){["btnTemplate","btnXlsx","btnPdf"].forEach(id=>{$(id).disabled=true;$(id).title=T.st.noDl})}
+async function offer(filename,data,okMsg){await dlReady;if(!dl){status(T.st.noDl,"err");return}
+  status(okMsg);try{await dl.save({filename,data});status(T.st.saved,"ok")}
+  catch(e){const code=e&&e.code;status(code==="declined"?T.st.declined:code==="unavailable"||code==="not_granted"?T.st.noDl:T.st.fail,code==="declined"?"":"err")}}
+const fname=ext=>`${(model.settings.company||"DeXM").replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-|-$/g,"")||"DeXM"}-SKU-analysis.${ext}`;
+async function buildXlsx(blank){status(T.st.loading);await lib("xlsx");
+  const m=blank?blankModel():model;const {rows,f}=exportPlan(m,blank);
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  f.forEach(([r,list])=>list.forEach(([ci,fx,kind])=>{const addr=XLSX.utils.encode_cell({r:r-1,c:ci});ws[addr]={t:"n",f:fx.replace(/\{r\}/g,r),z:kind==="pct"?"0.0%":"#,##0;(#,##0)"}}));
+  ws["!cols"]=[{wch:34},{wch:14},{wch:11},{wch:11},{wch:11},{wch:11},{wch:11},{wch:14},{wch:14},{wch:10},{wch:14},{wch:6},{wch:34}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"SKU");return XLSX.write(wb,{bookType:"xlsx",type:"array"})}
+$("btnTemplate").onclick=async()=>{try{const b=await buildXlsx(true);await offer(LANG==="ru"?"DeXM-шаблон-SKU-анализ.xlsx":"DeXM-SKU-analysis-template.xlsx",new Uint8Array(b),T.st.tpl)}catch(e){console.error(e);status(T.st.fail,"err")}};
+$("btnXlsx").onclick=async()=>{try{const b=await buildXlsx(false);await offer(fname("xlsx"),new Uint8Array(b),T.st.xlsx)}catch(e){console.error(e);status(T.st.fail,"err")}};
+$("importFile").addEventListener("change",async e=>{const file=e.target.files[0];e.target.value="";if(!file)return;
+  try{status(T.st.loading);await lib("xlsx");const wb=XLSX.read(await file.arrayBuffer(),{type:"array"});
+    let best=null;for(const name of wb.SheetNames){const r=importAOA(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null}));if(!r.error){best=r;break}}
+    if(!best){status(T.st.noHeader,"err");return}
+    model=best.model;isSample=false;$("sample").hidden=true;save();renderSettings();renderGrid();
+    status(T.st.imported(best.n,best.settings.map(k=>T.set[k]).join(", ")),"ok")}
+  catch(err){console.error(err);status(T.st.readFail,"err")}});
+$("btnReset").onclick=()=>{model=blankModel();isSample=false;$("sample").hidden=true;save();renderSettings();renderGrid();status(T.st.cleared,"ok")};
+
+function reportPages(){
+  const c=compute(model),s=model.settings,v=verdictData(c),PW=1500,PH=1060,SC=2,M=50,CW=PW-2*M;
+  const F={sans:'"IBM Plex Sans","Segoe UI",Arial,sans-serif',mono:'"IBM Plex Mono",Menlo,monospace',disp:'"Archivo","Helvetica Neue",Arial,sans-serif'};
+  const P={fg:"#1b2224",muted:"#5d686b",line:"#d6dbd9",band:"#eef1ef",acc:"#0e6b6b",accSoft:"#dcecea",bad:"#b4442d",good:"#2f7d4f",warn:"#b7791f"};
+  const pages=[];
+  const newPage=()=>{const cv=document.createElement("canvas");cv.width=PW*SC;cv.height=PH*SC;const g=cv.getContext("2d");g.scale(SC,SC);g.fillStyle="#fff";g.fillRect(0,0,PW,PH);pages.push(cv);return g};
+  const foot=(g,n)=>{g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.textAlign="left";g.fillText("DeXM Management · info@dexm-m.com · +1 917 523 0461 · dexm-m.com",M,PH-28);g.textAlign="right";g.fillText(String(n),PW-M,PH-28);g.textAlign="left"};
+  const wrap=(g,text,x,y,maxW,lh)=>{const words=String(text).replace(/<[^>]+>/g,"").split(" ");let line="";for(const w of words){const t=line?line+" "+w:w;if(g.measureText(t).width>maxW&&line){g.fillText(line,x,y);y+=lh;line=w}else line=t}if(line){g.fillText(line,x,y);y+=lh}return y};
+  const clip=(g,text,maxW)=>{text=String(text);if(g.measureText(text).width<=maxW)return text;while(text.length>1&&g.measureText(text+"…").width>maxW)text=text.slice(0,-1);return text+"…"};
+  let g=newPage(),y=M+24;
+  g.fillStyle=P.fg;g.font=`800 30px ${F.disp}`;g.fillText(T.sheetTitle,M,y);y+=28;
+  g.font=`14px ${F.sans}`;g.fillStyle=P.muted;g.fillText([s.company,`${T.set.cur}: ${C()}`,`${T.set.target}: ${pf.format(+s.target||0)}`,`${T.prepared}: ${new Date().toLocaleDateString(loc)}`].filter(Boolean).join("   ·   "),M,y);y+=14;
+  g.fillStyle=P.fg;g.fillRect(M,y,CW,2);y+=22;
+  const kw=(CW-5*12)/6;kpiData(c).forEach(([l,val,sub,bad],i)=>{const x=M+i*(kw+12);g.strokeStyle=P.line;g.lineWidth=1;g.strokeRect(x+.5,y+.5,kw,78);
+    g.font=`500 11px ${F.mono}`;g.fillStyle=P.muted;g.fillText(clip(g,l.toUpperCase(),kw-20),x+10,y+20);
+    g.font=`600 24px ${F.mono}`;g.fillStyle=bad?P.bad:P.fg;g.fillText(clip(g,val,kw-20),x+10,y+50);g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.fillText(clip(g,sub||"",kw-20),x+10,y+68)});
+  y+=104;const vy=y;
+  g.font=`700 19px ${F.disp}`;g.fillStyle=P.fg;y=wrap(g,v.h,M+18,y+18,CW-30,24);
+  g.font=`13px ${F.sans}`;v.notes.forEach(t=>{y=wrap(g,"•  "+t,M+18,y+2,CW-40,19)});
+  if(v.levers.length){g.font=`600 13px ${F.sans}`;g.fillText(T.v.levers,M+18,y+8);y+=28;g.font=`13px ${F.sans}`;v.levers.forEach(t=>{y=wrap(g,"•  "+t,M+18,y,CW-40,19)})}
+  g.fillStyle=v.sev<0?P.muted:[P.good,P.warn,P.bad][v.sev];g.fillRect(M,vy,5,y-vy);y+=20;
+  const ch=Math.max(220,PH-y-70),cc=document.createElement("canvas");
+  drawChart(cc,c,{fg:P.fg,muted:P.muted,line:P.line,good:P.good,bad:P.bad,accent:P.acc,surface:"#fff",mono:F.mono},CW,ch,SC);
+  g.drawImage(cc,M,y,CW,ch);foot(g,1);
+  const cols=[[T.col.sku,280,"l"],[T.col.vol,110,"r"],[T.col.price,90,"r"],[LANG==="ru"?"Перем. затраты на ед.":"Variable cost per unit",140,"r"],[T.col.rev,120,"r"],[T.col.cm,130,"r"],[T.col.cmp,80,"r"],[LANG==="ru"?"Доход / час узк. места":"Per bottleneck hour",140,"r"],[T.col.abc,40,"l"],[T.col.act,240,"l"]];
+  const sc=CW/cols.reduce((a,x)=>a+x[1],0);cols.forEach(x=>x[1]*=sc);
+  const list=order(c).map(i=>c.rows[i]).filter(r=>r.valid);const RH=22,HH=40,top=M+40,per=Math.floor((PH-top-HH-70-RH)/RH);
+  for(let st=0,pn=2;st<list.length||st===0;st+=per,pn++){
+    g=newPage();g.fillStyle=P.fg;g.font=`700 18px ${F.disp}`;g.fillText(T.sheetTitle+(s.company?` · ${s.company}`:""),M,M+14);
+    g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.fillText(`${T.set.cur}: ${C()}`,M,M+32);
+    let ty=top;const row=(vals,kind,colors)=>{if(kind==="key"){g.fillStyle=P.accSoft;g.fillRect(M,ty,CW,RH)}
+      let x=M;cols.forEach(([,w,al],i)=>{const t=vals[i]==null?"":String(vals[i]);g.font=`${kind==="key"||kind==="head"?"600 ":""}${i===0||i>=8?"12px "+F.sans:"11.5px "+F.mono}`;
+        g.fillStyle=kind==="head"?P.muted:(colors&&colors[i])||P.fg;if(kind==="head"){g.font=`500 10.5px ${F.sans}`}
+        if(al==="r"){g.textAlign="right";g.fillText(clip(g,t,w-10),x+w-5,ty+15)}else{g.textAlign="left";g.fillText(clip(g,t,w-10),x+5,ty+15)}x+=w});
+      g.fillStyle=kind==="head"?P.fg:P.line;g.fillRect(M,ty+RH-1,CW,kind==="head"?1.5:1);ty+=RH};
+    row(cols.map(x=>x[0]),"head");
+    const AC={loss:P.bad,core:P.good,fix:P.warn,niche:P.acc,tail:P.warn};
+    list.slice(st,st+per).forEach(r=>row([r.name,fmt(r.vol),fmt2(r.p),fmt2(r.vc),fmt(r.rev),fmt(r.cm),pct(r.cmp),r.cmh==null?"—":fmt(r.cmh),r.abc,T.act[r.act]],"",[null,null,null,null,null,r.cm<0?P.bad:null,r.cmp<c.t?P.bad:null,null,null,AC[r.act]]));
+    if(st+per>=list.length)row([T.total,fmt(c.valid.reduce((a,r)=>a+r.vol,0)),"","",fmt(c.R),fmt(c.CM),pct(c.cmp),c.avgCmh==null?"—":fmt(c.avgCmh),"",""],"key");
+    g.textAlign="left";foot(g,pn);if(!list.length)break}
+  return pages}
+$("btnPdf").onclick=async()=>{try{status(T.st.loading);await lib("jspdf");if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+  const pages=reportPages();const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:"landscape",unit:"pt",format:"a4"});
+  const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+  pages.forEach((cv,i)=>{if(i)pdf.addPage();pdf.addImage(cv.toDataURL("image/jpeg",.92),"JPEG",0,0,pw,ph)});
+  await offer(fname("pdf"),pdf.output("arraybuffer"),T.st.pdf)}catch(e){console.error(e);status(T.st.fail,"err")}};
+
+texts();renderSettings();renderGrid();$("sample").hidden=!isSample;
+})()}
+
+</script>
+
+<script src="js/site-header.js"></script>
+</body></html>
