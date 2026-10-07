@@ -1,0 +1,311 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>DeXM Toolkit — DeXM Management</title>
+<meta name="description" content="Five DeXM tools in one place with a one-sight dashboard: P&amp;L, 13-week cash forecast, EBITDA bridge, hidden factory and SKU analysis. Your data stays in your browser.">
+<link rel="icon" href="img/dexm-mark.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: page header, sticky tab bar, then either the dashboard (overall + upside, five tool tiles, next steps) or one tool in a frame */
+:root{
+  --bg:#f3f4f2; --surface:#ffffff; --fg:#1b2224; --muted:#5d686b; --line:#d6dbd9;
+  --accent:#0e6b6b; --accent-soft:#dcecea; --steel:#3c4a4f; --band:#eef1ef;
+  --good:#2f7d4f; --warn:#b7791f; --bad:#b4442d; --bad-soft:#f6e3de;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131819; --surface:#1b2224; --fg:#e6ebea; --muted:#9aa6a8; --line:#2e3739;
+  --accent:#4fb3ad; --accent-soft:#1f3534; --steel:#b9c5c7; --band:#20292b;
+  --good:#5fbf86; --warn:#e0a84a; --bad:#e2765f; --bad-soft:#3a2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131819; --surface:#1b2224; --fg:#e6ebea; --muted:#9aa6a8; --line:#2e3739;
+  --accent:#4fb3ad; --accent-soft:#1f3534; --steel:#b9c5c7; --band:#20292b;
+  --good:#5fbf86; --warn:#e0a84a; --bad:#e2765f; --bad-soft:#3a2420; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:20px}
+.page-head{padding-block:28px 18px}
+.brand{font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font:800 clamp(26px,4vw,38px)/1.1 var(--display);margin:6px 0 0;letter-spacing:-.01em;text-wrap:balance}
+.lede{max-width:78ch;color:var(--muted);margin:8px 0 0}
+
+/* Tabs */
+.tabbar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:2px solid var(--fg)}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;display:inline-flex;align-items:center;gap:8px;font:500 14px var(--body);color:var(--muted);background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:12px 14px 11px;cursor:pointer;white-space:nowrap}
+.tab:hover{color:var(--fg)}
+.tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent);font-weight:600}
+.tab:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--line);flex:none}
+
+/* Dashboard */
+#view-dashboard{padding-block:22px 48px;display:flex;flex-direction:column;gap:18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px}
+.label{font:500 11px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:6px;font:500 12px/1 var(--mono);padding:4px 8px;border-radius:3px;color:#fff;background:var(--muted);white-space:nowrap}
+.chip.s0{background:var(--good)} .chip.s1{background:var(--warn)} .chip.s2{background:var(--bad)}
+.dot.s0{background:var(--good)} .dot.s1{background:var(--warn)} .dot.s2{background:var(--bad)}
+.notice{font-size:13px;background:var(--accent-soft);padding:10px 12px;border-radius:4px}
+.top{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px}
+@media (max-width:980px){.top{grid-template-columns:1fr}}
+.overall{border-left:5px solid var(--muted)}
+.overall.s0{border-left-color:var(--good)} .overall.s1{border-left-color:var(--warn)} .overall.s2{border-left-color:var(--bad)}
+.ov-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.ov-head .meta{font-size:13px;color:var(--muted)}
+.overall h2{font:700 clamp(21px,2.4vw,26px)/1.2 var(--display);margin:10px 0 6px;text-wrap:balance}
+.overall .sub{margin:0;color:var(--muted);font-size:14px}
+.counts{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:13px;color:var(--muted)}
+.counts span{display:inline-flex;align-items:center;gap:6px}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-top:16px}
+@media (max-width:620px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.metric{background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.metric b{font:600 21px/1.2 var(--mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.metric small{font-size:12px;color:var(--muted)}
+.metric.bad b{color:var(--bad)}
+.opp h3,.next h3{font:700 18px/1.25 var(--display);margin:6px 0 12px}
+.opp-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:baseline;padding:9px 0;border-top:1px solid var(--line)}
+.opp-row:first-of-type{border-top:0}
+.opp-row button{all:unset;cursor:pointer;font-size:14px;color:var(--fg);min-width:0}
+.opp-row button:hover{color:var(--accent);text-decoration:underline}
+.opp-row button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.opp-val{font:600 15px var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.opp-val small{font:400 12px var(--body);color:var(--muted);margin-left:6px}
+.bar{grid-column:1/-1;height:10px;background:var(--band);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:2px;transition:width .3s ease}
+.foot-note{font-size:12.5px;color:var(--muted);margin:10px 0 0}
+
+.tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+@media (max-width:1180px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:760px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.tiles{grid-template-columns:1fr}.tile p.h{min-height:0}}
+.tile{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--line);border-radius:6px;padding:14px;min-width:0}
+.tile.s0{border-top-color:var(--good)} .tile.s1{border-top-color:var(--warn)} .tile.s2{border-top-color:var(--bad)}
+.tile-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tile-head strong{font:700 15px/1.2 var(--display)}
+.tile p.h{margin:0;font-size:13.5px;line-height:1.4;min-height:3.9em;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.tile canvas{width:100%;height:72px;display:block}
+.tile .two{display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid var(--line);padding-top:8px}
+.tile .two div{display:flex;flex-direction:column;min-width:0}
+.tile .two b{font:600 16px/1.25 var(--mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.tile .two b.bad{color:var(--bad)}
+.tile .two small{font-size:11.5px;color:var(--muted);line-height:1.3}
+.tile .open{margin-top:auto;align-self:flex-start;font:500 13px var(--body);color:var(--accent);background:none;border:0;padding:4px 0;cursor:pointer}
+.tile .open:hover{text-decoration:underline}
+.tile .wait{color:var(--muted);font-size:13px}
+
+.next ol{margin:0;padding:0;list-style:none;display:grid;gap:0}
+.next li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 12px;align-items:baseline;padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+.next li:first-child{border-top:0}
+.next .tool{font:500 11px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.next button{font:500 13px var(--body);color:var(--accent);background:none;border:0;padding:0;cursor:pointer;white-space:nowrap}
+.next button:hover{text-decoration:underline}
+@media (max-width:560px){.next li{grid-template-columns:1fr}.next button{justify-self:start}}
+.actions{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted)}
+.btn{font:500 14px var(--body);border-radius:4px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+.btn:hover{border-color:var(--muted)}
+
+/* Tool frames: inactive frames stay laid out at full width (so their charts size correctly) but out of view */
+.frames{position:relative;overflow:hidden}
+.frames iframe{display:block;width:100%;height:1400px;border:0;background:transparent}
+.frames iframe:not(.active){position:absolute;top:0;left:0;visibility:hidden;pointer-events:none}
+.frames.idle{height:0}
+.frame-wrap{max-width:1320px;margin:0 auto}
+[hidden]{display:none!important}
+
+footer.site{border-top:1px solid var(--line);padding-block:14px 28px;font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+
+@media print{
+  .dxh,.tabbar,.frames,.actions .btn,footer.site,.tile .open,.next button{display:none!important}
+  body{background:#fff}
+  .panel,.tile{break-inside:avoid}
+  .tiles{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .top{grid-template-columns:1.1fr 1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<link rel="stylesheet" href="css/site-header.css">
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</head><body>
+<div class="dxh" id="dxh">
+  <div class="dxh-wrap">
+    <a href="/" class="dxh-logo"><img src="img/dexm-mark.png" alt=""><span>DeXM Management</span></a>
+    <nav class="dxh-nav" id="dxhNav" aria-label="Site">
+      <a href="/solutions">Solutions</a>
+      <a href="/dexm-os">DeXM OS</a>
+      <a href="/about">About</a>
+      <a href="/#contact" class="dxh-cta">Book an Intro Call</a>
+    </nav>
+    <a href="/#contact" class="dxh-cta">Book an Intro Call</a>
+    <button class="dxh-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="dxhNav"><span></span><span></span><span></span></button>
+  </div>
+</div>
+
+<div class="wrap page-head">
+  <a href="/tools" class="brand" style="display:block;text-decoration:none">DeXM Management · toolkit</a>
+  <h1>DeXM Toolkit: the whole picture on one screen</h1>
+  <p class="lede">Five tools in one place: P&amp;L, 13-week cash, EBITDA bridge, hidden factory and SKU analysis. Fill in any tool or import Excel, and the dashboard updates right away. Your data stays in your browser.</p>
+</div>
+
+<div class="tabbar"><div class="wrap"><div class="tabs" role="tablist" id="tabs"></div></div></div>
+
+<main>
+  <section class="wrap" id="view-dashboard" role="tabpanel" aria-labelledby="tab-dashboard">
+    <div class="notice" id="sampleNote" hidden>Showing sample data. Open any tool to enter your own numbers or import Excel; the dashboard updates automatically.</div>
+    <div class="top">
+      <div class="panel overall" id="overall"></div>
+      <div class="panel opp" id="opp"></div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+    <div class="panel next" id="next"></div>
+    <div class="actions">
+      <span>Data is saved only in this browser. Each tool exports to Excel and PDF from its own tab.</span>
+      <button class="btn" id="btnPrint" type="button">Print dashboard</button>
+    </div>
+  </section>
+  <div class="frames idle" id="frames"><div class="frame-wrap" id="frameWrap"></div></div>
+</main>
+
+<div class="wrap"><footer class="site"><span>DeXM Management</span><span>info@dexm-m.com</span><span>+1 917 523 0461</span><span>dexm-m.com</span></footer></div>
+
+<script>
+(function(){
+const TOOLS=[
+  {id:"pl",file:"pl",name:"P&L"},
+  {id:"cash",file:"cash-forecast",name:"13-Week Cash"},
+  {id:"bridge",file:"ebitda-bridge",name:"EBITDA Bridge"},
+  {id:"hf",file:"hidden-factory",name:"Hidden Factory"},
+  {id:"sku",file:"sku-analysis",name:"SKU Analysis"}];
+const BY=Object.fromEntries(TOOLS.map(t=>[t.id,t]));
+const PRIORITY=["cash","pl","hf","sku","bridge"];   // which tool speaks first when several share the worst status
+const SEV=["On track","Watch","Critical"];
+const S={};
+TOOLS.forEach(t=>{try{const x=JSON.parse(localStorage.getItem("dexm-dash-"+t.id)||"null");if(x&&x.id===t.id)S[t.id]=x}catch(e){}});
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/<[^>]+>/g,"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const sevOf=s=>s&&s.sev>=0?s.sev:-1;
+// Tools keep money in their own units ($000 for P&L/cash/bridge, full currency for the others); bring everything to full amounts
+const mult=u=>/000|\bk\b|тыс/i.test(u||"")?1e3:/\b(m|mm|mn)\b|млн/i.test(u||"")?1e6:1;
+const sym=u=>((u||"").match(/[$€£₽¥₸]/)||[""])[0];
+const abs=(v,u)=>(+v||0)*mult(u);
+function money(v,u){if(v==null||!isFinite(v))return "—";const a=Math.abs(abs(v,u)),s=sym(u),neg=abs(v,u)<0?"−":"";
+  const t=a>=1e9?(a/1e9).toFixed(1)+"B":a>=1e6?(a/1e6).toFixed(1)+"M":a>=1e4?Math.round(a/1e3)+"k":a>=1e3?(a/1e3).toFixed(1)+"k":String(Math.round(a));return neg+s+t}
+const usd=v=>money(v,"$");
+const pct=v=>v==null||!isFinite(v)?"—":(Math.round(v*10)/10).toFixed(1)+"%";
+
+/* Tabs and frames */
+const ext=/\.html$/.test(location.pathname)?".html":"";   // local preview serves files with .html
+const VIEWS=[{id:"dashboard",name:"Dashboard"},...TOOLS];
+$("tabs").innerHTML=VIEWS.map(v=>`<button class="tab" role="tab" id="tab-${v.id}" data-view="${v.id}" aria-selected="false">${v.id==="dashboard"?"":`<span class="dot" id="dot-${v.id}"></span>`}${esc(v.name)}</button>`).join("");
+const frames={};
+TOOLS.forEach(t=>{const f=document.createElement("iframe");f.title=t.name;f.src=`${t.file}${ext}?embed=1`;f.loading="eager";f.setAttribute("role","tabpanel");$("frameWrap").appendChild(f);frames[t.id]=f});
+let view="dashboard";
+function show(id,push){if(!VIEWS.some(v=>v.id===id))id="dashboard";view=id;
+  VIEWS.forEach(v=>$("tab-"+v.id).setAttribute("aria-selected",String(v.id===id)));
+  $("view-dashboard").hidden=id!=="dashboard";$("frames").classList.toggle("idle",id==="dashboard");
+  TOOLS.forEach(t=>frames[t.id].classList.toggle("active",t.id===id));
+  if(push!==false)history.replaceState(null,"",id==="dashboard"?location.pathname+location.search:"#"+id);
+  const bar=document.querySelector(".tabbar");if(bar.getBoundingClientRect().top<0||window.scrollY>bar.offsetTop)window.scrollTo({top:bar.offsetTop,behavior:"instant"});
+  $("tab-"+id).scrollIntoView({block:"nearest",inline:"nearest"});
+  if(id==="dashboard")draw()}
+$("tabs").addEventListener("click",e=>{const b=e.target.closest("[data-view]");if(b)show(b.dataset.view)});
+$("tabs").addEventListener("keydown",e=>{if(!["ArrowLeft","ArrowRight"].includes(e.key))return;const i=VIEWS.findIndex(v=>v.id===view),n=VIEWS[(i+(e.key==="ArrowRight"?1:VIEWS.length-1))%VIEWS.length];show(n.id);$("tab-"+n.id).focus()});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-open]");if(b)show(b.dataset.open)});
+window.addEventListener("hashchange",()=>show(location.hash.slice(1)||"dashboard",false));
+
+window.addEventListener("message",e=>{if(e.origin!==location.origin)return;const m=e.data;if(!m||!m.dexm)return;
+  if(m.dexm==="height"){const f=Object.values(frames).find(fr=>fr.contentWindow===e.source);if(f&&m.h>0)f.style.height=m.h+"px"}
+  if(m.dexm==="summary"&&m.s&&BY[m.s.id]){S[m.s.id]=m.s;schedule()}});
+window.addEventListener("storage",e=>{if(!e.key||!e.key.startsWith("dexm-dash-"))return;try{const x=JSON.parse(e.newValue||"null");if(x&&BY[x.id]){S[x.id]=x;schedule()}}catch(err){}});
+let raf=0;function schedule(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;render()})}
+
+/* Dashboard model */
+function baseEbitda(){if(S.pl&&S.pl.d.rev)return abs(S.pl.d.ebitda,S.pl.units);if(S.bridge&&S.bridge.d.E0)return abs(S.bridge.d.E0,S.bridge.units);if(S.hf&&S.hf.d.ebitda)return abs(S.hf.d.ebitda,S.hf.units);return 0}
+function opportunities(){const o=[];
+  if(S.pl)o.push({id:"pl",label:"Close the EBITDA margin gap to benchmark",v:abs(S.pl.d.up,S.pl.units)});
+  if(S.bridge)o.push({id:"bridge",label:"Value creation plan, risk-weighted",v:abs(S.bridge.d.upR,S.bridge.units)});
+  if(S.hf)o.push({id:"hf",label:"Recover the hidden factory",v:abs(S.hf.d.REC,S.hf.units)});
+  if(S.sku)o.push({id:"sku",label:"Reprice and exit loss-making SKUs",v:abs(S.sku.d.pot,S.sku.units)});
+  return o}
+
+function renderOverall(){const have=TOOLS.filter(t=>S[t.id]);const el=$("overall");
+  if(!have.length){el.className="panel overall";el.innerHTML=`<span class="label">Overall</span><h2>Loading the tools…</h2><p class="sub">The dashboard fills in as each tool calculates.</p>`;return}
+  const worst=Math.max(-1,...have.map(t=>sevOf(S[t.id])));
+  const lead=worst>=0?PRIORITY.find(id=>S[id]&&S[id].sev===worst):null;
+  const cnt=[0,1,2].map(k=>have.filter(t=>S[t.id].sev===k).length);
+  const company=(TOOLS.map(t=>S[t.id]&&S[t.id].company).find(Boolean))||"";
+  const ts=Math.max(...have.map(t=>S[t.id].ts||0));
+  const h=worst<=0?"All checks are on track":(lead?S[lead].h:"");
+  const sub=worst<=0?"No tool flags a problem. Keep the plan and review the numbers monthly.":(lead?`${BY[lead].name}: ${S[lead].p||""}`:"");
+  const m=[];
+  if(S.pl&&S.pl.d.rev){const d=S.pl.d,u=S.pl.units;m.push(["Revenue, 12 months",money(d.rev,u),"P&L",false]);
+    m.push(["EBITDA",money(d.ebitda,u),`margin ${pct(d.em)} · benchmark ${pct(d.bE)}`,d.ebitda<0||(d.em!=null&&d.em<d.bE)])}
+  if(S.cash){const d=S.cash.d,u=S.cash.units;m.push(["Lowest cash, 13 weeks",money(d.low,u),d.firstBelow>=0?`week ${d.lowW} · below minimum`:`week ${d.lowW}`,d.firstBelow>=0||d.low<0])}
+  const op=opportunities().filter(o=>o.v>0).sort((a,b)=>b.v-a.v)[0];
+  if(op){const be=baseEbitda();m.push(["Largest EBITDA upside",usd(op.v),`${BY[op.id].name}${be>0?` · ${pct(op.v/be*100)} of EBITDA`:""}`,false])}
+  el.className="panel overall"+(worst>=0?" s"+worst:"");
+  el.innerHTML=`<div class="ov-head"><span class="label">Overall</span>${worst>=0?`<span class="chip s${worst}">${SEV[worst]}</span>`:""}<span class="meta">${esc(company)}${company&&ts?" · ":""}${ts?"updated "+new Date(ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}):""}</span></div>
+    <h2>${esc(h)}</h2><p class="sub">${esc(sub)}</p>
+    <div class="counts">${[2,1,0].filter(k=>cnt[k]).map(k=>`<span><i class="dot s${k}"></i>${cnt[k]} ${SEV[k].toLowerCase()}</span>`).join("")}</div>
+    ${m.length?`<div class="metrics">${m.map(([l,v,s,bad])=>`<div class="metric${bad?" bad":""}"><span class="label">${esc(l)}</span><b>${esc(v)}</b><small>${esc(s)}</small></div>`).join("")}</div>`:""}`}
+
+function renderOpp(){const o=opportunities(),el=$("opp");const be=baseEbitda();
+  if(!o.length){el.innerHTML=`<span class="label">EBITDA upside</span><h3>Waiting for the tools…</h3>`;return}
+  const max=Math.max(1,...o.map(x=>x.v));
+  el.innerHTML=`<span class="label">EBITDA upside per year, by source</span><h3>${be>0?`Current EBITDA ${usd(be)}. Where more can come from:`:"Where more EBITDA can come from:"}</h3>
+    ${o.map(x=>`<div class="opp-row"><button type="button" data-open="${x.id}" title="Open ${esc(BY[x.id].name)}">${esc(x.label)}</button><span class="opp-val">${x.v>0?usd(x.v):"—"}${be>0&&x.v>0?`<small>${pct(x.v/be*100)}</small>`:""}</span><div class="bar"><i style="width:${Math.max(0,x.v/max*100)}%"></i></div></div>`).join("")}
+    <p class="foot-note">Estimates come from different tools and overlap, so they do not add up. Percentages are of current EBITDA.</p>`}
+
+const TILE={
+  pl:s=>{const d=s.d,u=s.units;return[["EBITDA",money(d.ebitda,u),`margin ${pct(d.em)}`,d.ebitda<0],["Gap to benchmark",money(d.up,u),`benchmark ${pct(d.bE)}`,d.up>0]]},
+  cash:s=>{const d=s.d,u=s.units;return[["Lowest cash",money(d.low,u),`week ${d.lowW}`,d.firstBelow>=0],["Gap to minimum",money(d.maxGap,u),`${d.nBelow} ${d.nBelow===1?"week":"weeks"} below minimum`,d.maxGap>0]]},
+  bridge:s=>{const d=s.d,u=s.units;return[["Target EBITDA",money(d.E1,u),`from ${money(d.E0,u)}`,false],["Risk-weighted",(d.upR>=0?"+":"")+money(d.upR,u),`of ${(d.up>=0?"+":"")+money(d.up,u)}`,d.upR<0]]},
+  hf:s=>{const d=s.d,u=s.units;return[["Hidden factory",money(d.HF,u),d.rev?`${pct(d.HF/d.rev*100)} of revenue`:"per year",d.HF>0],["Recoverable",money(d.REC,u),`OEE ${d.oee==null?"—":pct(d.oee*100)} → ${pct(d.target)}`,false]]},
+  sku:s=>{const d=s.d,u=s.units;return[["Contribution",money(d.CM,u),`margin ${pct(d.cmp)}`,d.CM<0],["Upside",money(d.pot,u),`${d.losers} loss-making ${d.losers===1?"SKU":"SKUs"}`,d.pot>0]]}};
+function renderTiles(){
+  $("tiles").innerHTML=TOOLS.map(t=>{const s=S[t.id];
+    if(!s)return `<article class="tile"><div class="tile-head"><strong>${esc(t.name)}</strong></div><p class="wait">Calculating…</p><button class="open" type="button" data-open="${t.id}">Open ${esc(t.name)} →</button></article>`;
+    const sv=sevOf(s);const two=TILE[t.id](s);
+    return `<article class="tile${sv>=0?" s"+sv:""}"><div class="tile-head"><strong>${esc(t.name)}</strong>${sv>=0?`<span class="chip s${sv}">${SEV[sv]}</span>`:`<span class="chip">No data</span>`}</div>
+      <p class="h">${esc(s.h)}</p><canvas id="mini-${t.id}" aria-hidden="true"></canvas>
+      <div class="two">${two.map(([l,v,sub,bad])=>`<div><small>${esc(l)}</small><b class="${bad?"bad":""}">${esc(v)}</b><small>${esc(sub)}</small></div>`).join("")}</div>
+      <button class="open" type="button" data-open="${t.id}">Open ${esc(t.name)} →</button></article>`}).join("")}
+
+function renderNext(){const items=PRIORITY.map(id=>S[id]).filter(s=>s&&s.sev>0&&s.act).sort((a,b)=>b.sev-a.sev);
+  $("next").innerHTML=`<span class="label">Next steps</span><h3>${items.length?"Start here, most urgent first":"Nothing urgent"}</h3>${items.length?`<ol>${items.map(s=>`<li><span class="tool"><i class="dot s${s.sev}"></i>${esc(BY[s.id].name)}</span><span>${esc(s.act)}</span><button type="button" data-open="${s.id}">Open →</button></li>`).join("")}</ol>`:`<p class="foot-note">Every tool is on track. Update the numbers each month to keep the picture current.</p>`}`}
+
+function renderTabs(){TOOLS.forEach(t=>{const d=$("dot-"+t.id),s=S[t.id];if(d)d.className="dot"+(s&&s.sev>=0?" s"+s.sev:"")})}
+
+/* Mini charts */
+function prep(cv){const w=cv.clientWidth,h=cv.clientHeight;if(!w||!h)return null;const r=window.devicePixelRatio||1;cv.width=w*r;cv.height=h*r;const g=cv.getContext("2d");g.setTransform(r,0,0,r,0,0);g.clearRect(0,0,w,h);return{g,w,h}}
+function bars(cv,vals,colorOf){const c=prep(cv);if(!c||!vals.length)return;const{g,w,h}=c;const lo=Math.min(0,...vals),hi=Math.max(0,...vals),sp=hi-lo||1;const y=v=>2+(hi-v)/sp*(h-4),bw=w/vals.length;
+  g.fillStyle=css("--line");g.fillRect(0,Math.round(y(0)),w,1);vals.forEach((v,i)=>{g.fillStyle=colorOf(v,i);const y0=y(0),y1=y(v);g.fillRect(i*bw+bw*.15,Math.min(y0,y1),Math.max(1,bw*.7),Math.max(1,Math.abs(y1-y0)))})}
+const MINI={
+  pl:(cv,s)=>bars(cv,s.d.series||[],v=>v<0?css("--bad"):css("--good")),
+  cash:(cv,s)=>{const c=prep(cv);if(!c)return;const{g,w,h}=c;const e=s.d.end||[],mn=s.d.min||[];if(!e.length)return;const all=[...e,...mn,0];const lo=Math.min(...all),hi=Math.max(...all),sp=hi-lo||1;
+    const x=i=>6+i*(w-12)/(e.length-1||1),y=v=>4+(hi-v)/sp*(h-8);
+    g.strokeStyle=css("--muted");g.setLineDash([3,3]);g.lineWidth=1;g.beginPath();mn.forEach((v,i)=>i?g.lineTo(x(i),y(v)):g.moveTo(x(i),y(v)));g.stroke();g.setLineDash([]);
+    g.strokeStyle=css("--accent");g.lineWidth=2;g.beginPath();e.forEach((v,i)=>i?g.lineTo(x(i),y(v)):g.moveTo(x(i),y(v)));g.stroke();
+    e.forEach((v,i)=>{if(v<(mn[i]??0)){g.fillStyle=css("--bad");g.beginPath();g.arc(x(i),y(v),3.5,0,7);g.fill()}})},
+  bridge:(cv,s)=>{const d=s.d;bars(cv,[d.E0,d.E1,d.Er],(v,i)=>[css("--steel"),css("--accent"),css("--accent")+"88"][i])},
+  hf:(cv,s)=>{const c=prep(cv);if(!c)return;const{g,w,h}=c;const cats=(s.d.cats||[]).slice(0,3);if(!cats.length)return;const max=Math.max(...cats.map(x=>x[1]));const rh=h/3;
+    g.font=`11px ${css("--body")}`;g.textBaseline="middle";cats.forEach(([l,v],i)=>{const lw=Math.min(w*.48,110);let t=String(l);while(t.length>3&&g.measureText(t).width>lw-6)t=t.slice(0,-2)+"…";
+      g.fillStyle=css("--muted");g.fillText(t,0,i*rh+rh/2);g.fillStyle=css("--bad");g.globalAlpha=1-i*.25;g.fillRect(lw,i*rh+rh*.2,Math.max(2,(w-lw)*v/max),rh*.6);g.globalAlpha=1})},
+  sku:(cv,s)=>{const v=s.d.cms||[];bars(cv,v,x=>x<0?css("--bad"):css("--good"))}};
+function draw(){if(view!=="dashboard")return;TOOLS.forEach(t=>{const cv=$("mini-"+t.id);if(cv&&S[t.id])MINI[t.id](cv,S[t.id])})}
+
+function render(){$("sampleNote").hidden=!TOOLS.some(t=>S[t.id]&&S[t.id].sample);renderTabs();renderOverall();renderOpp();renderTiles();renderNext();draw()}
+window.addEventListener("resize",()=>{clearTimeout(window.__rz);window.__rz=setTimeout(draw,120)});
+const mq=matchMedia("(prefers-color-scheme: dark)");mq.addEventListener&&mq.addEventListener("change",draw);
+$("btnPrint").addEventListener("click",()=>{show("dashboard");setTimeout(()=>window.print(),50)});
+
+render();show(location.hash.slice(1)||"dashboard",false);
+})();
+</script>
+<script src="js/site-header.js"></script>
+</body></html>

@@ -98,6 +98,8 @@ footer span{user-select:all}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <link rel="stylesheet" href="css/site-header.css">
+<script>if(/[?&]embed\b/.test(location.search))document.documentElement.classList.add("embed")</script>
+<style>.embed .dxh,.embed .wrap>footer{display:none}.embed body{background:transparent}.embed .wrap{padding-block:20px 32px}.embed #t-brand{pointer-events:none}</style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
 </head><body>
@@ -414,7 +416,10 @@ function verdictData(c){
 function kpiData(c){return[[T.k.e0,fmt(c.E0),T.k.margin(pct(c.m0)),false],[T.k.e1,fmt(c.E1),T.k.margin(pct(c.m1)),false],[T.k.up,sgn(c.up),T.k.riskUp(sgn(c.upR)),c.up<0],
   [T.k.er,fmt(c.Er),T.k.margin(pct(c.mr)),false],[T.k.val,sgn(c.val),T.k.at(pf.format(c.mult)),c.val<0],[T.k.gap,c.m1==null?"—":(c.m1-c.bench>=0?"+":"")+pp(c.m1-c.bench),T.k.bench(pct(c.bench)),c.m1!=null&&c.m1<c.bench]]}
 
-function update(){const c=compute(model);
+// Summary for the toolkit dashboard (/toolkit): saved locally and sent to the parent frame
+function publish(c){try{const v=verdictData(c),S=model.settings;const out={id:"bridge",ts:Date.now(),sample:!!isSample,company:S.company||"",units:S.units||"",sev:v.sev,h:String(v.h||""),p:String((v.notes||[])[0]||v.p||""),act:String((v.top||[]).length?`${T.v.top}: ${v.top.map(x=>x.name).join(", ")}`:""),d:{E0:c.E0,E1:c.E1,Er:c.Er,up:c.up,upR:c.upR,val:c.val,valR:c.valR,m0:c.m0,m1:c.m1,bench:c.bench,mult:c.mult}};
+  try{localStorage.setItem("dexm-dash-bridge",JSON.stringify(out))}catch(e){}if(window.parent!==window)parent.postMessage({dexm:"summary",s:out},location.origin)}catch(e){console.error(e)}}
+function update(){const c=compute(model);publish(c);
   const set=(id,v,txt)=>{const el=$(id);if(!el)return;el.textContent=txt!=null?txt:fmt(v);el.classList.toggle("neg",v!=null&&Math.round(v)<0);el.classList.toggle("posv",v!=null&&Math.round(v)>0&&txt===undefined?false:false)};
   set("o-e0",c.E0);set("o-m0",null,pct(c.m0));
   let li=0,ci=0;c.items.forEach(x=>{if(x.custom){set(`ci-${ci}`,x.imp,Math.round(x.imp)?sgn(x.imp):"—");set(`cr-${ci}`,x.imp*x.w,Math.round(x.imp)?sgn(x.imp*x.w):"—");ci++}
@@ -516,5 +521,10 @@ texts();renderSettings();renderGrid();$("sample").hidden=!isSample;
 
 </script>
 
+<script>
+// Inside the toolkit: report page height so the parent can size the frame
+if(document.documentElement.classList.contains("embed")&&window.parent!==window){let last=0;const post=()=>{const h=Math.ceil(document.body.scrollHeight);if(h!==last){last=h;parent.postMessage({dexm:"height",h},location.origin)}};
+  new ResizeObserver(post).observe(document.body);addEventListener("load",post);post()}
+</script>
 <script src="js/site-header.js"></script>
 </body></html>
