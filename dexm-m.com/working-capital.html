@@ -94,6 +94,15 @@ td.muted{color:var(--muted);font-size:12px}
 #grid td.lab{min-width:300px}
 #grid td.v input{width:110px}
 #grid td.v input::placeholder{color:var(--muted);opacity:.6;font-style:italic}
+.cycle{display:grid;gap:14px}
+.cy-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px}
+.cy-head h2{font:600 22px/1.25 var(--display);margin:4px 0 4px}
+.cy-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:24px;align-items:start}
+@media (max-width:900px){.cy-grid{grid-template-columns:1fr}}
+.cy-inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+@media (max-width:520px){.cy-inputs{grid-template-columns:1fr}}
+.cy-inputs .field small.sens{font:500 12px var(--mono);color:var(--good)}
+.cy-inputs .field small.sens.neg{color:var(--bad)}
 .growth{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:24px;align-items:start}
 @media (max-width:820px){.growth{grid-template-columns:1fr}}
 .growth h2{font:600 22px/1.25 var(--display);margin:4px 0 4px}
@@ -164,6 +173,11 @@ footer span{user-select:all}
 <p class="tablehint" id="hint"></p>
 <div class="tablewrap"><table id="grid"></table></div>
 
+<section class="panel cycle">
+  <div class="cy-head"><div><span class="label">Scenario</span><h2 id="cy-title"></h2><p class="lede" id="cy-lede" style="margin:0"></p></div><button class="primary" id="cy-apply" type="button"></button></div>
+  <div class="cy-grid"><div class="cy-inputs" id="cy-inputs"></div><div id="cy-out"></div></div>
+</section>
+
 <section class="panel growth">
   <div>
     <span class="label">Scenario</span>
@@ -181,7 +195,7 @@ footer span{user-select:all}
 
 <script>
 const T={brand:"DeXM Management · working capital",h1:"Working Capital: how much cash the operation ties up",
- lede:"Enter year-end balances and the annual P&L base. The page turns each balance into days, shows the cash conversion cycle, the cash you release by reaching target days, and the working capital a growth plan will need. Your data stays in your browser.",
+ lede:"Enter year-end balances and the annual P&L base. The page turns each balance into days, shows the cash conversion cycle, the cash you release by reaching target days (set them directly or build them from lead times and cycle times), and the working capital a growth plan will need. Your data stays in your browser.",
  imp:"Import from Excel",tpl:"Download Excel template",xlsx:"Download Excel",pdf:"Download PDF to print",reset:"Clear",
  sample:"This is a sample for the same ~$30M plant used across the toolkit. Select “Clear” or import your own Excel file.",
  set:{company:"Company",units:"Units",rev:"Revenue, 12 months",cogs:"Cost of goods sold, 12 months",mat:"Materials consumed, 12 months",pur:"Purchases from suppliers, 12 months"},
@@ -217,15 +231,24 @@ const T={brand:"DeXM Management · working capital",h1:"Working Capital: how muc
   noDl:"Downloads are not available in this view.",fail:"Could not create the file. Try again.",loading:"Loading module…",
   imported:(n,s)=>`Imported ${n} balances${s?`, settings: ${s}`:""}.`,noData:"Could not find working capital lines in the file. Download the template to see the format.",
   cleared:"Inputs cleared",readFail:"Could not read the file. Check that it is .xlsx, .xls or .csv."},
+ cy:{title:"Cycle times",lede:"Days come from how the operation runs. Enter lead times and cycles to build a scenario, then use it as target days.",
+  supLT:"Supplier lead time, days",ltVar:"Lead time variation, ± days",orderInt:"Days between deliveries",transit:"Days in transit you own the goods",
+  prodCycle:"Production cycle, release to finished, days",vaf:"Cost in WIP by mid-cycle, %",custLT:"Lead time customers accept, days",fgBuf:"Finished goods buffer and dispatch, days",
+  custTerms:"Customer payment terms, days",late:"Average days paid late",supTerms:"Supplier payment terms, days",prepay:"Purchases paid in advance, %",
+  hint:{vaf:"Materials go in at the start, labor and overhead build up. 50–80% is typical.",custLT:"If customers wait less than the production cycle, you must hold stock.",prepay:"Paid at order, so the supplier lead time becomes supplier advances."},
+  out:"Scenario at these cycle times",line:"Line",how:"How the days are built",days:"Days",bal:"Balance",chg:"Cash impact",per:"1 day less",
+  f:{rm:"half the delivery interval + lead time variation",git:"days in transit",adv:"lead time × prepaid share",wip:"production cycle × cost in WIP",fg:"cycle not covered by customer lead time + buffer",ar:"payment terms + days late",ap:"supplier terms × share not prepaid"},
+  nwc:"Working capital in this scenario",ccc:"Cash cycle in this scenario, days",rel:"Cash released vs today",apply:"Use as target days",applied:"Target days updated from the cycle times",
+  sens:"Cash effect of one day less, by input"},
  sheetTitle:"Working Capital",prepared:"Prepared",chartAria:"Current and target days by component"};
 const ROWS=[["inv","rm","mat",1],["inv","wip","cogs",1],["inv","fg","cogs",1],["inv","git","mat",1],["inv","mro","cogs",1],
  ["rec","ar","rev",1],["rec","adv","pur",1],["rec","oca","rev",1],["pay","ap","pur",-1],["pay","dep","rev",-1],["pay","acc","cogs",-1]];
 const SECS=["inv","rec","pay"];
-function blankModel(){return{settings:{company:"",units:T.unitsDef,rev:0,cogs:0,mat:0,pur:0},bal:Object.fromEntries(ROWS.map(r=>[r[1],0])),tgt:Object.fromEntries(ROWS.map(r=>[r[1],null])),growth:{rev:0,dso:60,disc:0}}}
+function blankModel(){return{settings:{company:"",units:T.unitsDef,rev:0,cogs:0,mat:0,pur:0},bal:Object.fromEntries(ROWS.map(r=>[r[1],0])),tgt:Object.fromEntries(ROWS.map(r=>[r[1],null])),growth:{rev:0,dso:60,disc:0},cycle:{supLT:30,ltVar:7,orderInt:14,transit:0,prodCycle:3,vaf:70,custLT:7,fgBuf:3,custTerms:30,late:0,supTerms:30,prepay:0}}}
 function sampleModel(){const m=blankModel();Object.assign(m.settings,{company:T.companyDef,rev:30129,cogs:22661,mat:15185,pur:17900});
   m.bal={rm:3100,wip:450,fg:1900,git:400,mro:300,ar:4200,adv:150,oca:100,ap:2300,dep:300,acc:600};
   m.tgt={rm:45,wip:4,fg:15,git:null,mro:null,ar:45,adv:null,oca:null,ap:55,dep:null,acc:null};
-  m.growth={rev:3000,dso:60,disc:15};return m}
+  m.growth={rev:3000,dso:60,disc:15};m.cycle={supLT:30,ltVar:10,orderInt:30,transit:5,prodCycle:6,vaf:70,custLT:14,fgBuf:7,custTerms:45,late:5,supTerms:60,prepay:5};return m}
 
 function compute(m){
   const n=x=>+x||0,s=m.settings,B={rev:n(s.rev),cogs:n(s.cogs),mat:n(s.mat),pur:n(s.pur)};
@@ -250,6 +273,13 @@ function compute(m){
     rmDays:by.rm.days,wipDays:by.wip.days,fgDays:by.fg.days,gR,gAR,gParts,need,disc,pos,relPos:pos.reduce((a,r)=>a+r.impact,0)}
 }
 
+const CY_KEYS=["supLT","ltVar","orderInt","transit","prodCycle","vaf","custLT","fgBuf","custTerms","late","supTerms","prepay"];
+function cycleDays(cy){const n=x=>Math.max(0,+x||0),pp=Math.min(100,n(cy.prepay))/100;
+  return{rm:n(cy.orderInt)/2+n(cy.ltVar),git:n(cy.transit),adv:n(cy.supLT)*pp,wip:n(cy.prodCycle)*Math.min(100,n(cy.vaf))/100,
+    fg:Math.max(0,n(cy.prodCycle)-n(cy.custLT))+n(cy.fgBuf),ar:n(cy.custTerms)+n(cy.late),ap:n(cy.supTerms)*(1-pp)}}
+function cycleScenario(m,cy){const d=cycleDays(cy||m.cycle||{});const mm=Object.assign({},m,{tgt:Object.assign({},m.tgt,d)});const c=compute(mm);
+  return{days:d,c,nwc:c.tNwc,ccc:c.tCcc,rel:c.rel}}
+function cycleSensitivity(m){const base=cycleScenario(m).rel;return CY_KEYS.filter(k=>k!=="vaf"&&k!=="prepay").map(k=>{const cy=Object.assign({},m.cycle);cy[k]=Math.max(0,(+cy[k]||0)-1);return[k,cycleScenario(m,cy).rel-base]})}
 function parseNum(x){if(typeof x==="number")return isFinite(x)?x:null;if(x==null)return null;
   let s=String(x).trim().replace(/[\s $€£₽%]/g,"");if(!s||s==="-"||s==="—")return null;
   let neg=false;if(/^\(.*\)$/.test(s)){neg=true;s=s.slice(1,-1)}
@@ -270,6 +300,7 @@ function importAOA(rows){
     const firstNum=()=>{for(let i=li+1;i<row.length;i++){const v=parseNum(row[i]);if(v!=null)return v}return null};
     if(/^(company|компания)$/i.test(label)){const v=cells.slice(li+1).find(Boolean);if(v){m.settings.company=v;found.push("company")}continue}
     if(/^(units|единицы)$/i.test(label)){const v=cells.slice(li+1).find(Boolean);if(v){m.settings.units=v;found.push("units")}continue}
+    const ck=CY_KEYS.find(k=>T.cy[k].toLowerCase()===label.toLowerCase());if(ck){const v=firstNum();if(v!=null)m.cycle[ck]=v;continue}
     const gs=G_RE.find(([,re])=>re.test(label));if(gs){const v=firstNum();if(v!=null)m.growth[gs[0]]=v;continue}
     const st=SET_RE.find(([,re])=>re.test(label));
     if(st){if(!found.includes(st[0])){const v=firstNum();if(v!=null){m.settings[st[0]]=Math.abs(v);found.push(st[0])}}continue}
@@ -305,6 +336,11 @@ function exportPlan(m,blank){
   const parts=[];ROWS.forEach(([,id,base,sign],i)=>{if(id==="ar"||id==="dep"||id==="oca")return;const rr=rows.findIndex(x=>x[0]===T.rows[id])+1;
     parts.push(`${sign>0?"+":"-"}$B$${R[base]}/$B$${R.rev}/(1-B${gs}/100)*B${gr}*IF(E${rr}="",IF($B$${R[base]}=0,0,B${rr}/$B$${R[base]}*365),E${rr})/365`)});
   push([LANG_NEED],[[1,`IF(OR(B${gr}=0,$B$${R.rev}=0),0,B${gr}*B${gd}/365${parts.join("")})`,"n"]]);
+  push([]);push([T.cy.title]);const cy=m.cycle||{};const CR={};CY_KEYS.forEach(k=>{push([T.cy[k],+cy[k]||0]);CR[k]=rows.length});
+  const CC=k=>`B${CR[k]}`;
+  push([T.cy.out,T.col.days,T.cy.how]);
+  [["rm",`${CC("orderInt")}/2+${CC("ltVar")}`],["git",CC("transit")],["adv",`${CC("supLT")}*${CC("prepay")}/100`],["wip",`${CC("prodCycle")}*${CC("vaf")}/100`],["fg",`MAX(0,${CC("prodCycle")}-${CC("custLT")})+${CC("fgBuf")}`],["ar",`${CC("custTerms")}+${CC("late")}`],["ap",`${CC("supTerms")}*(1-${CC("prepay")}/100)`]]
+    .forEach(([id,fx])=>push([T.rows[id],null,T.cy.f[id]],[[1,fx,"d1"]]));
   return{rows,f}
 }
 const LANG_NEED="Working capital needed for growth";
@@ -329,15 +365,18 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 function status(msg,cls){const s=$("status");s.textContent=msg||"";s.className="status"+(cls?" "+cls:"")}
 function texts(){$("t-brand").textContent=T.brand;$("t-h1").textContent=T.h1;$("t-lede").textContent=T.lede;
   $("t-import").textContent=T.imp;$("btnTemplate").textContent=T.tpl;$("btnXlsx").textContent=T.xlsx;$("btnPdf").textContent=T.pdf;$("btnReset").textContent=T.reset;
-  $("sample").textContent=T.sample;$("chart").setAttribute("aria-label",T.chartAria);$("hint").textContent=T.tgtHint;$("g-title").textContent=T.g.title;$("g-lede").textContent=T.g.lede;
+  $("sample").textContent=T.sample;$("chart").setAttribute("aria-label",T.chartAria);$("hint").textContent=T.tgtHint;$("g-title").textContent=T.g.title;$("cy-title").textContent=T.cy.title;$("cy-lede").textContent=T.cy.lede;$("cy-apply").textContent=T.cy.apply;$("g-lede").textContent=T.g.lede;
   $("legend").innerHTML=`<span><i style="background:var(--accent)"></i>${T.lg.cur}</span><span><i style="background:var(--gold)"></i>${T.lg.tgt}</span>`}
 
 function renderSettings(){const s=model.settings;
   const f=(k,type,cls)=>`<div class="field"><label class="label" for="set-${k}">${T.set[k]}</label><input id="set-${k}" data-k="${k}" type="${type}" ${cls?`class="${cls}" inputmode="decimal" step="any"`:""} value="${esc(s[k]??"")}">${T.setHint[k]?`<small class="fhint">${T.setHint[k]}</small>`:""}</div>`;
   $("settings").innerHTML=f("company","text")+f("units","text")+f("rev","number","num")+f("cogs","number","num")+f("mat","number","num")+f("pur","number","num");
   const g=model.growth;const gf=(k)=>`<div class="field"><label class="label" for="g-${k}">${T.g[k]}</label><input id="g-${k}" data-g="${k}" type="number" class="num" inputmode="decimal" step="any" value="${g[k]??""}"></div>`;
-  $("g-inputs").innerHTML=gf("rev")+gf("dso")+gf("disc")}
+  $("g-inputs").innerHTML=gf("rev")+gf("dso")+gf("disc");
+  const cy=model.cycle;$("cy-inputs").innerHTML=CY_KEYS.map(k=>`<div class="field"><label class="label" for="cy-${k}">${T.cy[k]}</label><input id="cy-${k}" data-cy="${k}" type="number" class="num" inputmode="decimal" step="any" min="0" value="${cy[k]??""}">${T.cy.hint[k]?`<small class="fhint">${T.cy.hint[k]}</small>`:""}<small class="sens" id="sens-${k}"></small></div>`).join("")}
 $("settings").addEventListener("input",e=>{const k=e.target.dataset.k;if(!k)return;model.settings[k]=["company","units"].includes(k)?e.target.value:(parseFloat(e.target.value)||0);touch();if(k==="units")renderGrid();else update()});
+$("cy-inputs").addEventListener("input",e=>{const k=e.target.dataset.cy;if(!k)return;model.cycle[k]=parseFloat(e.target.value)||0;touch();update()});
+$("cy-apply").addEventListener("click",()=>{const d=cycleDays(model.cycle);Object.keys(d).forEach(k=>model.tgt[k]=Math.round(d[k]*10)/10);touch();renderGrid();status(T.cy.applied,"ok")});
 $("g-inputs").addEventListener("input",e=>{const k=e.target.dataset.g;if(!k)return;model.growth[k]=parseFloat(e.target.value)||0;touch();update()});
 
 function renderGrid(){
@@ -401,7 +440,14 @@ function publish(c){try{const v=verdictData(c),S=model.settings;const out={id:"w
   d:{nwc:c.nwc,pct:c.pctRev,ccc:c.ccc,tCcc:c.tCcc,dio:c.dio,dso:c.dso,dpo:c.dpo,rel:c.rel,need:c.need,gR:c.gR,days:[c.by.rm.days,c.by.wip.days,c.by.fg.days,c.dso,c.dpo==null?null:-c.dpo],tdays:[c.by.rm.tDays,c.by.wip.tDays,c.by.fg.tDays,c.tDso,c.tDpo==null?null:-c.tDpo]}};
   try{localStorage.setItem("dexm-dash-wc",JSON.stringify(out))}catch(e){}if(window.parent!==window)parent.postMessage({dexm:"summary",s:out},location.origin)}catch(e){console.error(e)}}
 
-function update(){const c=compute(model);publish(c);
+function renderCycle(){const sc=cycleScenario(model),c0=compute(Object.assign({},model,{tgt:{}}));
+  const rows=["rm","git","adv","wip","fg","ar","ap"].map(id=>{const r=sc.c.by[id],cur=c0.by[id];return`<tr><td class="lab">${T.rows[id]}<span class="hint">${T.cy.f[id]}</span></td><td class="c">${dd(cur.days)} → <b>${pf.format(sc.days[id])}</b></td><td class="c">${fmt(r.tBal)}</td><td class="c${r.impact<-0.5?" neg":""}">${Math.round(r.impact)?sgn(r.impact):"—"}</td></tr>`}).join("");
+  $("cy-out").innerHTML=`<table class="gtab"><thead><tr><td class="lab"><span class="label">${T.cy.out}</span></td><td class="c label">${T.cy.days}</td><td class="c label">${T.cy.bal}</td><td class="c label">${T.cy.chg}</td></tr></thead><tbody>${rows}
+    <tr class="key"><td class="lab">${T.cy.nwc}</td><td></td><td class="c">${fmt(sc.nwc)}</td><td class="c${sc.rel<-0.5?" neg":""}">${sgn(sc.rel)}</td></tr>
+    <tr><td class="lab">${T.cy.ccc}</td><td class="c">${dd(c0.ccc)} → <b>${dd(sc.ccc)}</b></td><td></td><td></td></tr></tbody></table>
+    <p class="fnote">${T.cy.sens} is shown under each input. Lines not driven by cycle times keep their current balance.</p>`;
+  cycleSensitivity(model).forEach(([k,v])=>{const el=$("sens-"+k);if(!el)return;const r=Math.round(v);el.textContent=r?`${T.cy.per}: ${sgn(v)}`:"";el.classList.toggle("neg",r<0)})}
+function update(){const c=compute(model);publish(c);renderCycle();
   const set=(id,txt,neg,bad)=>{const el=$(id);if(!el)return;el.textContent=txt;el.classList.toggle("neg",!!neg);el.classList.toggle("below",!!bad)};
   c.rows.forEach(r=>{set(`d-${r.id}`,dd(r.days),false,r.hasT&&r.days!=null&&(r.sign>0?r.days>r.tDays*1.2:r.days<r.tDays*.8));set(`tb-${r.id}`,r.hasT?fmt(r.tBal):"—");set(`i-${r.id}`,Math.round(r.impact)?sgn(r.impact):"—",r.impact<-0.5)});
   const sd={inv:c.dio,rec:c.dso,pay:c.dpo};
@@ -438,7 +484,7 @@ const fname=ext=>`${(model.settings.company||"DeXM").replace(/[^\p{L}\p{N}]+/gu,
 async function buildXlsx(blank){status(T.st.loading);await lib("xlsx");
   const m=blank?Object.assign(blankModel(),{tgt:model.tgt}):model;const {rows,f}=exportPlan(m,blank);
   const ws=XLSX.utils.aoa_to_sheet(rows);
-  f.forEach(([r,list])=>list.forEach(([ci,fx,kind])=>{const addr=XLSX.utils.encode_cell({r:r-1,c:ci});ws[addr]={t:"n",f:fx.replace(/\{r\}/g,r),z:kind==="pct"?"0.0%":kind==="d"?"0":"#,##0;(#,##0)"}}));
+  f.forEach(([r,list])=>list.forEach(([ci,fx,kind])=>{const addr=XLSX.utils.encode_cell({r:r-1,c:ci});ws[addr]={t:"n",f:fx.replace(/\{r\}/g,r),z:kind==="pct"?"0.0%":kind==="d"?"0":kind==="d1"?"0.0":"#,##0;(#,##0)"}}));
   ws["!cols"]=[{wch:50},{wch:14},{wch:10},{wch:12},{wch:12},{wch:15},{wch:14}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Working capital");return XLSX.write(wb,{bookType:"xlsx",type:"array"})}
 $("btnTemplate").onclick=async()=>{try{const b=await buildXlsx(true);await offer("DeXM-working-capital-template.xlsx",new Uint8Array(b),T.st.tpl)}catch(e){console.error(e);status(T.st.fail,"err")}};
@@ -496,6 +542,11 @@ function reportPages(){
   row([T.tot.ccc,dd(c.ccc),"","","",dd(c.tCcc),""],"sub");
   if(c.gR){ty+=18;g.fillStyle=P.fg;g.font=`600 15px ${F.disp}`;g.textAlign="left";g.fillText(`${T.g.title}: ${fmt(c.gR)} new revenue, ${dd(model.growth.dso)}-day terms, ${pct(c.disc*100)} discount`,M,ty+14);ty+=26;
     g.font=`13px ${F.sans}`;g.fillStyle=P.fg;g.fillText(`Working capital needed: ${fmtU(c.need)} (${fmt(c.need/c.gR*1000)} per 1,000 of new revenue). Receivables ${fmt(c.gAR)}; inventory, advances and payables at target days.`,M,ty+10)}
+  {const sc=cycleScenario(model),cy=model.cycle;ty+=36;g.textAlign="left";g.fillStyle=P.fg;g.font=`600 15px ${F.disp}`;g.fillText(`${T.cy.title}: ${T.cy.out.toLowerCase()}`,M,ty);ty+=10;
+    g.font=`12px ${F.sans}`;g.fillStyle=P.muted;let tx=M;ty+=14;CY_KEYS.forEach((k,i)=>{const t=`${T.cy[k].replace(/, (days|%)|, ± days/,"")}: ${pf.format(+cy[k]||0)}${/%/.test(T.cy[k])?"%":""}`;const w=g.measureText(t).width+22;if(tx+w>M+CW){tx=M;ty+=17}g.fillText(t,tx,ty);tx+=w});ty+=12;
+    const cc=[[T.cy.line,420,"l"],[T.cy.how,520,"l"],[T.cy.days,140,"r"],[T.cy.bal,160,"r"],[T.cy.chg,160,"r"]];const s2=CW/cc.reduce((a,x)=>a+x[1],0);cc.forEach(x=>x[1]*=s2);const save=cols.splice(0,cols.length,...cc);
+    row(cc.map(x=>x[0]),"head");["rm","git","adv","wip","fg","ar","ap"].forEach(id=>{const r=sc.c.by[id];row([T.rows[id],T.cy.f[id],pf.format(sc.days[id]),fmt(r.tBal),Math.round(r.impact)?sgn(r.impact):"—"],"",[null,P.muted,null,null,r.impact<-0.5?P.bad:r.impact>0.5?P.good:null])});
+    row([T.cy.nwc,`${T.cy.ccc.replace(" in this scenario","")}: ${dd(sc.ccc)}`,"",fmt(sc.nwc),sgn(sc.rel)],"key");cols.splice(0,cols.length,...save)}
   g.textAlign="left";foot(g,2);
   return pages}
 $("btnPdf").onclick=async()=>{try{status(T.st.loading);await lib("jspdf");if(document.fonts&&document.fonts.ready)await document.fonts.ready;
