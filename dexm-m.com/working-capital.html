@@ -1,0 +1,518 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Working Capital — DeXM Management</title>
+<meta name="description" content="Free working capital calculator for manufacturers: turn inventory, receivables and payables into days, see the cash conversion cycle, the cash released at target days and the working capital a growth plan needs. Data stays in your browser.">
+<link rel="icon" href="img/dexm-mark.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: header + toolbar, P&L base strip, summary (KPIs + days chart + verdict), balances table with target days, then the growth funding panel */
+:root{
+  --bg:#f3f4f2; --surface:#ffffff; --fg:#1b2224; --muted:#5d686b; --line:#d6dbd9;
+  --accent:#0e6b6b; --accent-soft:#dcecea; --steel:#3c4a4f; --band:#eef1ef;
+  --good:#2f7d4f; --warn:#b7791f; --bad:#b4442d; --bad-soft:#f6e3de;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131819; --surface:#1b2224; --fg:#e6ebea; --muted:#9aa6a8; --line:#2e3739;
+  --accent:#4fb3ad; --accent-soft:#1f3534; --steel:#b9c5c7; --band:#20292b;
+  --good:#5fbf86; --warn:#e0a84a; --bad:#e2765f; --bad-soft:#3a2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131819; --surface:#1b2224; --fg:#e6ebea; --muted:#9aa6a8; --line:#2e3739;
+  --accent:#4fb3ad; --accent-soft:#1f3534; --steel:#b9c5c7; --band:#20292b;
+  --good:#5fbf86; --warn:#e0a84a; --bad:#e2765f; --bad-soft:#3a2420; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:20px;padding-block:28px 48px;display:flex;flex-direction:column;gap:20px}
+header{border-bottom:2px solid var(--fg);padding-bottom:14px}
+.brand{font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font:800 clamp(26px,4vw,38px)/1.1 var(--display);margin:6px 0 0;text-wrap:balance;letter-spacing:-.01em}
+.lede{max-width:72ch;color:var(--muted);margin:8px 0 0}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,.filebtn{font:500 14px var(--body);border-radius:4px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg);display:inline-flex;align-items:center}
+button.primary,.filebtn{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.filebtn input{position:absolute;width:1px;height:1px;opacity:0}
+.status{font-size:13px;color:var(--muted);min-height:1.2em;flex-basis:100%}
+.status.ok{color:var(--good)} .status.err{color:var(--bad)}
+.notice{font-size:13px;background:var(--accent-soft);padding:10px 12px;border-radius:4px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px}
+.label{font:500 11px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 16px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field input{font:15px var(--body);padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);width:100%;min-width:0}
+.field input.num{font-family:var(--mono);text-align:right}
+.summary{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px}
+@media (max-width:900px){.summary{grid-template-columns:1fr}}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-bottom:14px}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi b{font:600 20px/1.2 var(--mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.kpi small{font-size:12px;color:var(--muted)}
+.kpi.bad b{color:var(--bad)}
+canvas{width:100%;height:240px;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:12px;height:10px;margin-right:5px;vertical-align:-1px;border-radius:2px}
+.verdict h2{font:700 21px/1.25 var(--display);margin:8px 0 6px;text-wrap:balance}
+.verdict p{margin:0 0 8px;font-size:14px;color:var(--muted)}
+.verdict ul{margin:4px 0 10px;padding-left:18px;font-size:14px;display:grid;gap:3px}
+.sev{display:inline-block;font:500 12px var(--mono);padding:2px 8px;border-radius:3px;color:var(--surface)}
+.cta{border-top:1px solid var(--line);padding-top:10px;font-size:14px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:separate;border-spacing:0;font-size:13px;min-width:100%}
+th,td{padding:0;border-bottom:1px solid var(--line);white-space:nowrap}
+thead th{font:500 11px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:10px 6px;text-align:right;background:var(--surface);position:sticky;top:0}
+thead th small{display:block;font-size:11px;letter-spacing:0;text-transform:none}
+th.lab,td.lab{position:sticky;left:0;z-index:1;background:var(--surface);text-align:left;padding:6px 10px;min-width:230px;max-width:280px;border-right:1px solid var(--line)}
+thead th.lab{z-index:2}
+td.lab{white-space:normal}
+td.lab input{font:13px var(--body);border:1px dashed var(--line);border-radius:3px;padding:3px 6px;background:var(--bg);color:var(--fg);width:calc(100% - 30px)}
+td.lab .del{padding:0 6px;margin-left:4px;font-size:15px;line-height:1.4;border:0;background:none;color:var(--muted)}
+td.v{text-align:right;padding:0 2px}
+td.v input{width:84px;font:13px var(--mono);text-align:right;border:1px solid transparent;border-radius:3px;padding:5px 6px;background:var(--bg);color:var(--fg);font-variant-numeric:tabular-nums}
+td.v input:hover{border-color:var(--line)}
+td.c{text-align:right;padding:6px 8px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+td.tot{font-weight:600;background:var(--band)}
+tr.sec td{background:var(--band);font:600 12px var(--body);letter-spacing:.04em;text-transform:uppercase;padding:8px 10px}
+tr.sec td.lab{background:var(--band)}
+tr.sub td{font-weight:600}
+tr.key td{font-weight:600;background:var(--accent-soft)}
+tr.key td.lab{background:var(--accent-soft)}
+td.neg{color:var(--bad)}
+td.below{background:var(--bad-soft)!important;color:var(--bad)}
+tr.add td{padding:4px 10px;border-bottom:1px solid var(--line)}
+tr.add button{font-size:12px;padding:3px 8px;border-style:dashed;background:none;color:var(--accent)}
+input[type=number]{-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+footer{padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+.fhint{font-size:12px;color:var(--muted);line-height:1.35}
+th.tl,td.tl{text-align:left;padding:6px 8px}
+td.muted{color:var(--muted);font-size:12px}
+.tablehint{font-size:13px;color:var(--muted);margin:0}
+#grid td.lab{min-width:300px}
+#grid td.v input{width:110px}
+#grid td.v input::placeholder{color:var(--muted);opacity:.6;font-style:italic}
+.growth{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:24px;align-items:start}
+@media (max-width:820px){.growth{grid-template-columns:1fr}}
+.growth h2{font:600 22px/1.25 var(--display);margin:4px 0 4px}
+.growth .ginputs{display:grid;gap:12px;margin-top:12px}
+.gtab{width:100%;border-collapse:collapse;font-size:14px}
+.gtab td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.gtab td.c{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.gtab td .hint{display:block;font-size:12px;color:var(--muted)}
+.gtab tr.key td{font-weight:700}
+.fnote{font-size:12.5px;color:var(--muted);margin:10px 0 0}
+#chart{height:280px}
+footer span{user-select:all}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Inter:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/site-header.css">
+<link rel="stylesheet" href="css/toolkit-theme.css">
+<script>if(/[?&]embed\b/.test(location.search))document.documentElement.classList.add("embed")</script>
+<style>.embed .dxh,.embed .wrap>footer{display:none}.embed body{background:transparent}.embed .wrap{padding-block:20px 32px}.embed #t-brand{pointer-events:none}</style>
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</head><body>
+<div class="dxh" id="dxh">
+  <div class="dxh-wrap">
+    <a href="/" class="dxh-logo"><img src="img/dexm-mark.png" alt=""><span>DeXM Management</span></a>
+    <nav class="dxh-nav" id="dxhNav" aria-label="Site">
+      <a href="/solutions">Solutions</a>
+      <a href="/dexm-os">DeXM OS</a>
+      <a href="/about">About</a>
+      <a href="/#contact" class="dxh-cta">Book an Intro Call</a>
+    </nav>
+    <a href="/#contact" class="dxh-cta">Book an Intro Call</a>
+    <button class="dxh-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="dxhNav"><span></span><span></span><span></span></button>
+  </div>
+</div>
+
+<div class="wrap">
+<header>
+  <a href="/" class="brand" id="t-brand" style="display:block;text-decoration:none"></a>
+  <h1 id="t-h1"></h1>
+  <p class="lede" id="t-lede"></p>
+</header>
+
+<div class="toolbar">
+  <label class="filebtn" id="importLbl"><span id="t-import"></span><input type="file" id="importFile" accept=".xlsx,.xls,.xlsm,.csv"></label>
+  <button id="btnTemplate"></button>
+  <button id="btnXlsx"></button>
+  <button id="btnPdf"></button>
+  <button id="btnReset"></button>
+  <div class="status" id="status" role="status"></div>
+</div>
+<div class="notice" id="sample"></div>
+
+<section class="panel">
+  <div class="settings" id="settings"></div>
+</section>
+
+<section class="summary">
+  <div class="panel">
+    <div class="kpis" id="kpis"></div>
+    <canvas id="chart" aria-label=""></canvas>
+    <div class="legend" id="legend"></div>
+  </div>
+  <div class="panel verdict" id="verdict" aria-live="polite"></div>
+</section>
+
+<p class="tablehint" id="hint"></p>
+<div class="tablewrap"><table id="grid"></table></div>
+
+<section class="panel growth">
+  <div>
+    <span class="label">Scenario</span>
+    <h2 id="g-title"></h2>
+    <p class="lede" id="g-lede" style="margin:0"></p>
+    <div class="ginputs" id="g-inputs"></div>
+  </div>
+  <div id="g-out"></div>
+</section>
+
+<footer>
+  <span>DeXM Management</span><span>info@dexm-m.com</span><span>+1 917 523 0461</span><span>dexm-m.com</span>
+</footer>
+</div>
+
+<script>
+const T={brand:"DeXM Management · working capital",h1:"Working Capital: how much cash the operation ties up",
+ lede:"Enter year-end balances and the annual P&L base. The page turns each balance into days, shows the cash conversion cycle, the cash you release by reaching target days, and the working capital a growth plan will need. Your data stays in your browser.",
+ imp:"Import from Excel",tpl:"Download Excel template",xlsx:"Download Excel",pdf:"Download PDF to print",reset:"Clear",
+ sample:"This is a sample for the same ~$30M plant used across the toolkit. Select “Clear” or import your own Excel file.",
+ set:{company:"Company",units:"Units",rev:"Revenue, 12 months",cogs:"Cost of goods sold, 12 months",mat:"Materials consumed, 12 months",pur:"Purchases from suppliers, 12 months"},
+ setHint:{mat:"Base for raw material days",pur:"Materials, energy, freight and services bought on credit. Base for payable days"},
+ g:{title:"Funding growth",lede:"Working capital a new channel or customer will need, at your target days.",rev:"Additional revenue, 12 months",dso:"Payment terms for it, days",disc:"Price discount vs current, %"},
+ companyDef:"Sample: Plant",unitsDef:"$000",
+ sec:{inv:"Inventory",rec:"Receivables and other assets",pay:"Payables and other liabilities"},
+ base:{rev:"revenue",cogs:"COGS",mat:"materials",pur:"purchases"},
+ rows:{rm:"Raw materials",wip:"Work in process (WIP)",fg:"Finished goods and goods for resale",git:"Goods in transit",mro:"Spare parts and supplies (MRO)",ar:"Accounts receivable",adv:"Advances paid to suppliers",oca:"Other operating assets (VAT receivable, prepaid)",ap:"Accounts payable",dep:"Customer deposits and prepayments",acc:"Accrued liabilities (payroll, taxes)"},
+ col:{item:"Line item",bal:"Balance",days:"Days",base:"Days of",tgt:"Target days",tbal:"Target balance",imp:"Cash impact"},
+ tot:{inv:"Total inventory",rec:"Total receivables and other",pay:"Total payables and other",nwc:"Net working capital",pct:"Net working capital, % of revenue",ccc:"Cash conversion cycle (DIO + DSO − DPO), days"},
+ tgtHint:"Leave target days empty to keep the current level. Positive cash impact means cash released.",
+ k:{nwc:"Net working capital",ccc:"Cash conversion cycle",dio:"Inventory days",dsodpo:"DSO / DPO",rel:"Cash released at target",need:"Growth funding need",
+  pctRev:p=>`${p} of revenue`,tgt:d=>`target ${d}`,rm:d=>`raw materials ${d}`,gap:d=>d>=0?`customers pay ${d} days after suppliers are paid`:`suppliers paid ${-d} days after customers pay`,
+  relSub:p=>`${p} of working capital`,needSub:x=>x},
+ lg:{cur:"Current days",tgt:"Target days"},
+ v:{label:"Verdict",sev:["on track","watch","critical"],
+  hNeg:x=>`Customers and suppliers fund the operation: working capital is ${x}`,
+  h:(x,d)=>`Working capital ties up ${x}, ${d} days of revenue`,
+  p:(x,c)=>`Reaching target days releases ${x} and shortens the cash cycle to ${c} days.`,
+  pNone:"Set target days to see how much cash you can release.",
+  top:(l,x,s)=>`Largest lever: ${l}, ${x} (${s} of the release).`,
+  rm:(d,t)=>`Raw materials cover ${d} days of consumption against a target of ${t}.`,
+  terms:(dso,dpo)=>`You collect from customers in ${dso} days and pay suppliers in ${dpo}: the gap is financed from your own cash.`,
+  termsOk:(dso,dpo)=>`Suppliers are paid in ${dpo} days and customers pay in ${dso}: supplier credit covers receivables.`,
+  growth:(rev,need,cov)=>`Adding ${rev} of revenue needs ${need} of working capital${cov}.`,
+  cov:p=>`; the release at target covers ${p} of it`,covFull:"; the release at target covers it in full",
+  levers:"Where to start",
+  L:{rm:"Raw materials: order to consumption, smaller and more frequent deliveries, safety stock set by supplier lead time.",wip:"WIP: release orders at the bottleneck pace and clear stalled or abandoned orders.",fg:"Finished goods: make to order for C-class SKUs, keep stock only for A-items.",git:"Goods in transit: shorter routes or buying terms that move ownership closer to delivery.",mro:"Spare parts: min/max levels and clearing obsolete parts.",ar:"Receivables: credit limits, deposits on new accounts, weekly collection of overdue invoices.",adv:"Supplier advances: milestone payments or letters of credit instead of cash up front.",oca:"Other assets: speed up VAT refunds and cut prepaid items.",ap:"Payables: align supplier terms with customer terms, within what suppliers agree to.",dep:"Customer deposits: ask for deposits on custom and large orders.",acc:"Accrued liabilities: keep payroll and tax payments on schedule."},
+  none:"Enter revenue and balances",noneP:"The calculation appears right away.",
+  cta:"<strong>Want the cash back?</strong> DeXM sets target days by SKU and supplier and runs the working capital program with your team. kas@dexm-m.com"},
+ st:{tpl:"Template ready to save",xlsx:"Excel file ready to save",pdf:"PDF ready to save",saved:"File saved",declined:"Save cancelled",
+  noDl:"Downloads are not available in this view.",fail:"Could not create the file. Try again.",loading:"Loading module…",
+  imported:(n,s)=>`Imported ${n} balances${s?`, settings: ${s}`:""}.`,noData:"Could not find working capital lines in the file. Download the template to see the format.",
+  cleared:"Inputs cleared",readFail:"Could not read the file. Check that it is .xlsx, .xls or .csv."},
+ sheetTitle:"Working Capital",prepared:"Prepared",chartAria:"Current and target days by component"};
+const ROWS=[["inv","rm","mat",1],["inv","wip","cogs",1],["inv","fg","cogs",1],["inv","git","mat",1],["inv","mro","cogs",1],
+ ["rec","ar","rev",1],["rec","adv","pur",1],["rec","oca","rev",1],["pay","ap","pur",-1],["pay","dep","rev",-1],["pay","acc","cogs",-1]];
+const SECS=["inv","rec","pay"];
+function blankModel(){return{settings:{company:"",units:T.unitsDef,rev:0,cogs:0,mat:0,pur:0},bal:Object.fromEntries(ROWS.map(r=>[r[1],0])),tgt:Object.fromEntries(ROWS.map(r=>[r[1],null])),growth:{rev:0,dso:60,disc:0}}}
+function sampleModel(){const m=blankModel();Object.assign(m.settings,{company:T.companyDef,rev:30129,cogs:22661,mat:15185,pur:17900});
+  m.bal={rm:3100,wip:450,fg:1900,git:400,mro:300,ar:4200,adv:150,oca:100,ap:2300,dep:300,acc:600};
+  m.tgt={rm:45,wip:4,fg:15,git:null,mro:null,ar:45,adv:null,oca:null,ap:55,dep:null,acc:null};
+  m.growth={rev:3000,dso:60,disc:15};return m}
+
+function compute(m){
+  const n=x=>+x||0,s=m.settings,B={rev:n(s.rev),cogs:n(s.cogs),mat:n(s.mat),pur:n(s.pur)};
+  const rows=ROWS.map(([sec,id,base,sign])=>{const bal=n(m.bal[id]),b=B[base];const days=b?bal/b*365:null;
+    const t=m.tgt[id];const hasT=t!==null&&t!==undefined&&t!==""&&isFinite(+t);const tDays=hasT?+t:days;
+    const tBal=hasT&&b?b*(+t)/365:bal;const impact=sign>0?bal-tBal:tBal-bal;
+    return{sec,id,base,sign,bal,days,hasT,tDays,tBal,impact}});
+  const by=Object.fromEntries(rows.map(r=>[r.id,r]));
+  const sum=(sec,k)=>rows.filter(r=>r.sec===sec).reduce((a,r)=>a+r[k],0);
+  const inv=sum("inv","bal"),rec=sum("rec","bal"),pay=sum("pay","bal"),tInv=sum("inv","tBal"),tRec=sum("rec","tBal"),tPay=sum("pay","tBal");
+  const nwc=inv+rec-pay,tNwc=tInv+tRec-tPay,rel=nwc-tNwc;
+  const d=(x,b)=>b?x/b*365:null;
+  const dio=d(inv,B.cogs),dso=d(by.ar.bal,B.rev),dpo=d(by.ap.bal,B.pur),ccc=dio!=null&&dso!=null&&dpo!=null?dio+dso-dpo:null;
+  const tDio=d(tInv,B.cogs),tDso=d(by.ar.tBal,B.rev),tDpo=d(by.ap.tBal,B.pur),tCcc=tDio!=null&&tDso!=null&&tDpo!=null?tDio+tDso-tDpo:null;
+  // growth: new revenue at a discount; inventory and payables at target days
+  const g=m.growth||{},gR=n(g.rev),disc=Math.min(.9,Math.max(0,n(g.disc)/100)),k=B.rev?1/(1-disc)/B.rev:0;
+  const gC={rev:gR,cogs:B.cogs*gR*k,mat:B.mat*gR*k,pur:B.pur*gR*k};
+  const gParts=rows.filter(r=>r.id!=="ar"&&r.id!=="dep"&&r.id!=="oca").map(r=>({id:r.id,v:r.sign*gC[r.base]*(r.tDays||0)/365}));
+  const gAR=gR*n(g.dso)/365;const need=gR?gAR+gParts.reduce((a,x)=>a+x.v,0):0;
+  const pos=rows.filter(r=>r.impact>0.5).sort((a,b)=>b.impact-a.impact);
+  return{B,rows,by,inv,rec,pay,nwc,tNwc,rel,pctRev:B.rev?nwc/B.rev*100:null,nwcDays:d(nwc,B.rev),dio,dso,dpo,ccc,tDio,tDso,tDpo,tCcc,
+    rmDays:by.rm.days,wipDays:by.wip.days,fgDays:by.fg.days,gR,gAR,gParts,need,disc,pos,relPos:pos.reduce((a,r)=>a+r.impact,0)}
+}
+
+function parseNum(x){if(typeof x==="number")return isFinite(x)?x:null;if(x==null)return null;
+  let s=String(x).trim().replace(/[\s $€£₽%]/g,"");if(!s||s==="-"||s==="—")return null;
+  let neg=false;if(/^\(.*\)$/.test(s)){neg=true;s=s.slice(1,-1)}
+  if(s.includes(",")&&s.includes("."))s=s.lastIndexOf(",")>s.lastIndexOf(".")?s.replace(/\./g,"").replace(",","."):s.replace(/,/g,"");
+  else if(s.includes(","))s=/,\d{3}$/.test(s)&&!/,\d{3},?\d{1,2}$/.test(s)?s.replace(/,/g,""):s.replace(",",".");
+  const v=parseFloat(s);return isFinite(v)?(neg?-v:v):null}
+const ALIAS=[["git",/(in transit|в пути)/i],["wip",/(work in process|work in progress|\bwip\b|незаверш)/i],["fg",/(finished goods|goods for (re)?sale|готов)/i],["mro",/(spare|mro|supplies|запчаст|зип)/i],
+ ["rm",/(raw material|сырь|материал)/i],["adv",/(advances? (paid|to supplier)|supplier (advance|prepay)|авансы выданн|авансы поставщ)/i],["dep",/(customer (deposit|prepay|advance)|deposits?|авансы получ|предоплат)/i],
+ ["oca",/(other operating assets|vat|prepaid|прочие оборотн|ндс)/i],["acc",/(accrue|начисл|payroll|tax(es)? pay|зарплат|налог)/i],["ar",/(receivable|дебитор)/i],["ap",/(payable|кредитор)/i]];
+const SET_RE=[["rev",/^(revenue|net revenue|выручка)/i],["cogs",/(cost of goods|cost of sales|cogs|себестоим)/i],["mat",/(materials consumed|потребление материал|материальные затраты)/i],["pur",/(purchases|закупк)/i]];
+const G_RE=[["rev",/additional revenue|доп.*выручк/i],["dso",/payment terms for it|отсрочк/i],["disc",/discount|скидк/i]];
+function importAOA(rows){
+  const txt=c=>c==null?"":String(c).trim();const m=blankModel();const found=[];let n=0,cB=null,cT=null;
+  for(const row of rows){if(!row)continue;const cells=row.map(txt);
+    const bi=cells.findIndex(t=>/^(balance|остаток|сумма)$/i.test(t)),ti=cells.findIndex(t=>/^(target days|целевые дни)$/i.test(t));if(bi>=0){cB=bi;cT=ti>=0?ti:null;continue}
+    const li=cells.findIndex(t=>t&&parseNum(t)==null);if(li<0)continue;const label=cells[li];
+    if(/^(total|итого|net working|calc|cash conversion)/i.test(label))continue;
+    const firstNum=()=>{for(let i=li+1;i<row.length;i++){const v=parseNum(row[i]);if(v!=null)return v}return null};
+    if(/^(company|компания)$/i.test(label)){const v=cells.slice(li+1).find(Boolean);if(v){m.settings.company=v;found.push("company")}continue}
+    if(/^(units|единицы)$/i.test(label)){const v=cells.slice(li+1).find(Boolean);if(v){m.settings.units=v;found.push("units")}continue}
+    const gs=G_RE.find(([,re])=>re.test(label));if(gs){const v=firstNum();if(v!=null)m.growth[gs[0]]=v;continue}
+    const st=SET_RE.find(([,re])=>re.test(label));
+    if(st){if(!found.includes(st[0])){const v=firstNum();if(v!=null){m.settings[st[0]]=Math.abs(v);found.push(st[0])}}continue}
+    const id=(ALIAS.find(([,re])=>re.test(label))||[])[0];if(!id||found.includes("row:"+id))continue;
+    const bal=cB!=null?parseNum(row[cB]):firstNum();if(bal==null)continue;m.bal[id]=Math.abs(bal);n++;found.push("row:"+id);
+    if(cT!=null){const t=parseNum(row[cT]);m.tgt[id]=t==null?null:t}}
+  if(!n)return{error:"noData"};
+  if(!m.settings.mat&&m.settings.pur)m.settings.mat=m.settings.pur;if(!m.settings.pur&&m.settings.mat)m.settings.pur=m.settings.mat;
+  return{model:m,n,settings:found.filter(x=>!x.startsWith("row:"))}
+}
+
+// Excel export: settings in column B, table A..G with formulas
+function exportPlan(m,blank){
+  const rows=[],f=[];const s=m.settings;const push=(r,fx)=>{rows.push(r);if(fx)f.push([rows.length,fx])};
+  push([T.sheetTitle]);push([T.set.company,blank?"":s.company]);push([T.set.units,s.units]);
+  const R={};["rev","cogs","mat","pur"].forEach(k=>{push([T.set[k],blank?0:+s[k]||0]);R[k]=rows.length});push([]);
+  push([T.col.item,T.col.bal,T.col.days,T.col.base,T.col.tgt,T.col.tbal,T.col.imp]);
+  const secRows={};
+  SECS.forEach(sec=>{push([T.sec[sec]]);const first=rows.length+1;
+    ROWS.filter(r=>r[0]===sec).forEach(([,id,base,sign])=>{const t=m.tgt[id];push([T.rows[id],blank?0:+m.bal[id]||0,null,T.base[base],blank||t==null||t===""?"":+t,null,null],
+      [[2,`IF($B$${R[base]}=0,"",B{r}/$B$${R[base]}*365)`,"d"],[5,`IF(E{r}="",B{r},$B$${R[base]}*E{r}/365)`,"n"],[6,sign>0?"B{r}-F{r}":"F{r}-B{r}","n"]])});
+    const last=rows.length;push([T.tot[sec]],[[1,`SUM(B${first}:B${last})`,"n"],[5,`SUM(F${first}:F${last})`,"n"],[6,`SUM(G${first}:G${last})`,"n"]]);secRows[sec]=rows.length});
+  push([]);
+  const I=secRows.inv,C=secRows.rec,P=secRows.pay;
+  push([T.tot.nwc],[[1,`B${I}+B${C}-B${P}`,"n"],[5,`F${I}+F${C}-F${P}`,"n"],[6,`B{r}-F{r}`,"n"]]);const rN=rows.length;
+  push([T.tot.pct],[[1,`IF($B$${R.rev}=0,0,B${rN}/$B$${R.rev})`,"pct"],[5,`IF($B$${R.rev}=0,0,F${rN}/$B$${R.rev})`,"pct"]]);
+  const arR=rows.findIndex(x=>x[0]===T.rows.ar)+1,apR=rows.findIndex(x=>x[0]===T.rows.ap)+1;
+  push([T.tot.ccc],[[1,`IF(OR($B$${R.cogs}=0,$B$${R.rev}=0,$B$${R.pur}=0),"",B${I}/$B$${R.cogs}*365+B${arR}/$B$${R.rev}*365-B${apR}/$B$${R.pur}*365)`,"d"],
+    [5,`IF(OR($B$${R.cogs}=0,$B$${R.rev}=0,$B$${R.pur}=0),"",F${I}/$B$${R.cogs}*365+F${arR}/$B$${R.rev}*365-F${apR}/$B$${R.pur}*365)`,"d"]]);
+  push([]);push([T.g.title]);
+  const g=m.growth||{};push([T.g.rev,blank?0:+g.rev||0]);const gr=rows.length;push([T.g.dso,+g.dso||0]);const gd=rows.length;push([T.g.disc,+g.disc||0]);const gs=rows.length;
+  // need = rev*dso/365 + sum over other rows of sign * base share * target days
+  const parts=[];ROWS.forEach(([,id,base,sign],i)=>{if(id==="ar"||id==="dep"||id==="oca")return;const rr=rows.findIndex(x=>x[0]===T.rows[id])+1;
+    parts.push(`${sign>0?"+":"-"}$B$${R[base]}/$B$${R.rev}/(1-B${gs}/100)*B${gr}*IF(E${rr}="",IF($B$${R[base]}=0,0,B${rr}/$B$${R[base]}*365),E${rr})/365`)});
+  push([LANG_NEED],[[1,`IF(OR(B${gr}=0,$B$${R.rev}=0),0,B${gr}*B${gd}/365${parts.join("")})`,"n"]]);
+  return{rows,f}
+}
+const LANG_NEED="Working capital needed for growth";
+
+</script>
+<script>
+if(typeof document!=="undefined"){(function(){
+const KEY="dexm-wc-v1";
+let model,isSample=false;
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.bal&&s.settings){model=Object.assign(blankModel(),s)}}catch(e){}
+if(!model){model=sampleModel();isSample=true}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(model))}catch(e){}};
+const nf=new Intl.NumberFormat("en-US",{maximumFractionDigits:0}),pf=new Intl.NumberFormat("en-US",{minimumFractionDigits:1,maximumFractionDigits:1});
+const fmt=v=>{if(v==null||!isFinite(v))return "—";v=Math.round(v);if(!v)return "0";return v<0?`(${nf.format(-v)})`:nf.format(v)};
+const sgn=v=>{const r=Math.round(v||0);return r>0?`+${nf.format(r)}`:fmt(r)};
+const dd=v=>v==null||!isFinite(v)?"—":nf.format(Math.round(v));
+const pct=v=>v==null||!isFinite(v)?"—":`${pf.format(v)}%`;
+const U=()=>model.settings.units||"";
+const fmtU=v=>`${fmt(v)} ${U()}`.trim();
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function status(msg,cls){const s=$("status");s.textContent=msg||"";s.className="status"+(cls?" "+cls:"")}
+function texts(){$("t-brand").textContent=T.brand;$("t-h1").textContent=T.h1;$("t-lede").textContent=T.lede;
+  $("t-import").textContent=T.imp;$("btnTemplate").textContent=T.tpl;$("btnXlsx").textContent=T.xlsx;$("btnPdf").textContent=T.pdf;$("btnReset").textContent=T.reset;
+  $("sample").textContent=T.sample;$("chart").setAttribute("aria-label",T.chartAria);$("hint").textContent=T.tgtHint;$("g-title").textContent=T.g.title;$("g-lede").textContent=T.g.lede;
+  $("legend").innerHTML=`<span><i style="background:var(--accent)"></i>${T.lg.cur}</span><span><i style="background:var(--gold)"></i>${T.lg.tgt}</span>`}
+
+function renderSettings(){const s=model.settings;
+  const f=(k,type,cls)=>`<div class="field"><label class="label" for="set-${k}">${T.set[k]}</label><input id="set-${k}" data-k="${k}" type="${type}" ${cls?`class="${cls}" inputmode="decimal" step="any"`:""} value="${esc(s[k]??"")}">${T.setHint[k]?`<small class="fhint">${T.setHint[k]}</small>`:""}</div>`;
+  $("settings").innerHTML=f("company","text")+f("units","text")+f("rev","number","num")+f("cogs","number","num")+f("mat","number","num")+f("pur","number","num");
+  const g=model.growth;const gf=(k)=>`<div class="field"><label class="label" for="g-${k}">${T.g[k]}</label><input id="g-${k}" data-g="${k}" type="number" class="num" inputmode="decimal" step="any" value="${g[k]??""}"></div>`;
+  $("g-inputs").innerHTML=gf("rev")+gf("dso")+gf("disc")}
+$("settings").addEventListener("input",e=>{const k=e.target.dataset.k;if(!k)return;model.settings[k]=["company","units"].includes(k)?e.target.value:(parseFloat(e.target.value)||0);touch();if(k==="units")renderGrid();else update()});
+$("g-inputs").addEventListener("input",e=>{const k=e.target.dataset.g;if(!k)return;model.growth[k]=parseFloat(e.target.value)||0;touch();update()});
+
+function renderGrid(){
+  let h=`<thead><tr><th class="lab">${T.col.item}</th><th>${T.col.bal}</th><th>${T.col.days}</th><th class="tl">${T.col.base}</th><th>${T.col.tgt}</th><th>${T.col.tbal}</th><th>${T.col.imp}</th></tr></thead><tbody>`;
+  SECS.forEach(sec=>{h+=`<tr class="sec"><td class="lab">${T.sec[sec]}</td><td colspan="6"></td></tr>`;
+    ROWS.filter(r=>r[0]===sec).forEach(([,id,base])=>{const t=model.tgt[id];
+      h+=`<tr><td class="lab">${T.rows[id]}</td><td class="v"><input type="number" step="any" inputmode="decimal" id="b-${id}" data-b="${id}" value="${model.bal[id]||""}" placeholder="0" aria-label="${esc(T.rows[id])}: ${T.col.bal}"></td>
+        <td class="c" id="d-${id}"></td><td class="tl muted">${T.base[base]}</td>
+        <td class="v"><input type="number" step="any" inputmode="decimal" id="t-${id}" data-t="${id}" value="${t==null?"":t}" placeholder="keep" aria-label="${esc(T.rows[id])}: ${T.col.tgt}"></td>
+        <td class="c" id="tb-${id}"></td><td class="c" id="i-${id}"></td></tr>`});
+    h+=`<tr class="sub"><td class="lab">${T.tot[sec]}</td><td class="c" id="s-${sec}"></td><td class="c" id="sd-${sec}"></td><td></td><td></td><td class="c" id="st-${sec}"></td><td class="c" id="si-${sec}"></td></tr>`});
+  h+=`<tr class="key"><td class="lab">${T.tot.nwc}</td><td class="c" id="nwc"></td><td class="c" id="nwcd"></td><td class="tl muted">${T.base.rev}</td><td></td><td class="c" id="tnwc"></td><td class="c" id="rel"></td></tr>
+    <tr class="pct"><td class="lab">${T.tot.pct}</td><td class="c" id="nwcp"></td><td colspan="3"></td><td class="c" id="tnwcp"></td><td></td></tr>
+    <tr class="sub"><td class="lab">${T.tot.ccc}</td><td class="c" id="ccc"></td><td colspan="3"></td><td class="c" id="tccc"></td><td></td></tr>`;
+  $("grid").innerHTML=h+"</tbody>";update()}
+$("grid").addEventListener("input",e=>{const d=e.target.dataset;if(d.b){model.bal[d.b]=parseFloat(e.target.value)||0}else if(d.t){const v=e.target.value.trim();model.tgt[d.t]=v===""?null:(parseFloat(v)||0)}else return;touch();update()});
+function touch(){if(isSample){isSample=false;$("sample").hidden=true}save()}
+
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function niceStep(r){const p=Math.pow(10,Math.floor(Math.log10(Math.max(r,1e-9))));const n=r/p;return(n<1.5?1:n<3?2:n<7?5:10)*p}
+function chartItems(c){return[[T.rows.rm.split(" (")[0],c.by.rm.days,c.by.rm.tDays],["WIP",c.by.wip.days,c.by.wip.tDays],["Finished goods",c.by.fg.days,c.by.fg.tDays],["Inventory (DIO)",c.dio,c.tDio],["Receivables (DSO)",c.dso,c.tDso],["Payables (DPO)",c.dpo,c.tDpo],["Cash cycle (CCC)",c.ccc,c.tCcc]]}
+function drawChart(cv,c,pal,wpx,hpx,scale){
+  const dpr=scale||window.devicePixelRatio||1;const w=wpx||cv.clientWidth||600,hgt=hpx||cv.clientHeight||260;
+  cv.width=w*dpr;cv.height=hgt*dpr;const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,hgt);
+  const it=chartItems(c).filter(x=>x[1]!=null);if(!it.length)return;
+  const labW=Math.min(150,w*.34),padR=44,padT=4,padB=18,rowH=(hgt-padT-padB)/it.length;
+  const hi=Math.max(10,...it.flatMap(x=>[x[1],x[2]||0]))*1.05,lo=Math.min(0,...it.flatMap(x=>[x[1],x[2]||0]));
+  const X=v=>labW+(v-lo)/(hi-lo)*(w-labW-padR);
+  g.font=`11px ${pal.mono}`;g.textBaseline="middle";g.lineWidth=1;
+  const st=niceStep((hi-lo)/4);for(let t=Math.ceil(lo/st)*st;t<=hi;t+=st){g.strokeStyle=pal.line;g.beginPath();g.moveTo(X(t)+.5,padT);g.lineTo(X(t)+.5,hgt-padB);g.stroke();g.fillStyle=pal.muted;g.textAlign="center";g.fillText(String(Math.round(t)),X(t),hgt-padB+10)}
+  it.forEach(([lab,cur,tgt],i)=>{const y=padT+i*rowH,bh=Math.min(11,rowH*.3);const last=i===it.length-1;
+    g.fillStyle=last?pal.fg:pal.muted;g.textAlign="left";g.font=`${last?"600 ":""}12px ${pal.body}`;g.fillText(lab,0,y+rowH/2);
+    const bar=(v,yy,col)=>{if(v==null)return;g.fillStyle=col;const a=X(Math.min(0,v)),b=X(Math.max(0,v));g.fillRect(a,yy,Math.max(1.5,b-a),bh)};
+    bar(cur,y+rowH/2-bh-1,pal.accent);bar(tgt,y+rowH/2+1,pal.gold);
+    g.font=`11px ${pal.mono}`;g.fillStyle=pal.fg;g.textAlign="left";g.fillText(dd(cur),X(Math.max(0,cur))+5,y+rowH/2-bh/2-1);
+    if(tgt!=null&&Math.round(tgt)!==Math.round(cur)){g.fillStyle=pal.muted;g.fillText(dd(tgt),X(Math.max(0,tgt))+5,y+rowH/2+bh/2+1)}})}
+const pagePal=()=>({fg:css("--fg"),muted:css("--muted"),line:css("--line"),accent:css("--accent"),gold:css("--gold")||"#a8823a",mono:css("--mono"),body:css("--body")});
+
+function verdictData(c){
+  if(!c.B.rev||(!c.inv&&!c.rec&&!c.pay))return{sev:-1,h:T.v.none,p:T.v.noneP,notes:[],levers:[]};
+  const notes=[];
+  if(c.pos.length&&c.relPos>0){const t=c.pos[0];notes.push(T.v.top(T.rows[t.id].toLowerCase(),fmtU(t.impact),pct(t.impact/c.relPos*100)))}
+  if(c.by.rm.days!=null&&c.by.rm.hasT&&c.by.rm.days>c.by.rm.tDays*1.2)notes.push(T.v.rm(dd(c.by.rm.days),dd(c.by.rm.tDays)));
+  if(c.dso!=null&&c.dpo!=null&&(c.by.ar.bal||c.by.ap.bal))notes.push(c.dso>c.dpo?T.v.terms(dd(c.dso),dd(c.dpo)):T.v.termsOk(dd(c.dso),dd(c.dpo)));
+  if(c.gR>0)notes.push(T.v.growth(fmtU(c.gR),fmtU(c.need),c.rel>0&&c.need>0?(c.rel>=c.need?T.v.covFull:T.v.cov(pct(c.rel/c.need*100))):""));
+  const h=c.nwc<0?T.v.hNeg(fmtU(c.nwc)):T.v.h(fmtU(c.nwc),dd(c.nwcDays));
+  const p=c.rel>0.5?T.v.p(fmtU(c.rel),dd(c.tCcc)):T.v.pNone;
+  const relShare=c.nwc>0?c.rel/c.nwc:0;
+  let sev=0;if(c.nwc>0&&((c.ccc!=null&&c.ccc>60)||relShare>0.15||(c.gR>0&&c.need>c.rel)))sev=1;if(c.nwc>0&&((c.ccc!=null&&c.ccc>90)||relShare>0.3))sev=2;
+  return{sev,h,p,notes,levers:c.pos.slice(0,3).map(r=>T.v.L[r.id])}}
+function kpiData(c){return[
+  [T.k.nwc,fmt(c.nwc),T.k.pctRev(pct(c.pctRev)),false],
+  [T.k.ccc,c.ccc==null?"—":`${dd(c.ccc)} d`,T.k.tgt(c.tCcc==null?"—":dd(c.tCcc)+" d"),c.ccc!=null&&c.ccc>60],
+  [T.k.dio,c.dio==null?"—":`${dd(c.dio)} d`,T.k.rm(c.rmDays==null?"—":dd(c.rmDays)+" d"),c.dio!=null&&c.tDio!=null&&c.dio>c.tDio*1.2],
+  [T.k.dsodpo,`${dd(c.dso)} / ${dd(c.dpo)} d`,c.dso!=null&&c.dpo!=null?T.k.gap(Math.round(c.dso-c.dpo)):"",c.dso!=null&&c.dpo!=null&&c.dso>c.dpo],
+  [T.k.rel,sgn(c.rel),T.k.relSub(c.nwc>0?pct(c.rel/c.nwc*100):"—"),false],
+  [T.k.need,c.gR?fmt(c.need):"—",c.gR?`for ${fmt(c.gR)} new revenue`:"set a growth plan below",c.gR>0&&c.need>c.rel]]}
+
+// Summary for the toolkit dashboard (/toolkit): saved locally and sent to the parent frame
+function publish(c){try{const v=verdictData(c),S=model.settings;const out={id:"wc",ts:Date.now(),sample:!!isSample,company:S.company||"",units:S.units||"",sev:v.sev,h:String(v.h||""),p:String(v.p||""),act:String(v.levers[0]||""),
+  d:{nwc:c.nwc,pct:c.pctRev,ccc:c.ccc,tCcc:c.tCcc,dio:c.dio,dso:c.dso,dpo:c.dpo,rel:c.rel,need:c.need,gR:c.gR,days:[c.by.rm.days,c.by.wip.days,c.by.fg.days,c.dso,c.dpo==null?null:-c.dpo],tdays:[c.by.rm.tDays,c.by.wip.tDays,c.by.fg.tDays,c.tDso,c.tDpo==null?null:-c.tDpo]}};
+  try{localStorage.setItem("dexm-dash-wc",JSON.stringify(out))}catch(e){}if(window.parent!==window)parent.postMessage({dexm:"summary",s:out},location.origin)}catch(e){console.error(e)}}
+
+function update(){const c=compute(model);publish(c);
+  const set=(id,txt,neg,bad)=>{const el=$(id);if(!el)return;el.textContent=txt;el.classList.toggle("neg",!!neg);el.classList.toggle("below",!!bad)};
+  c.rows.forEach(r=>{set(`d-${r.id}`,dd(r.days),false,r.hasT&&r.days!=null&&(r.sign>0?r.days>r.tDays*1.2:r.days<r.tDays*.8));set(`tb-${r.id}`,r.hasT?fmt(r.tBal):"—");set(`i-${r.id}`,Math.round(r.impact)?sgn(r.impact):"—",r.impact<-0.5)});
+  const sd={inv:c.dio,rec:c.dso,pay:c.dpo};
+  SECS.forEach(sec=>{const rs=c.rows.filter(r=>r.sec===sec);set(`s-${sec}`,fmt(rs.reduce((a,r)=>a+r.bal,0)));set(`sd-${sec}`,dd(sd[sec]));set(`st-${sec}`,fmt(rs.reduce((a,r)=>a+r.tBal,0)));const im=rs.reduce((a,r)=>a+r.impact,0);set(`si-${sec}`,Math.round(im)?sgn(im):"—",im<-0.5)});
+  set("nwc",fmt(c.nwc),c.nwc<0);set("nwcd",dd(c.nwcDays));set("tnwc",fmt(c.tNwc));set("rel",sgn(c.rel),c.rel<-0.5);set("nwcp",pct(c.pctRev));set("tnwcp",c.B.rev?pct(c.tNwc/c.B.rev*100):"—");set("ccc",dd(c.ccc));set("tccc",dd(c.tCcc));
+  $("kpis").innerHTML=kpiData(c).map(([l,v,s,bad])=>`<div class="kpi${bad?" bad":""}"><span class="label">${l}</span><b>${esc(v)}</b><small>${esc(s||"")}</small></div>`).join("");
+  drawChart($("chart"),c,pagePal());
+  const v=verdictData(c);$("verdict").innerHTML=`<span class="label">${T.v.label}</span> ${v.sev>=0?`<span class="sev" style="background:${["var(--good)","var(--warn)","var(--bad)"][v.sev]}">${T.v.sev[v.sev]}</span>`:""}<h2>${esc(v.h)}</h2><p>${esc(v.p)}</p>${v.notes.length?`<ul>${v.notes.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}${v.levers.length?`<span class="label">${T.v.levers}</span><ul>${v.levers.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}<p class="cta">${T.v.cta}</p>`;
+  // growth breakdown
+  const gr=c.gR;const line=(l,v,f)=>`<tr><td class="lab">${l}<span class="hint">${f}</span></td><td class="c${v<0?" neg":""}">${gr?sgn(v):"—"}</td></tr>`;
+  const inv=c.gParts.filter(p=>ROWS.find(r=>r[1]===p.id)[0]==="inv").reduce((a,p)=>a+p.v,0),pay=-c.gParts.filter(p=>ROWS.find(r=>r[1]===p.id)[0]==="pay").reduce((a,p)=>a+p.v,0),adv=c.gParts.filter(p=>p.id==="adv").reduce((a,p)=>a+p.v,0);
+  $("g-out").innerHTML=`<table class="gtab"><tbody>
+    ${line("Receivables",c.gAR,`${fmt(gr)} × ${dd(model.growth.dso)} days / 365`)}
+    ${line("Inventory",inv,`new COGS and materials × target inventory days / 365`)}
+    ${adv?line("Supplier advances",adv,"new purchases × target advance days / 365"):""}
+    ${line("Payables and accruals",-pay,"new purchases and COGS × target payable days / 365")}
+    <tr class="key"><td class="lab">Working capital needed</td><td class="c">${gr?fmt(c.need):"—"}</td></tr>
+    <tr><td class="lab">Per 1,000 of new revenue</td><td class="c">${gr?fmt(c.need/gr*1000):"—"}</td></tr>
+    <tr><td class="lab">Covered by the release at target</td><td class="c">${gr&&c.need>0?(c.rel>=c.need?"in full":pct(Math.max(0,c.rel)/c.need*100)):"—"}</td></tr></tbody></table>
+    <p class="fnote">Cost ratios come from the P&amp;L base above, adjusted for the price discount: the same units sold ${pct(c.disc*100)} cheaper keep their cost.</p>`}
+const redraw=()=>drawChart($("chart"),compute(model),pagePal());
+window.addEventListener("resize",redraw);
+const mq=window.matchMedia("(prefers-color-scheme: dark)");mq.addEventListener&&mq.addEventListener("change",redraw);
+new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+const LIBS={xlsx:"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",jspdf:"https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"};
+const loaded={};function lib(k){return loaded[k]||(loaded[k]=new Promise((res,rej)=>{const s=document.createElement("script");s.src=LIBS[k];s.onload=res;s.onerror=()=>{loaded[k]=null;rej(new Error("load"))};document.head.appendChild(s)}))}
+const browserDl={save:async({filename,data})=>{const url=URL.createObjectURL(new Blob([data]));const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);return{status:"saved"}}};
+let dl=null;const dlReady=window.claude&&window.claude.use?window.claude.use("downloads").then(d=>{dl=d||browserDl}).catch(()=>{dl=browserDl}):(dl=browserDl,Promise.resolve());
+async function offer(filename,data,okMsg){await dlReady;if(!dl){status(T.st.noDl,"err");return}
+  status(okMsg);try{await dl.save({filename,data});status(T.st.saved,"ok")}
+  catch(e){const code=e&&e.code;status(code==="declined"?T.st.declined:code==="unavailable"||code==="not_granted"?T.st.noDl:T.st.fail,code==="declined"?"":"err")}}
+const fname=ext=>`${(model.settings.company||"DeXM").replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-|-$/g,"")||"DeXM"}-working-capital.${ext}`;
+async function buildXlsx(blank){status(T.st.loading);await lib("xlsx");
+  const m=blank?Object.assign(blankModel(),{tgt:model.tgt}):model;const {rows,f}=exportPlan(m,blank);
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  f.forEach(([r,list])=>list.forEach(([ci,fx,kind])=>{const addr=XLSX.utils.encode_cell({r:r-1,c:ci});ws[addr]={t:"n",f:fx.replace(/\{r\}/g,r),z:kind==="pct"?"0.0%":kind==="d"?"0":"#,##0;(#,##0)"}}));
+  ws["!cols"]=[{wch:50},{wch:14},{wch:10},{wch:12},{wch:12},{wch:15},{wch:14}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Working capital");return XLSX.write(wb,{bookType:"xlsx",type:"array"})}
+$("btnTemplate").onclick=async()=>{try{const b=await buildXlsx(true);await offer("DeXM-working-capital-template.xlsx",new Uint8Array(b),T.st.tpl)}catch(e){console.error(e);status(T.st.fail,"err")}};
+$("btnXlsx").onclick=async()=>{try{const b=await buildXlsx(false);await offer(fname("xlsx"),new Uint8Array(b),T.st.xlsx)}catch(e){console.error(e);status(T.st.fail,"err")}};
+$("importFile").addEventListener("change",async e=>{const file=e.target.files[0];e.target.value="";if(!file)return;
+  try{status(T.st.loading);await lib("xlsx");const wb=XLSX.read(await file.arrayBuffer(),{type:"array"});
+    let best=null;for(const name of wb.SheetNames){const r=importAOA(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null}));if(!r.error){best=r;break}}
+    if(!best){status(T.st.noData,"err");return}
+    model=best.model;isSample=false;$("sample").hidden=true;save();renderSettings();renderGrid();
+    status(T.st.imported(best.n,best.settings.map(k=>T.set[k]).join(", ")),"ok")}
+  catch(err){console.error(err);status(T.st.readFail,"err")}});
+$("btnReset").onclick=()=>{model=blankModel();isSample=false;$("sample").hidden=true;save();renderSettings();renderGrid();status(T.st.cleared,"ok")};
+
+function reportPages(){
+  const c=compute(model),s=model.settings,v=verdictData(c),PW=1500,PH=1060,SC=2,M=50,CW=PW-2*M;
+  const F={sans:'"Inter","Segoe UI",Arial,sans-serif',mono:'"IBM Plex Mono",Menlo,monospace',disp:'"Source Serif 4",Georgia,serif'};
+  const P={fg:"#0f1a2b",muted:"#5a6476",line:"#dcdad2",band:"#f3f1eb",acc:"#1d3a63",accSoft:"#eaeff6",gold:"#a8823a",goldSoft:"#f8f1e2",bad:"#b23f2a",good:"#2e7a4e",warn:"#b07418"};
+  const pages=[];
+  const newPage=()=>{const cv=document.createElement("canvas");cv.width=PW*SC;cv.height=PH*SC;const g=cv.getContext("2d");g.scale(SC,SC);g.fillStyle="#fff";g.fillRect(0,0,PW,PH);pages.push(cv);return g};
+  const foot=(g,n)=>{g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.textAlign="left";g.fillText("DeXM Management · info@dexm-m.com · +1 917 523 0461 · dexm-m.com",M,PH-28);g.textAlign="right";g.fillText(String(n),PW-M,PH-28);g.textAlign="left"};
+  const wrap=(g,text,x,y,maxW,lh)=>{const words=String(text).split(" ");let line="";for(const w of words){const t=line?line+" "+w:w;if(g.measureText(t).width>maxW&&line){g.fillText(line,x,y);y+=lh;line=w}else line=t}if(line){g.fillText(line,x,y);y+=lh}return y};
+  const clip=(g,text,maxW)=>{text=String(text);if(g.measureText(text).width<=maxW)return text;while(text.length>1&&g.measureText(text+"…").width>maxW)text=text.slice(0,-1);return text+"…"};
+  let g=newPage(),y=M+24;
+  g.fillStyle=P.fg;g.font=`600 30px ${F.disp}`;g.fillText(T.sheetTitle,M,y);y+=28;
+  g.font=`14px ${F.sans}`;g.fillStyle=P.muted;g.fillText([s.company,`Units: ${U()}`,`Prepared: ${new Date().toLocaleDateString("en-US")}`].filter(Boolean).join("   ·   "),M,y);y+=14;
+  g.fillStyle=P.fg;g.fillRect(M,y,CW,1.5);y+=22;
+  const kw=(CW-5*12)/6;kpiData(c).forEach(([l,val,sub,bad],i)=>{const x=M+i*(kw+12);g.strokeStyle=P.line;g.lineWidth=1;g.strokeRect(x+.5,y+.5,kw,78);
+    g.font=`500 11px ${F.mono}`;g.fillStyle=P.muted;g.fillText(clip(g,l.toUpperCase(),kw-20),x+10,y+20);
+    g.font=`600 22px ${F.mono}`;g.fillStyle=bad?P.bad:P.fg;g.fillText(clip(g,val,kw-20),x+10,y+50);g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.fillText(clip(g,sub||"",kw-20),x+10,y+68)});
+  y+=104;const vy=y;
+  g.font=`600 20px ${F.disp}`;g.fillStyle=P.fg;y=wrap(g,v.h,M+18,y+18,CW-30,24);g.font=`14px ${F.sans}`;g.fillStyle=P.muted;y=wrap(g,v.p,M+18,y+2,CW-30,20);
+  g.font=`13px ${F.sans}`;g.fillStyle=P.fg;v.notes.forEach(t=>{y=wrap(g,"•  "+t,M+18,y+2,CW-40,19)});
+  if(v.levers.length){g.font=`600 13px ${F.sans}`;g.fillText(T.v.levers,M+18,y+8);y+=28;g.font=`13px ${F.sans}`;v.levers.forEach(t=>{y=wrap(g,"•  "+t,M+18,y,CW-40,19)})}
+  g.fillStyle=v.sev<0?P.muted:[P.good,P.warn,P.bad][v.sev];g.fillRect(M,vy,5,y-vy);y+=24;
+  const ch=Math.max(220,PH-y-90),cc=document.createElement("canvas");
+  drawChart(cc,c,{fg:P.fg,muted:P.muted,line:P.line,accent:P.acc,gold:P.gold,mono:F.mono,body:F.sans},CW,ch,SC);g.drawImage(cc,M,y,CW,ch);y+=ch+12;
+  g.font=`12px ${F.sans}`;let lx=M;[[P.acc,T.lg.cur],[P.gold,T.lg.tgt]].forEach(([col,txt])=>{g.fillStyle=col;g.fillRect(lx,y-4,14,9);g.fillStyle=P.muted;g.fillText(txt,lx+20,y+4);lx+=g.measureText(txt).width+48});
+  foot(g,1);
+  g=newPage();g.fillStyle=P.fg;g.font=`600 18px ${F.disp}`;g.fillText(T.sheetTitle+(s.company?` · ${s.company}`:""),M,M+14);
+  g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.fillText(`Units: ${U()} · Revenue ${fmt(c.B.rev)} · COGS ${fmt(c.B.cogs)} · Materials ${fmt(c.B.mat)} · Purchases ${fmt(c.B.pur)}`,M,M+32);
+  const cols=[[T.col.item,470,"l"],[T.col.bal,150,"r"],[T.col.days,100,"r"],[T.col.base,130,"l"],[T.col.tgt,130,"r"],[T.col.tbal,190,"r"],[T.col.imp,230,"r"]];const sc=CW/cols.reduce((a,x)=>a+x[1],0);cols.forEach(x=>x[1]*=sc);
+  let ty=M+50;const RH=22;
+  const row=(vals,kind,colors)=>{if(kind==="sec"){g.fillStyle=P.band;g.fillRect(M,ty,CW,RH);g.fillStyle=P.fg;g.font=`600 11px ${F.mono}`;g.textAlign="left";g.fillText(String(vals[0]).toUpperCase(),M+6,ty+15);ty+=RH;return}
+    if(kind==="key"){g.fillStyle=P.goldSoft;g.fillRect(M,ty,CW,RH)}
+    let x=M;cols.forEach(([,w,al],i)=>{const t=vals[i]==null?"":String(vals[i]);g.font=kind==="head"?`600 11px ${F.sans}`:`${kind==="key"||kind==="sub"?"600 ":""}${i===0||i===3?"12.5px "+F.sans:"12px "+F.mono}`;
+      g.fillStyle=kind==="head"?P.fg:(colors&&colors[i])||(i===3?P.muted:P.fg);
+      if(al==="r"){g.textAlign="right";g.fillText(clip(g,t,w-10),x+w-6,ty+15)}else{g.textAlign="left";g.fillText(clip(g,t,w-10),x+6,ty+15)}x+=w});
+    g.fillStyle=kind==="head"?P.fg:P.line;g.fillRect(M,ty+RH-1,CW,kind==="head"?1.5:1);ty+=RH};
+  row(cols.map(x=>x[0]),"head");
+  const sd={inv:c.dio,rec:c.dso,pay:c.dpo};
+  SECS.forEach(sec=>{row([T.sec[sec]],"sec");c.rows.filter(r=>r.sec===sec).forEach(r=>row([T.rows[r.id],fmt(r.bal),dd(r.days),T.base[r.base],r.hasT?dd(r.tDays):"keep",fmt(r.tBal),Math.round(r.impact)?sgn(r.impact):"—"],"",[null,null,null,null,null,null,r.impact<-0.5?P.bad:r.impact>0.5?P.good:null]));
+    const rs=c.rows.filter(r=>r.sec===sec),im=rs.reduce((a,r)=>a+r.impact,0);row([T.tot[sec],fmt(rs.reduce((a,r)=>a+r.bal,0)),dd(sd[sec]),"","",fmt(rs.reduce((a,r)=>a+r.tBal,0)),Math.round(im)?sgn(im):"—"],"sub")});
+  row([T.tot.nwc,fmt(c.nwc),dd(c.nwcDays),T.base.rev,"",fmt(c.tNwc),sgn(c.rel)],"key");
+  row([T.tot.pct,pct(c.pctRev),"","","",c.B.rev?pct(c.tNwc/c.B.rev*100):"—",""],"");
+  row([T.tot.ccc,dd(c.ccc),"","","",dd(c.tCcc),""],"sub");
+  if(c.gR){ty+=18;g.fillStyle=P.fg;g.font=`600 15px ${F.disp}`;g.textAlign="left";g.fillText(`${T.g.title}: ${fmt(c.gR)} new revenue, ${dd(model.growth.dso)}-day terms, ${pct(c.disc*100)} discount`,M,ty+14);ty+=26;
+    g.font=`13px ${F.sans}`;g.fillStyle=P.fg;g.fillText(`Working capital needed: ${fmtU(c.need)} (${fmt(c.need/c.gR*1000)} per 1,000 of new revenue). Receivables ${fmt(c.gAR)}; inventory, advances and payables at target days.`,M,ty+10)}
+  g.textAlign="left";foot(g,2);
+  return pages}
+$("btnPdf").onclick=async()=>{try{status(T.st.loading);await lib("jspdf");if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+  const pages=reportPages();const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:"landscape",unit:"pt",format:"a4"});
+  const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+  pages.forEach((cv,i)=>{if(i)pdf.addPage();pdf.addImage(cv.toDataURL("image/jpeg",.92),"JPEG",0,0,pw,ph)});
+  await offer(fname("pdf"),pdf.output("arraybuffer"),T.st.pdf)}catch(e){console.error(e);status(T.st.fail,"err")}};
+
+texts();renderSettings();renderGrid();$("sample").hidden=!isSample;
+})()}
+
+</script>
+
+<script>
+// Inside the toolkit: report page height so the parent can size the frame
+if(document.documentElement.classList.contains("embed")&&window.parent!==window){let last=0;const post=()=>{const h=Math.ceil(document.body.scrollHeight);if(h!==last){last=h;parent.postMessage({dexm:"height",h},location.origin)}};
+  new ResizeObserver(post).observe(document.body);addEventListener("load",post);post()}
+</script>
+<script src="js/site-header.js"></script>
+</body></html>
