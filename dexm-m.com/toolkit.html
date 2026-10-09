@@ -220,7 +220,7 @@ footer.site{border-top-color:var(--line)}
 <div class="hero"><div class="wrap page-head"><div>
   <a href="/tools" class="brand" style="display:block;text-decoration:none">DeXM Management · value creation toolkit</a>
   <h1>From baseline P&amp;L to Pro Forma, on one screen</h1>
-  <p class="lede">Work through it in order: 1 baseline P&amp;L, 2 13-week cash, 3 hidden factory, 4 SKU analysis, 5 EBITDA bridge, 6 working capital. Step 7, the Pro Forma P&amp;L, puts the baseline and the P&amp;L after the plan side by side. The dashboard updates as you go. Your data stays in your browser.</p></div>
+  <p class="lede">Work through it in order: 1 baseline P&amp;L, 2 13-week cash, 3 hidden factory, 4 SKU analysis, 5 EBITDA bridge, 6 working capital. Step 7, the Pro Forma P&amp;L, puts the baseline and the P&amp;L after the plan side by side, and step 8, the value scorecard, shows what the company is worth today and after the plan. The dashboard updates as you go. Your data stays in your browser.</p></div>
   <div class="hero-meta" id="heroMeta"></div>
 </div></div>
 
@@ -255,9 +255,10 @@ const TOOLS=[
   {id:"hf",file:"hidden-factory",name:"Hidden Factory",step:3},
   {id:"sku",file:"sku-analysis",name:"SKU Analysis",step:4},
   {id:"bridge",file:"ebitda-bridge",name:"EBITDA Bridge",step:5},
-  {id:"wc",file:"working-capital",name:"Working Capital",step:6}];
+  {id:"wc",file:"working-capital",name:"Working Capital",step:6},
+  {id:"vs",file:"value-scorecard",name:"Value Scorecard",step:8}];
 const BY=Object.fromEntries(TOOLS.map(t=>[t.id,t]));
-const PRIORITY=["cash","pl","hf","sku","bridge","wc"];   // which tool speaks first when several share the worst status
+const PRIORITY=["cash","pl","hf","sku","bridge","wc","vs"];   // which tool speaks first when several share the worst status
 const SEV=["On track","Watch","Critical"];
 const S={};
 TOOLS.forEach(t=>{try{const x=JSON.parse(localStorage.getItem("dexm-dash-"+t.id)||"null");if(x&&x.id===t.id)S[t.id]=x}catch(e){}});
@@ -277,7 +278,7 @@ const pct=v=>v==null||!isFinite(v)?"—":(Math.round(v*10)/10).toFixed(1)+"%";
 
 /* Tabs and frames */
 const ext=/\.html$/.test(location.pathname)?".html":"";   // local preview serves files with .html
-const VIEWS=[{id:"dashboard",name:"Dashboard"},...TOOLS,{id:"proforma",name:"Pro Forma P&L",step:7}];
+const VIEWS=[{id:"dashboard",name:"Dashboard"},...TOOLS.filter(t=>t.step<7),{id:"proforma",name:"Pro Forma P&L",step:7},...TOOLS.filter(t=>t.step>7)];
 $("tabs").innerHTML=VIEWS.map(v=>`<button class="tab" role="tab" id="tab-${v.id}" data-view="${v.id}" aria-selected="false">${BY[v.id]?`<span class="dot" id="dot-${v.id}"></span>`:""}${v.step?`<span class="step">${v.step}</span>`:""}${esc(v.name)}</button>`).join("");
 const frames={};
 TOOLS.forEach(t=>{const f=document.createElement("iframe");f.title=t.name;f.src=`${t.file}${ext}?embed=1`;f.loading="eager";f.setAttribute("role","tabpanel");$("frameWrap").appendChild(f);frames[t.id]=f});
@@ -323,6 +324,7 @@ function renderOverall(){const have=TOOLS.filter(t=>S[t.id]);const el=$("overall
   if(S.pl&&S.pl.d.rev){const d=S.pl.d,u=S.pl.units;m.push(["Revenue, 12 months",money(d.rev,u),"P&L",false]);
     m.push(["EBITDA",money(d.ebitda,u),`margin ${pct(d.em)} · benchmark ${pct(d.bE)}`,d.ebitda<0||(d.em!=null&&d.em<d.bE)])}
   if(S.wc&&S.wc.d.nwc){const d=S.wc.d,u=S.wc.units;m.push(["Cash in working capital",money(d.nwc,u),`${d.ccc==null?"—":Math.round(d.ccc)+"-day cycle"} · ${money(d.rel,u)} releasable`,d.ccc!=null&&d.ccc>60])}
+  if(S.vs&&S.vs.d.E0>0){const d=S.vs.d;m.push(["Equity value, today → plan",`${usd(d.eqNow)} → ${usd(d.eqTgt)}`,`multiple ${(+d.mNow).toFixed(1)}x → ${(+d.mTgt).toFixed(1)}x (step 8)`,d.eqNow<=0])}
   if(S.cash){const d=S.cash.d,u=S.cash.units;m.push(["Lowest cash, 13 weeks",money(d.low,u),d.firstBelow>=0?`week ${d.lowW} · below minimum`:`week ${d.lowW}`,d.firstBelow>=0||d.low<0])}
   const pfm=pfModel(),op=opportunities().filter(o=>o.v>0).sort((a,b)=>b.v-a.v)[0];
   if(pfm){const up=pfm.plan.ebitda-pfm.base.ebitda;m.push(["Pro Forma EBITDA",money(pfm.plan.ebitda,pfm.U),`${up>=0?"+":""}${money(up,pfm.U)} · margin ${pct(pfm.plan.em)} (step 7)`,false])}
@@ -346,6 +348,7 @@ const TILE={
   bridge:s=>{const d=s.d,u=s.units;return[["Target EBITDA",money(d.E1,u),`from ${money(d.E0,u)}`,false],["Risk-weighted",(d.upR>=0?"+":"")+money(d.upR,u),`of ${(d.up>=0?"+":"")+money(d.up,u)}`,d.upR<0]]},
   hf:s=>{const d=s.d,u=s.units;return[["Hidden factory",money(d.HF,u),d.rev?`${pct(d.HF/d.rev*100)} of revenue`:"per year",d.HF>0],["Recoverable",money(d.REC,u),`OEE ${d.oee==null?"—":pct(d.oee*100)} → ${pct(d.target)}`,false]]},
   wc:s=>{const d=s.d,u=s.units;return[["Working capital",money(d.nwc,u),`${pct(d.pct)} of revenue · cycle ${d.ccc==null?"—":Math.round(d.ccc)+" days"}`,d.ccc!=null&&d.ccc>60],["Cash released at target",money(d.rel,u),d.gR?`growth needs ${money(d.need,u)}`:`cycle ${d.tCcc==null?"—":Math.round(d.tCcc)} days at target`,false]]},
+  vs:s=>{const d=s.d;return[["Equity value",usd(d.eqNow),`→ ${usd(d.eqTgt)} after the plan`,d.eqNow<=0],["Value created",(d.vc>=0?"+":"")+usd(d.vc),`multiple ${(+d.mNow||0).toFixed(1)}x → ${(+d.mTgt||0).toFixed(1)}x`,d.vc<=0]]},
   sku:s=>{const d=s.d,u=s.units;return[["Contribution",money(d.CM,u),`margin ${pct(d.cmp)}`,d.CM<0],["Upside",money(d.pot,u),`${d.losers} loss-making ${d.losers===1?"SKU":"SKUs"}`,d.pot>0]]}};
 function renderTiles(){
   $("tiles").innerHTML=TOOLS.map(t=>{const s=S[t.id];
@@ -376,6 +379,9 @@ const MINI={
   hf:(cv,s)=>{const c=prep(cv);if(!c)return;const{g,w,h}=c;const cats=(s.d.cats||[]).slice(0,3);if(!cats.length)return;const max=Math.max(...cats.map(x=>x[1]));const rh=h/3;
     g.font=`11px ${css("--body")}`;g.textBaseline="middle";cats.forEach(([l,v],i)=>{const lw=Math.min(w*.48,110);let t=String(l);while(t.length>3&&g.measureText(t).width>lw-6)t=t.slice(0,-2)+"…";
       g.fillStyle=css("--muted");g.fillText(t,0,i*rh+rh/2);g.fillStyle=css("--bad");g.globalAlpha=1-i*.25;g.fillRect(lw,i*rh+rh*.2,Math.max(2,(w-lw)*v/max),rh*.6);g.globalAlpha=1})},
+  vs:(cv,s)=>{const d=s.d,st=d.steps||[];const c=prep(cv);if(!c)return;const{g,w,h}=c;const B=[[0,d.eqNow,"b"]];let run=d.eqNow;st.forEach(v=>{B.push([run,run+v,v>=0?"p":"n"]);run+=v});B.push([0,d.eqTgt,"t"]);
+    const vals=B.flat().filter(x=>typeof x==="number"),lo=Math.min(0,...vals),hi=Math.max(1,...vals),sp=hi-lo||1,y=v=>2+(hi-v)/sp*(h-4),bw=w/B.length;
+    g.fillStyle=css("--line");g.fillRect(0,Math.round(y(0)),w,1);B.forEach(([a,b,t],i)=>{g.fillStyle=t==="b"?css("--steel"):t==="t"?css("--accent"):t==="p"?css("--good"):css("--bad");g.fillRect(i*bw+bw*.15,Math.min(y(a),y(b)),bw*.7,Math.max(1,Math.abs(y(a)-y(b))))})},
   sku:(cv,s)=>{const v=s.d.cms||[];bars(cv,v,x=>x<0?css("--bad"):css("--good"))},
   wc:(cv,s)=>{const v=(s.d.days||[]).map(x=>x||0),t=(s.d.tdays||[]).map(x=>x||0);const c=prep(cv);if(!c||!v.length)return;const{g,w,h}=c;const all=[...v,...t,0],lo=Math.min(...all),hi=Math.max(...all),sp=hi-lo||1,y=x=>2+(hi-x)/sp*(h-4),bw=w/v.length;
     g.fillStyle=css("--line");g.fillRect(0,Math.round(y(0)),w,1);v.forEach((x,i)=>{g.fillStyle=css("--accent");g.fillRect(i*bw+bw*.12,Math.min(y(0),y(x)),bw*.36,Math.max(1,Math.abs(y(x)-y(0))));g.fillStyle=css("--gold")||css("--warn");g.fillRect(i*bw+bw*.52,Math.min(y(0),y(t[i])),bw*.36,Math.max(1,Math.abs(y(t[i])-y(0))))})}};
