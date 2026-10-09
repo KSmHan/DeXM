@@ -20,6 +20,7 @@ Operating partner for PE sponsors, owners and management teams of manufacturing 
 | EBITDA Bridge | https://www.dexm-m.com/ebitda-bridge |
 | Hidden Factory | https://www.dexm-m.com/hidden-factory |
 | SKU Analysis | https://www.dexm-m.com/sku-analysis |
+| Value Creation Scorecard | https://www.dexm-m.com/value-scorecard |
 
 ## Repository layout
 
