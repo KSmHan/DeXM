@@ -45,6 +45,12 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .kpi small{font-size:12px;color:var(--muted)}
 .kpi.bad b{color:var(--bad)} .kpi.good b{color:var(--good)}
 canvas{width:100%;height:260px;display:block}
+td input.sm{width:92px}
+td .sub{display:block;font-weight:400;font-size:12px;color:var(--muted);margin-top:2px;white-space:normal}
+td.c small{display:block;font-size:11px;color:var(--muted);font-family:var(--body);white-space:normal;max-width:220px;margin-left:auto}
+.tag{display:inline-block;font:500 11px var(--mono);padding:1px 6px;border-radius:3px;margin-top:3px}
+.tag.strong{background:var(--good);color:var(--surface)}.tag.weak{background:var(--bad);color:var(--surface)}.tag.avg{background:var(--band);color:var(--muted)}
+#risk td.lab{min-width:240px;max-width:300px;white-space:normal}
 canvas#trend{height:200px}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:6px}
 .legend i{display:inline-block;width:12px;height:10px;margin-right:5px;vertical-align:-1px;border-radius:2px}
@@ -103,7 +109,7 @@ footer span{user-select:all}
 <header>
   <a href="/" class="brand" id="t-brand" style="display:block;text-decoration:none">DeXM Management · enterprise value</a>
   <h1>Value Creation Scorecard: what the company is worth and what moves it</h1>
-  <p class="lede">Enter LTM revenue, normalized EBITDA and net debt, rate the ten factors buyers price into the multiple today and after your plan, and add the EBITDA each lever brings. The scorecard shows enterprise and equity value now and after the plan, splits the gain into EBITDA growth, multiple expansion and cash released, and tracks equity value month by month. Your data stays in your browser.</p>
+  <p class="lede">Enter LTM revenue, EBITDA and net debt, then ten measurable metrics buyers price in (customer concentration, owner dependence, scrap, growth and more) today and after your plan. Each metric moves the multiple, four of them also move EBITDA, and the table shows what every change is worth in equity value. The scorecard shows enterprise and equity value now and after the plan, splits the gain into EBITDA growth, multiple expansion and cash released, and tracks equity value month by month. Your data stays in your browser.</p>
 </header>
 
 <div class="toolbar">
@@ -113,7 +119,7 @@ footer span{user-select:all}
   <button id="btnReset">Clear</button>
   <div class="status" id="status" role="status"></div>
 </div>
-<div class="notice" id="sample">This is a sample for an $18M-revenue manufacturer with $1.5M normalized EBITDA. Select “Clear” to enter your own numbers.</div>
+<div class="notice" id="sample">This is a sample for an $18M-revenue manufacturer with $1.35M reported EBITDA. Select “Clear” to enter your own numbers.</div>
 
 <section class="panel">
   <div class="settings" id="settings"></div>
@@ -129,10 +135,10 @@ footer span{user-select:all}
   <div class="panel verdict" id="verdict" aria-live="polite"></div>
 </section>
 
-<div class="sechead"><h2>What drives the multiple</h2><p>Rate each factor today and where the plan takes it. Weak = −0.25x, Average = 0, Strong = +0.25x from the base multiple; the total adjustment is capped at ±1.5x. A planning heuristic, not a valuation.</p></div>
+<div class="sechead"><h2>What drives the multiple and EBITDA</h2><p>Enter each metric today and where the plan takes it. Each metric moves the multiple on a sliding scale from −0.25x at the weak level to +0.25x at the strong level (total capped at ±1.5x). Four metrics also change EBITDA directly: documented add-backs, scrap, management roles and growth. The last column shows what each change is worth in equity value. A planning heuristic, not a valuation.</p></div>
 <div class="tablewrap"><table id="risk"></table></div>
 
-<div class="sechead"><h2>Value creation plan</h2><p>Recurring annual EBITDA each lever adds once the plan is in place, and one-time cash released from working capital (it reduces net debt).</p></div>
+<div class="sechead"><h2>Other EBITDA levers</h2><p>Recurring annual EBITDA from actions not already counted in the metrics above. Scrap, management cost and growth are counted there, so do not enter them again here.</p></div>
 <div class="tablewrap"><table id="levers"></table></div>
 
 <div class="sechead"><h2>Equity value bridge</h2><p>How the gain splits between a bigger EBITDA, a better multiple and cash released.</p></div>
@@ -151,92 +157,118 @@ footer span{user-select:all}
 
 <script>
 (function(){
-const KEY="dexm-scorecard-v2-en",MONTHS=12,CAP=1.5,RATE={weak:-0.25,avg:0,strong:0.25};
-const RATE_TXT={weak:"Weak",avg:"Average",strong:"Strong"};
+const KEY="dexm-scorecard-v3-en",MONTHS=12,CAP=1.5,STEP=0.25;
+/* Factor: key, name, what a buyer looks for, metric, unit, weak level, strong level, link to EBITDA */
 const FACTORS=[
- ["cust","Customer concentration","Largest customer under ~15–25% of revenue; top 10 under ~30%"],
- ["owner","Owner dependence","Customers, pricing and know-how do not depend on the owner"],
- ["mgmt","Management team","A team that runs the business day to day without the owner"],
- ["fin","Quality of financials","Monthly close, reviewed or audited statements, documented EBITDA"],
- ["recur","Recurring / contracted revenue","Repeat programs, contracts, blanket orders"],
- ["backlog","Backlog and visibility","Orders growing faster than shipments (book-to-bill above 1.0)"],
- ["equip","Equipment and capex","Modern, maintained equipment; no hidden catch-up capex"],
- ["cert","Certifications and quality","ISO 9001 / AS9100 or customer approvals; low scrap and returns"],
- ["market","End-market growth","Exposure to growing markets: electrical, energy, defense, reshoring"],
- ["margin","Margin and trend","EBITDA margin at or above peers and improving over 2–3 years"]];
+ ["cust","Customer concentration","Buyers discount revenue that can walk out with one customer","Largest customer, % of revenue","%",30,10,"risk"],
+ ["owner","Owner dependence","Customers, pricing and know-how must not depend on the owner","Key customer relationships held only by the owner, %","%",70,10,"none"],
+ ["mgmt","Management team","A team that runs the business without the owner","Key roles run by non-owner managers (GM, finance, sales, quality, plant), of 5","",1,5,"mgmt"],
+ ["fin","Quality of earnings","Buyers credit only add-backs supported by documents","Add-backs documented, %","%",40,100,"fin"],
+ ["recur","Recurring revenue","Repeat programs, contracts, blanket orders","Revenue under contracts or repeat programs, %","%",30,75,"none"],
+ ["backlog","Backlog and visibility","Orders growing faster than shipments","Book-to-bill, x","x",0.9,1.15,"none"],
+ ["equip","Equipment and capex","Maintained equipment, no hidden catch-up capex","Average equipment age, years","yrs",25,8,"none"],
+ ["scrap","Quality: scrap and rework","Low scrap, rework and returns; certifications in place","Scrap and rework, % of revenue","%",6,1.5,"scrap"],
+ ["growth","Revenue growth","A growth story backed by end markets and new customers","Revenue growth, % per year","%",0,10,"growth"],
+ ["margin","EBITDA margin","Margin at or above peers and improving","EBITDA margin, % (calculated)","%",6,16,"calc"]];
 const LEVERS=[
  ["price","Pricing","Close gaps where prices lagged cost increases; surcharges; discount discipline"],
  ["mix","Customer and product mix","Reprice or exit unprofitable SKUs and accounts"],
- ["hf","Hidden factory","Scrap, rework, downtime, overtime, labor productivity"],
+ ["hf","Hidden factory (excl. scrap)","Downtime, changeovers, overtime, labor productivity"],
  ["buy","Purchasing","Renegotiate top suppliers, freight, consumables"],
- ["ovh","Overhead","Unused space, subscriptions, outside services"],
- ["growth","Profitable growth","New customers and markets with margin above average"]];
-const SET=[["company","Company","text"],["revenue","LTM revenue, $","number"],["ebitda","LTM reported EBITDA, $","number"],["addbacks","Normalization add-backs, $","number"],
- ["netdebt","Net debt (debt − cash), $","number"],["basemult","Base multiple, x EBITDA","number"],["wc","Cash released from working capital, $","number"],["horizon","Plan horizon, months","number"]];
+ ["ovh","Overhead","Unused space, subscriptions, outside services"]];
+const SET=[["company","Company","text"],["revenue","LTM revenue, $","number"],["ebitda","LTM reported EBITDA, $","number"],["addbacks","Proposed add-backs, $","number"],
+ ["netdebt","Net debt (debt − cash), $","number"],["basemult","Base multiple, x EBITDA","number"],["cm","Contribution margin on extra sales, %","number"],["mgrCost","Cost per added manager, $/yr","number"],
+ ["wc","Cash released from working capital, $","number"],["horizon","Plan horizon, months","number"]];
 
-function blankModel(){const m={s:{company:"",revenue:0,ebitda:0,addbacks:0,netdebt:0,basemult:0,wc:0,horizon:18},now:{},tgt:{},lv:{},tr:[]};
-  FACTORS.forEach(([k])=>{m.now[k]="avg";m.tgt[k]="avg"});LEVERS.forEach(([k])=>m.lv[k]=0);
+function blankModel(){const m={s:{company:"",revenue:0,ebitda:0,addbacks:0,netdebt:0,basemult:0,cm:30,mgrCost:150000,wc:0,horizon:18},f:{},lv:{},tr:[]};
+  FACTORS.forEach(([k])=>m.f[k]={now:"",tgt:""});LEVERS.forEach(([k])=>m.lv[k]=0);
   for(let i=0;i<MONTHS;i++)m.tr.push({m:"",e:"",d:""});return m}
 function sampleModel(){const m=blankModel();
-  Object.assign(m.s,{company:"Sample: Manufacturer",revenue:18000000,ebitda:1350000,addbacks:150000,netdebt:2500000,basemult:5,wc:400000,horizon:18});
-  Object.assign(m.now,{cust:"weak",owner:"weak",fin:"weak",cert:"strong"});
-  Object.assign(m.tgt,{mgmt:"strong",fin:"strong",cert:"strong",margin:"strong"});
-  Object.assign(m.lv,{price:150000,mix:60000,hf:120000,buy:50000,ovh:20000,growth:0});
-  const e=[1500000,1530000,1560000,1610000,1650000,1700000],d=[2500000,2420000,2350000,2300000,2220000,2150000];
+  Object.assign(m.s,{company:"Sample: Manufacturer",revenue:18000000,ebitda:1350000,addbacks:150000,netdebt:2500000,basemult:5,cm:30,mgrCost:150000,wc:400000,horizon:18});
+  const F={cust:[28,22],owner:[60,35],mgmt:[2,3],fin:[60,100],recur:[45,50],backlog:[0.98,1.03],equip:[18,17],scrap:[4.5,3],growth:[3,4]};
+  Object.entries(F).forEach(([k,[a,b]])=>m.f[k]={now:a,tgt:b});
+  Object.assign(m.lv,{price:120000,mix:50000,hf:80000,buy:40000,ovh:20000});
+  const e=[1440000,1470000,1500000,1550000,1590000,1640000],d=[2500000,2420000,2350000,2300000,2220000,2150000];
   for(let i=0;i<6;i++)m.tr[i]={m:`2026-${String(i+1).padStart(2,"0")}`,e:e[i],d:d[i]};return m}
 
 const n=x=>{const v=parseFloat(x);return isFinite(v)?v:0};
+const has=x=>x!==""&&x!=null&&isFinite(parseFloat(x));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function suggested(e){return e<=0?0:e<750000?3.5:e<2000000?5:e<5000000?5.5:6.5}
 function hintTxt(e){if(e<=0)return"Enter EBITDA to see a reference multiple range.";
   if(e<750000)return"Reference: small owner-run shops often trade on owner earnings (SDE) at roughly 2.5–4x; using EBITDA here is an approximation.";
   if(e<2000000)return"Reference range for $0.75–2M EBITDA in lower-middle-market manufacturing: about 4–6x.";
   if(e<5000000)return"Reference range for $2–5M EBITDA: about 4.5–6.5x.";return"Reference range for EBITDA above $5M: about 5.5–7.5x."}
-const adj=r=>Math.max(-CAP,Math.min(CAP,FACTORS.reduce((a,[k])=>a+(RATE[r[k]]||0),0)));
+/* Sliding score: −0.25x at the weak level, +0.25x at the strong level, linear in between. Blank metric = average (0). */
+const score=(v,weak,strong)=>v==null?0:clamp(-STEP+2*STEP*(v-weak)/(strong-weak),-STEP,STEP);
+const rating=x=>x>=STEP/2?"strong":x<=-STEP/2?"weak":"avg";
 
-function compute(m){const s=m.s,E=n(s.ebitda)+n(s.addbacks),baseIn=n(s.basemult),base=baseIn||suggested(E),D=n(s.netdebt),wc=n(s.wc);
+function compute(m){const s=m.s,R=n(s.revenue),Er=n(s.ebitda),AB=n(s.addbacks),D=n(s.netdebt),wc=n(s.wc),H=n(s.horizon)||12,cm=n(s.cm)/100,cost=n(s.mgrCost);
+  const val=(k,w)=>{const x=m.f[k]&&m.f[k][w];return has(x)?n(x):null};
+  const docN=val("fin","now"),docT=val("fin","tgt")??docN;
+  const E0=Er+AB*clamp(docN??100,0,100)/100;
+  const gT=val("growth","tgt")??0;
+  const eff={fin:AB*(clamp(docT??100,0,100)-clamp(docN??100,0,100))/100,
+    scrap:(val("scrap","now")!=null&&val("scrap","tgt")!=null)?R*(val("scrap","now")-val("scrap","tgt"))/100:0,
+    mgmt:(val("mgmt","now")!=null&&val("mgmt","tgt")!=null)?-(val("mgmt","tgt")-val("mgmt","now"))*cost:0,
+    growth:R*gT/100*H/12*cm};
+  const metricE=eff.fin+eff.scrap+eff.mgmt+eff.growth;
   const lev=LEVERS.reduce((a,[k])=>a+n(m.lv[k]),0);
-  const mNow=Math.max(0,base+adj(m.now)),mTgt=Math.max(0,base+adj(m.tgt)),E1=E+lev;
-  const evNow=E*mNow,evTgt=E1*mTgt,eqNow=evNow-D,eqTgt=evTgt-(D-wc);
-  const stepE=lev*mNow,stepM=E1*(mTgt-mNow),stepD=wc;
-  const R=n(s.revenue);
-  const track=m.tr.map((t,i)=>{const e=n(t.e);if(!(e>0))return null;const d=t.d===""||t.d==null?D:n(t.d);const ev=e*mNow;return{i,label:t.m?t.m.slice(2).replace("-","/"):`M${i+1}`,e,d,ev,eq:ev-d}});
-  return{E,base,baseIn,D,wc,lev,mNow,mTgt,E1,evNow,evTgt,eqNow,eqTgt,stepE,stepM,stepD,vc:eqTgt-eqNow,R,m0:R?E/R*100:null,
-    weakNow:FACTORS.filter(([k])=>m.now[k]==="weak").map(f=>f[1]),track}}
+  const E1=E0+lev+metricE,R1=R*(1+gT/100*H/12);
+  const mg0=R?E0/R*100:null,mg1=R1?E1/R1*100:null;
+  const rows=FACTORS.map(([k,name,,metric,unit,weak,strong,link])=>{
+    const a=k==="margin"?mg0:val(k,"now"),b=k==="margin"?mg1:(val(k,"tgt")??a);
+    const sN=score(a,weak,strong),sT=score(b,weak,strong);
+    let risk=null;if(link==="risk"&&R){risk=[R*(a??0)/100*cm,R*(b??0)/100*cm]}
+    return{k,name,a,b,sN,sT,e:eff[k]||0,link,risk}});
+  const adjN=clamp(rows.reduce((x,r)=>x+r.sN,0),-CAP,CAP),adjT=clamp(rows.reduce((x,r)=>x+r.sT,0),-CAP,CAP);
+  const baseIn=n(s.basemult),base=baseIn||suggested(E0);
+  const mNow=Math.max(0,base+adjN),mTgt=Math.max(0,base+adjT);
+  rows.forEach(r=>{r.eq=(r.sT-r.sN)*E1+r.e*mTgt});
+  const evNow=E0*mNow,evTgt=E1*mTgt,eqNow=evNow-D,eqTgt=evTgt-(D-wc);
+  const stepL=lev*mNow,stepF=metricE*mNow,stepM=E1*(mTgt-mNow),stepD=wc;
+  const track=m.tr.map((t,i)=>{const e=n(t.e);if(!(e>0))return null;const d=has(t.d)?n(t.d):D;const ev=e*mNow;return{i,label:t.m?t.m.slice(2).replace("-","/"):`M${i+1}`,e,d,ev,eq:ev-d}});
+  return{R,R1,Er,AB,E0,E1,lev,metricE,eff,rows,adjN,adjT,base,baseIn,mNow,mTgt,D,wc,evNow,evTgt,eqNow,eqTgt,stepL,stepF,stepM,stepD,vc:eqTgt-eqNow,mg0,mg1,H,cm,track}}
 
 let model,isSample=false;
-try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.s&&s.now&&s.lv&&s.tr)model=s}catch(e){}
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.s&&s.f&&s.lv&&s.tr)model=s}catch(e){}
 if(!model){model=sampleModel();isSample=true}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(model))}catch(e){}};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const nf=new Intl.NumberFormat("en-US",{maximumFractionDigits:0});
+const nf=new Intl.NumberFormat("en-US",{maximumFractionDigits:0}),pf=new Intl.NumberFormat("en-US",{maximumFractionDigits:2});
 const fmt=v=>{if(v==null||!isFinite(v))return"—";v=Math.round(v);if(!v)return"0";return v<0?`(${nf.format(-v)})`:nf.format(v)};
 const sgn=v=>{const r=Math.round(v);return r>0?`+${nf.format(r)}`:fmt(r)};
 const M$=v=>{if(v==null||!isFinite(v))return"—";if(!Math.round(v/1e3))return"$0";const a=Math.abs(v),s=a>=1e6?`$${(a/1e6).toFixed(a>=1e7?1:2).replace(/\.?0+$/,"")}M`:`$${Math.round(a/1e3)}K`;return(v<0?"−":"")+s};
-const sM=v=>(Math.round(v)>0?"+":"")+M$(v);
+const sM=v=>(Math.round(v/1e3)>0?"+":"")+M$(v);
 const X=v=>isFinite(v)?`${v.toFixed(1)}x`:"—";
+const sX=v=>`${v>0.005?"+":v<-0.005?"−":""}${Math.abs(v).toFixed(2)}x`;
+const unitFmt=(v,u)=>v==null?"—":u==="x"?`${pf.format(v)}x`:u==="%"?`${pf.format(Math.round(v*10)/10)}%`:u==="yrs"?`${pf.format(v)} yrs`:pf.format(v);
 function status(msg,cls){const s=$("status");s.textContent=msg||"";s.className="status"+(cls?" "+cls:"")}
 function touch(){if(isSample){isSample=false;$("sample").hidden=true}save()}
 
-function renderSettings(){$("settings").innerHTML=SET.map(([k,l,t])=>`<div class="field"><label class="label" for="set-${k}">${l}</label><input id="set-${k}" data-k="${k}" type="${t}" ${t==="number"?`class="num" inputmode="decimal" step="any" placeholder="${k==="basemult"?"auto":"0"}"`:""} value="${esc(t==="number"&&!n(model.s[k])&&k!=="horizon"?"":model.s[k]??"")}"></div>`).join("")}
-$("settings").addEventListener("input",e=>{const k=e.target.dataset.k;if(!k)return;model.s[k]=k==="company"?e.target.value:e.target.value;touch();update()});
+function renderSettings(){$("settings").innerHTML=SET.map(([k,l,t])=>`<div class="field"><label class="label" for="set-${k}">${l}</label><input id="set-${k}" data-k="${k}" type="${t}" ${t==="number"?`class="num" inputmode="decimal" step="any" placeholder="${k==="basemult"?"auto":"0"}"`:""} value="${esc(t==="number"&&!n(model.s[k])&&!["horizon","cm"].includes(k)?"":model.s[k]??"")}"></div>`).join("")}
+$("settings").addEventListener("input",e=>{const k=e.target.dataset.k;if(!k)return;model.s[k]=e.target.value;touch();update()});
 
-const opt=(v)=>["weak","avg","strong"].map(o=>`<option value="${o}" ${v===o?"selected":""}>${RATE_TXT[o]}</option>`).join("");
 function renderTables(){
-  let h=`<thead><tr><th>Factor</th><th>What a buyer looks for</th><th>Today</th><th>After plan</th></tr></thead><tbody>`;
-  FACTORS.forEach(([k,l,d])=>h+=`<tr><td class="lab">${l}</td><td class="desc">${d}</td><td><select data-r="now" data-f="${k}" class="${model.now[k]}" aria-label="${l}: today">${opt(model.now[k])}</select></td><td><select data-r="tgt" data-f="${k}" class="${model.tgt[k]}" aria-label="${l}: after plan">${opt(model.tgt[k])}</select></td></tr>`);
-  h+=`<tr class="tot"><td class="lab">Multiple adjustment</td><td class="desc">Capped at ±${CAP}x</td><td class="c" id="o-adjNow"></td><td class="c" id="o-adjTgt"></td></tr><tr class="tot"><td class="lab">Multiple</td><td class="desc" id="o-baseTxt"></td><td class="c" id="o-mNow"></td><td class="c" id="o-mTgt"></td></tr></tbody>`;
+  let h=`<thead><tr><th>Factor and metric</th><th class="r">Today</th><th class="r">After plan</th><th class="r">Weak → strong</th><th class="r">Multiple today</th><th class="r">Multiple after</th><th class="r">EBITDA effect, $/yr</th><th class="r">Equity value effect</th></tr></thead><tbody>`;
+  FACTORS.forEach(([k,name,desc,metric,unit,weak,strong,link])=>{
+    const inp=w=>`<input class="num sm" type="number" step="any" inputmode="decimal" data-f="${k}" data-w="${w}" value="${has(model.f[k][w])?model.f[k][w]:""}" placeholder="${w==="tgt"?"= today":"avg"}" aria-label="${esc(metric)}: ${w==="now"?"today":"after plan"}">`;
+    h+=`<tr><td class="lab">${name}<span class="sub">${metric}</span><span class="sub">${desc}</span></td>`+
+      (link==="calc"?`<td class="c" id="fa-${k}"></td><td class="c" id="fb-${k}"></td>`:`<td class="r">${inp("now")}</td><td class="r">${inp("tgt")}</td>`)+
+      `<td class="c">${unitFmt(weak,unit)} → ${unitFmt(strong,unit)}</td><td class="c" id="fsn-${k}"></td><td class="c" id="fst-${k}"></td><td class="c" id="fe-${k}"></td><td class="c" id="fq-${k}"></td></tr>`});
+  h+=`<tr class="tot"><td class="lab">Multiple adjustment<span class="sub">Sum of the factors, capped at ±${CAP}x</span></td><td></td><td></td><td></td><td class="c" id="o-adjNow"></td><td class="c" id="o-adjTgt"></td><td class="c" id="o-fE"></td><td class="c" id="o-fQ"></td></tr>`;
+  h+=`<tr class="tot"><td class="lab">Multiple<span class="sub" id="o-baseTxt"></span></td><td></td><td></td><td></td><td class="c" id="o-mNow"></td><td class="c" id="o-mTgt"></td><td></td><td></td></tr></tbody>`;
   $("risk").innerHTML=h;
   h=`<thead><tr><th>Lever</th><th>Typical actions</th><th class="r">EBITDA added, $/yr</th></tr></thead><tbody>`;
   LEVERS.forEach(([k,l,d])=>h+=`<tr><td class="lab">${l}</td><td class="desc">${d}</td><td class="r"><input class="num" type="number" step="any" inputmode="decimal" data-l="${k}" value="${n(model.lv[k])||""}" placeholder="0" aria-label="${l}"></td></tr>`);
-  h+=`<tr class="tot"><td class="lab">Total EBITDA added</td><td class="desc" id="o-levPct"></td><td class="c" id="o-lev"></td></tr></tbody>`;
+  h+=`<tr class="tot"><td class="lab">Total from levers</td><td class="desc" id="o-levPct"></td><td class="c" id="o-lev"></td></tr></tbody>`;
   $("levers").innerHTML=h;
   h=`<thead><tr><th>Month</th><th class="r">LTM EBITDA, $</th><th class="r">Net debt, $</th><th class="r">Multiple</th><th class="r">Enterprise value, $</th><th class="r">Equity value, $</th></tr></thead><tbody>`;
-  model.tr.forEach((t,i)=>h+=`<tr><td><input type="month" data-t="m" data-i="${i}" value="${esc(t.m||"")}" aria-label="Month ${i+1}"></td><td class="r"><input class="num" type="number" step="any" inputmode="decimal" data-t="e" data-i="${i}" value="${t.e===""||t.e==null?"":t.e}" placeholder="0" aria-label="LTM EBITDA, month ${i+1}"></td><td class="r"><input class="num" type="number" step="any" inputmode="decimal" data-t="d" data-i="${i}" value="${t.d===""||t.d==null?"":t.d}" placeholder="baseline" aria-label="Net debt, month ${i+1}"></td><td class="c" id="tx-${i}">—</td><td class="c" id="tev-${i}">—</td><td class="c" id="teq-${i}">—</td></tr>`);
+  model.tr.forEach((t,i)=>h+=`<tr><td><input type="month" data-t="m" data-i="${i}" value="${esc(t.m||"")}" aria-label="Month ${i+1}"></td><td class="r"><input class="num" type="number" step="any" inputmode="decimal" data-t="e" data-i="${i}" value="${has(t.e)?t.e:""}" placeholder="0" aria-label="LTM EBITDA, month ${i+1}"></td><td class="r"><input class="num" type="number" step="any" inputmode="decimal" data-t="d" data-i="${i}" value="${has(t.d)?t.d:""}" placeholder="baseline" aria-label="Net debt, month ${i+1}"></td><td class="c" id="tx-${i}">—</td><td class="c" id="tev-${i}">—</td><td class="c" id="teq-${i}">—</td></tr>`);
   $("track").innerHTML=h+"</tbody>";update()}
-document.addEventListener("change",e=>{const t=e.target;if(t.dataset.r){model[t.dataset.r][t.dataset.f]=t.value;t.className=t.value;touch();update()}});
 document.addEventListener("input",e=>{const t=e.target,d=t.dataset;
-  if(d.l){model.lv[d.l]=n(t.value)}else if(d.t){model.tr[+d.i][d.t]=d.t==="m"?t.value:(t.value===""?"":n(t.value))}else return;touch();update()});
+  if(d.f){model.f[d.f][d.w]=t.value}else if(d.l){model.lv[d.l]=n(t.value)}else if(d.t){model.tr[+d.i][d.t]=d.t==="m"?t.value:t.value}else return;touch();update()});
 
 function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
 const pal=()=>({fg:css("--fg"),muted:css("--muted"),line:css("--line"),good:css("--good"),bad:css("--bad"),accent:css("--accent"),steel:css("--steel"),mono:css("--mono")});
@@ -245,9 +277,9 @@ function prep(cv,hDef){const dpr=window.devicePixelRatio||1,w=cv.clientWidth||60
 function grid(g,P,lo,hi,y,padL,w,padR){const st=niceStep((hi-lo)/4);g.font=`11px ${P.mono}`;g.textAlign="right";g.textBaseline="middle";g.lineWidth=1;
   for(let t=Math.ceil(lo/st)*st;t<=hi+1e-9;t+=st){g.strokeStyle=P.line;g.beginPath();g.moveTo(padL,y(t)+.5);g.lineTo(w-padR,y(t)+.5);g.stroke();g.fillStyle=P.muted;g.fillText(M$(t),padL-6,y(t))}}
 function drawBridge(c){const cv=$("chart"),{g,w,h}=prep(cv,260),P=pal();
-  if(!(c.E>0)){g.fillStyle=P.muted;g.font=`13px ${P.mono}`;g.textAlign="center";g.fillText("Enter EBITDA to see the bridge",w/2,h/2);return}
+  if(!(c.E0>0)){g.fillStyle=P.muted;g.font=`13px ${P.mono}`;g.textAlign="center";g.fillText("Enter EBITDA to see the bridge",w/2,h/2);return}
   const B=[["Today",0,c.eqNow,"base"]];let run=c.eqNow;
-  [["EBITDA growth",c.stepE],["Multiple",c.stepM],["Working capital",c.stepD]].forEach(([l,v])=>{B.push([l,run,run+v,v>=0?"pos":"neg"]);run+=v});
+  [["Levers",c.stepL],["Metrics",c.stepF],["Multiple",c.stepM],["Work. capital",c.stepD]].forEach(([l,v])=>{B.push([l,run,run+v,v>=0?"pos":"neg"]);run+=v});
   B.push(["After plan",0,c.eqTgt,"tot"]);
   const padL=58,padR=8,padT=20,padB=30,vals=B.flatMap(b=>[b[1],b[2]]);let lo=Math.min(0,...vals),hi=Math.max(1,...vals);const sp=hi-lo;hi+=sp*.1;if(lo<0)lo-=sp*.05;
   const H=h-padT-padB,y=v=>padT+(hi-v)/(hi-lo)*H,bw=(w-padL-padR)/B.length,x=i=>padL+bw*i+bw/2;
@@ -266,66 +298,79 @@ function drawTrend(c){const cv=$("trend"),{g,w,h}=prep(cv,200),P=pal(),pts=c.tra
   pts.forEach((p,i)=>{g.fillStyle=P.accent;g.beginPath();g.arc(x(i),y(p.eq),3.5,0,7);g.fill();g.fillStyle=P.muted;g.font=`11px ${P.mono}`;g.textAlign="center";g.textBaseline="top";g.fillText(p.label,x(i),h-padB+8)});
   const l=pts[pts.length-1];g.fillStyle=P.fg;g.font=`600 11px ${P.mono}`;g.textAlign=pts.length>1?"right":"center";g.textBaseline="bottom";g.fillText(M$(l.eq),x(pts.length-1),y(l.eq)-6)}
 
+const CTA="<strong>Test the plan against the facts</strong> with an operator: we review the scorecard with you in a free 30-minute call. info@dexm-m.com";
 function verdict(c){
-  if(!(c.E>0))return`<span class="label">Verdict</span><h2>Enter normalized EBITDA</h2><p>Value today, value after the plan and the bridge appear right away.</p><p class="cta">${CTA}</p>`;
+  if(!(c.E0>0))return`<span class="label">Verdict</span><h2>Enter reported EBITDA</h2><p>Value today, value after the plan and the bridge appear right away.</p><p class="cta">${CTA}</p>`;
   const notes=[];let sev=0;
-  const parts=[["EBITDA growth",c.stepE],["multiple expansion",c.stepM],["working capital",c.stepD]].filter(p=>p[1]>0).sort((a,b)=>b[1]-a[1]);
-  const gain=parts.reduce((a,p)=>a+p[1],0);
-  if(parts.length&&gain>0)notes.push(`${parts[0][0][0].toUpperCase()+parts[0][0].slice(1)} drives ${Math.round(parts[0][1]/gain*100)}% of the gain.`);
-  if(c.weakNow.length)notes.push(`Rated weak today: ${c.weakNow.join(", ")}. Each one costs about 0.25x.`);
+  const top=c.rows.filter(r=>Math.round(r.eq/1e3)>0).sort((a,b)=>b.eq-a.eq).slice(0,3);
+  if(top.length)notes.push(`Biggest equity gains from the metrics: ${top.map(r=>`${r.name} ${sM(r.eq)}`).join(", ")}.`);
+  const weak=c.rows.filter(r=>rating(r.sN)==="weak").map(r=>r.name);
+  if(weak.length)notes.push(`Weak today: ${weak.join(", ")}.`);
+  const mg=c.rows.find(r=>r.k==="mgmt");if(mg&&mg.e<0)notes.push(mg.eq>=0?`Hiring managers costs ${M$(-mg.e)} of EBITDA a year, but the higher multiple more than pays for it: net ${sM(mg.eq)} of equity.`:`Hiring managers costs ${M$(-mg.e)} of EBITDA a year, more than the higher multiple gives back (net ${M$(mg.eq)} of equity). Offset it with the owner's salary add-back or by hiring fewer roles.`);
+  const cu=c.rows.find(r=>r.k==="cust");if(cu&&cu.risk&&cu.risk[0]>0.25*c.E0)notes.push(`Losing the largest customer would cut EBITDA by about ${M$(cu.risk[0])} (${Math.round(cu.risk[0]/c.E0*100)}% of EBITDA).`);
   if(c.eqNow<=0){notes.push("Net debt exceeds enterprise value today: the owner's equity is underwater at this multiple.");sev=2}
-  if(c.E>0&&c.lev/c.E>0.5){notes.push(`The plan adds ${Math.round(c.lev/c.E*100)}% to EBITDA: ambitious, so evidence each lever with plant data.`);sev=Math.max(sev,1)}
-  if(c.mTgt-c.mNow>1){notes.push(`The plan assumes ${X(c.mTgt-c.mNow).replace("x","")}x of multiple expansion; buyers pay for it only with proof (audited numbers, a team that runs without the owner).`);sev=Math.max(sev,1)}
+  if((c.E1-c.E0)/c.E0>0.5){notes.push(`The plan adds ${Math.round((c.E1-c.E0)/c.E0*100)}% to EBITDA: ambitious, so evidence each change with plant data.`);sev=Math.max(sev,1)}
+  if(c.mTgt-c.mNow>1){notes.push(`The plan assumes ${sX(c.mTgt-c.mNow)} of multiple expansion; buyers pay for it only with proof.`);sev=Math.max(sev,1)}
   if(c.vc<=0)sev=2;
   const pctUp=c.eqNow>0?` (+${Math.round(c.vc/c.eqNow*100)}%)`:"";
   const head=c.vc>0?`The plan adds ${M$(c.vc)} of equity value${pctUp}, from ${M$(c.eqNow)} to ${M$(c.eqTgt)}`:`The plan does not add equity value yet`;
   return`<span class="label">Verdict</span> <span class="sev" style="background:${["var(--good)","var(--warn)","var(--bad)"][sev]}">${["strong plan","review","high risk"][sev]}</span><h2>${head}</h2>${notes.length?`<ul>${notes.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}<p class="cta">${CTA}</p>`}
-const CTA="<strong>Test the plan against the facts</strong> with an operator: we review the scorecard with you in a free 30-minute call. info@dexm-m.com";
 
+const LINK_TXT={none:"Multiple only",calc:"Result of EBITDA and revenue",
+  fin:"Buyer credits documented add-backs only",scrap:"Scrap cut × revenue",mgmt:"Managers added × cost per manager",growth:"Revenue × growth × horizon × contribution margin"};
 function update(){const c=compute(model);
-  const set=(id,txt,cls)=>{const el=$(id);if(!el)return;el.textContent=txt;el.classList.remove("neg","pos");if(cls)el.classList.add(cls)};
-  set("o-adjNow",(adj(model.now)>=0?"+":"")+adj(model.now).toFixed(2)+"x",adj(model.now)<0?"neg":adj(model.now)>0?"pos":"");
-  set("o-adjTgt",(adj(model.tgt)>=0?"+":"")+adj(model.tgt).toFixed(2)+"x",adj(model.tgt)<0?"neg":adj(model.tgt)>0?"pos":"");
-  set("o-mNow",X(c.mNow));set("o-mTgt",X(c.mTgt));set("o-baseTxt",`Base ${X(c.base)}${c.baseIn?"":" (suggested from EBITDA size)"} + adjustment`);
-  set("o-lev",fmt(c.lev));set("o-levPct",c.E>0?`${Math.round(c.lev/c.E*100)}% of normalized EBITDA`:"");
-  $("multHint").textContent=hintTxt(c.E)+(c.baseIn||!(c.E>0)?"":` Base multiple left blank: using ${X(c.base)}.`);
-  const has=c.E>0;
-  const K=[["Enterprise value today",has?M$(c.evNow):"—",has?`${M$(c.E)} EBITDA × ${X(c.mNow)}`:"enter baseline",""],
-    ["Enterprise value after plan",has?M$(c.evTgt):"—",has?`${M$(c.E1)} EBITDA × ${X(c.mTgt)}`:"",""],
-    ["Equity value created",has?sM(c.vc):"—",has&&c.eqNow>0?`${Math.round(c.vc/c.eqNow*100)}% on today's equity`:has?`equity today ${M$(c.eqNow)}`:"",has?(c.vc>0?"good":"bad"):""],
-    ["Multiple today → target",has?`${X(c.mNow)} → ${X(c.mTgt)}`:"—",`base ${X(c.base)}`,""]];
+  const set=(id,html,cls)=>{const el=$(id);if(!el)return;el.innerHTML=html;el.classList.remove("neg","pos");if(cls)el.classList.add(cls)};
+  const tag=x=>`<span class="tag ${rating(x)}">${({strong:"Strong",avg:"Average",weak:"Weak"})[rating(x)]}</span>`;
+  c.rows.forEach(r=>{const F=FACTORS.find(f=>f[0]===r.k),unit=F[4];
+    if(r.link==="calc"){set(`fa-${r.k}`,unitFmt(r.a,unit));set(`fb-${r.k}`,unitFmt(r.b,unit))}
+    set(`fsn-${r.k}`,`${sX(r.sN)}<br>${tag(r.sN)}`);set(`fst-${r.k}`,`${sX(r.sT)}<br>${tag(r.sT)}`);
+    let e;if(r.link==="risk")e=r.risk?`—<small>At risk if it leaves: ${M$(r.risk[0])} → ${M$(r.risk[1])}</small>`:"—";
+    else if(["fin","scrap","mgmt","growth"].includes(r.link))e=`${Math.round(r.e)?sgn(r.e):"0"}<small>${LINK_TXT[r.link]}</small>`;
+    else e=`—<small>${LINK_TXT[r.link]}</small>`;
+    set(`fe-${r.k}`,e,Math.round(r.e)<0?"neg":"");
+    set(`fq-${r.k}`,c.E0>0?sM(r.eq):"—",Math.round(r.eq/1e3)<0?"neg":Math.round(r.eq/1e3)>0?"pos":"")});
+  set("o-adjNow",sX(c.adjN),c.adjN<0?"neg":c.adjN>0?"pos":"");set("o-adjTgt",sX(c.adjT),c.adjT<0?"neg":c.adjT>0?"pos":"");
+  set("o-fE",sgn(c.metricE),c.metricE<0?"neg":"");set("o-fQ",c.E0>0?sM(c.rows.reduce((a,r)=>a+r.eq,0)):"—");
+  set("o-mNow",X(c.mNow));set("o-mTgt",X(c.mTgt));set("o-baseTxt",`Base ${X(c.base)}${c.baseIn?"":" (suggested from EBITDA size)"} + adjustment. Equity effects are before the cap.`);
+  set("o-lev",fmt(c.lev));set("o-levPct",c.E0>0?`${Math.round(c.lev/c.E0*100)}% of today's EBITDA`:"");
+  $("multHint").textContent=hintTxt(c.E0)+(c.E0>0?` EBITDA used for value today: ${M$(c.E0)} (reported ${M$(c.Er)} + documented add-backs ${M$(c.E0-c.Er)}).`:"")+(c.baseIn||!(c.E0>0)?"":` Base multiple left blank: using ${X(c.base)}.`);
+  const ok=c.E0>0;
+  const K=[["Enterprise value today",ok?M$(c.evNow):"—",ok?`${M$(c.E0)} EBITDA × ${X(c.mNow)}`:"enter baseline",""],
+    ["Enterprise value after plan",ok?M$(c.evTgt):"—",ok?`${M$(c.E1)} EBITDA × ${X(c.mTgt)}`:"",""],
+    ["Equity value created",ok?sM(c.vc):"—",ok&&c.eqNow>0?`${Math.round(c.vc/c.eqNow*100)}% on today's equity`:ok?`equity today ${M$(c.eqNow)}`:"",ok?(c.vc>0?"good":"bad"):""],
+    ["Multiple today → target",ok?`${X(c.mNow)} → ${X(c.mTgt)}`:"—",`base ${X(c.base)}; margin ${c.mg0==null?"—":c.mg0.toFixed(1)+"%"} → ${c.mg1==null?"—":c.mg1.toFixed(1)+"%"}`,""]];
   $("kpis").innerHTML=K.map(([l,v,s,cls])=>`<div class="kpi ${cls}"><span class="label">${l}</span><b>${v}</b><small>${esc(s)}</small></div>`).join("");
-  const rows=[["Equity value today",c.eqNow,"EBITDA × today's multiple − net debt",1],["+ EBITDA growth",c.stepE,"EBITDA added × today's multiple"],
+  const rows=[["Equity value today",c.eqNow,"Today's EBITDA × today's multiple − net debt",1],["+ EBITDA from levers",c.stepL,"Lever EBITDA × today's multiple"],
+    ["+ EBITDA from metrics",c.stepF,"Add-backs, scrap, managers, growth × today's multiple"],
     ["+ Multiple expansion",c.stepM,"Target EBITDA × (target − today's multiple)"],["+ Working capital released",c.stepD,"Cash released reduces net debt"],
     ["Equity value after plan",c.eqTgt,"Target EBITDA × target multiple − (net debt − cash released)",1]];
-  $("bridge").innerHTML=`<thead><tr><th>Step</th><th class="r">Value, $</th><th>How it is calculated</th></tr></thead><tbody>${rows.map(([l,v,d,t],i)=>`<tr class="${t?"tot":""}"><td class="lab">${l}</td><td class="c ${!t&&Math.round(v)<0?"neg":""}">${has?(t?fmt(v):sgn(v)):"—"}</td><td class="desc">${d}</td></tr>`).join("")}</tbody>`;
+  $("bridge").innerHTML=`<thead><tr><th>Step</th><th class="r">Value, $</th><th>How it is calculated</th></tr></thead><tbody>${rows.map(([l,v,d,t])=>`<tr class="${t?"tot":""}"><td class="lab">${l}</td><td class="c ${!t&&Math.round(v)<0?"neg":""}">${ok?(t?fmt(v):sgn(v)):"—"}</td><td class="desc">${d}</td></tr>`).join("")}</tbody>`;
   c.track.forEach((p,i)=>{set(`tx-${i}`,p?X(c.mNow):"—");set(`tev-${i}`,p?fmt(p.ev):"—");set(`teq-${i}`,p?fmt(p.eq):"—",p&&p.eq<0?"neg":"")});
-  model.tr.forEach((t,i)=>{if(!c.track[i]){set(`tx-${i}`,"—");set(`tev-${i}`,"—");set(`teq-${i}`,"—")}});
   drawBridge(c);drawTrend(c);$("verdict").innerHTML=verdict(c)}
 const redraw=()=>{const c=compute(model);drawBridge(c);drawTrend(c)};
 window.addEventListener("resize",redraw);
 const mq=window.matchMedia("(prefers-color-scheme: dark)");mq.addEventListener&&mq.addEventListener("change",redraw);
 new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
 
-// Excel export
 const LIB="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";let libP=null;
 const lib=()=>libP||(libP=new Promise((res,rej)=>{const s=document.createElement("script");s.src=LIB;s.onload=res;s.onerror=()=>{libP=null;rej(new Error("load"))};document.head.appendChild(s)}));
 const fname=ext=>`${(model.s.company||"DeXM").replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-|-$/g,"")||"DeXM"}-Value-Scorecard.${ext}`;
+const r2=v=>v==null?"":Math.round(v*100)/100;
 $("btnXlsx").onclick=async()=>{try{status("Loading module…");await lib();const c=compute(model),s=model.s,A=[];
-  A.push(["DeXM Value Creation Scorecard"],["Company",s.company||""],["Prepared",new Date().toLocaleDateString("en-US")],[],
-    ["Baseline","Value"],["LTM revenue, $",n(s.revenue)],["LTM reported EBITDA, $",n(s.ebitda)],["Normalization add-backs, $",n(s.addbacks)],["Normalized EBITDA, $",c.E],["Net debt, $",c.D],["Base multiple, x",c.base],[],
-    ["Factor","What a buyer looks for","Today","After plan"]);
-  FACTORS.forEach(([k,l,d])=>A.push([l,d,RATE_TXT[model.now[k]],RATE_TXT[model.tgt[k]]]));
-  A.push(["Multiple, x","",+c.mNow.toFixed(2),+c.mTgt.toFixed(2)],[],["Lever","Typical actions","EBITDA added, $/yr"]);
+  A.push(["DeXM Value Creation Scorecard"],["Company",s.company||""],["Prepared",new Date().toLocaleDateString("en-US")],[],["Baseline","Value"]);
+  SET.slice(1).forEach(([k,l])=>A.push([l,k==="basemult"?c.base:n(s[k])]));
+  A.push(["EBITDA used for value today, $",Math.round(c.E0)],[],["Factor","Metric","Today","After plan","Weak level","Strong level","Multiple today, x","Multiple after, x","EBITDA effect, $/yr","Equity value effect, $"]);
+  c.rows.forEach(r=>{const F=FACTORS.find(f=>f[0]===r.k);A.push([r.name,F[3],r2(r.a),r2(r.b),F[5],F[6],r2(r.sN),r2(r.sT),Math.round(r.e),Math.round(r.eq)])});
+  A.push(["Multiple adjustment (capped)","","","","","",r2(c.adjN),r2(c.adjT),Math.round(c.metricE),""],["Multiple","","","","","",r2(c.mNow),r2(c.mTgt)],[],["Lever","Typical actions","EBITDA added, $/yr"]);
   LEVERS.forEach(([k,l,d])=>A.push([l,d,n(model.lv[k])]));
-  A.push(["Total EBITDA added","",c.lev],["Cash released from working capital, $","",c.wc],["Plan horizon, months","",n(s.horizon)],[],["Result","Value, $"],
-    ["Enterprise value today",Math.round(c.evNow)],["Enterprise value after plan",Math.round(c.evTgt)],["Equity value today",Math.round(c.eqNow)],["+ EBITDA growth",Math.round(c.stepE)],
+  A.push(["Total from levers","",c.lev],[],["Result","Value, $"],
+    ["Enterprise value today",Math.round(c.evNow)],["Enterprise value after plan",Math.round(c.evTgt)],["Equity value today",Math.round(c.eqNow)],["+ EBITDA from levers",Math.round(c.stepL)],["+ EBITDA from metrics",Math.round(c.stepF)],
     ["+ Multiple expansion",Math.round(c.stepM)],["+ Working capital released",Math.round(c.stepD)],["Equity value after plan",Math.round(c.eqTgt)],["Equity value created",Math.round(c.vc)],[],
     ["Month","LTM EBITDA, $","Net debt, $","Multiple, x","Enterprise value, $","Equity value, $"]);
-  c.track.forEach((p,i)=>{if(p)A.push([model.tr[i].m||`M${i+1}`,p.e,p.d,+c.mNow.toFixed(2),Math.round(p.ev),Math.round(p.eq)])});
+  c.track.forEach((p,i)=>{if(p)A.push([model.tr[i].m||`M${i+1}`,p.e,p.d,r2(c.mNow),Math.round(p.ev),Math.round(p.eq)])});
   A.push([],["Illustrative estimate for planning only: not a valuation, fairness opinion or investment advice."],["DeXM Management · info@dexm-m.com · +1 917 523 0461 · dexm-m.com"]);
-  const ws=XLSX.utils.aoa_to_sheet(A);ws["!cols"]=[{wch:38},{wch:62},{wch:16},{wch:14},{wch:18},{wch:16}];
-  Object.keys(ws).forEach(a=>{const cl=ws[a];if(cl&&cl.t==="n"&&Math.abs(cl.v)>=100)cl.z="#,##0;(#,##0)"});
+  const ws=XLSX.utils.aoa_to_sheet(A);ws["!cols"]=[{wch:34},{wch:58},{wch:14},{wch:14},{wch:14},{wch:14},{wch:16},{wch:16},{wch:18},{wch:20}];
+  Object.keys(ws).forEach(a=>{const cl=ws[a];if(cl&&cl.t==="n"&&Math.abs(cl.v)>=1000)cl.z="#,##0;(#,##0)"});
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Value Scorecard");
   const url=URL.createObjectURL(new Blob([XLSX.write(wb,{bookType:"xlsx",type:"array"})]));const a=document.createElement("a");a.href=url;a.download=fname("xlsx");document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);
   status("Excel file saved","ok")}catch(e){console.error(e);status("Could not create the file. Try again.","err")}};
