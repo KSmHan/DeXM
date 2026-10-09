@@ -46,6 +46,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .kpi.bad b{color:var(--bad)} .kpi.good b{color:var(--good)}
 canvas{width:100%;height:260px;display:block}
 td input.sm{width:92px}
+td input.num.xs{width:68px;padding:5px 5px}td input.num.sm{width:92px}
+td.th{white-space:nowrap}td.th>span{margin:0 4px;color:var(--muted)}td.th .sub{display:block;margin:2px 0 0;text-align:center}
+td input.weak{border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}td input.strong{border-color:color-mix(in srgb,var(--good) 45%,var(--line))}
 td .sub{display:block;font-weight:400;font-size:12px;color:var(--muted);margin-top:2px;white-space:normal}
 td.c small{display:block;font-size:11px;color:var(--muted);font-family:var(--body);white-space:normal;max-width:220px;margin-left:auto}
 .tag{display:inline-block;font:500 11px var(--mono);padding:1px 6px;border-radius:3px;margin-top:3px}
@@ -116,6 +119,7 @@ footer span{user-select:all}
   <button id="btnXlsx" class="primary">Download Excel</button>
   <button id="btnPdf">Print / save as PDF</button>
   <button id="btnSample">Load sample</button>
+  <button id="btnTh">Reset levels</button>
   <button id="btnReset">Clear</button>
   <div class="status" id="status" role="status"></div>
 </div>
@@ -135,7 +139,7 @@ footer span{user-select:all}
   <div class="panel verdict" id="verdict" aria-live="polite"></div>
 </section>
 
-<div class="sechead"><h2>What drives the multiple and EBITDA</h2><p>Enter each metric today and where the plan takes it. Each metric moves the multiple on a sliding scale from −0.25x at the weak level to +0.25x at the strong level (total capped at ±1.5x). Four metrics also change EBITDA directly: documented add-backs, scrap, management roles and growth. The last column shows what each change is worth in equity value. A planning heuristic, not a valuation.</p></div>
+<div class="sechead"><h2>What drives the multiple and EBITDA</h2><p>Enter each metric today and where the plan takes it. Each metric moves the multiple on a sliding scale from −0.25x at the weak level to +0.25x at the strong level (total capped at ±1.5x); both levels are editable, so set them to your industry and buyer. Four metrics also change EBITDA directly: documented add-backs, scrap, management roles and growth. The last column shows what each change is worth in equity value. A planning heuristic, not a valuation.</p></div>
 <div class="tablewrap"><table id="risk"></table></div>
 
 <div class="sechead"><h2>Other EBITDA levers</h2><p>Recurring annual EBITDA from actions not already counted in the metrics above. Scrap, management cost and growth are counted there, so do not enter them again here.</p></div>
@@ -181,7 +185,7 @@ const SET=[["company","Company","text"],["revenue","LTM revenue, $","number"],["
  ["wc","Cash released from working capital, $","number"],["horizon","Plan horizon, months","number"]];
 
 function blankModel(){const m={s:{company:"",revenue:0,ebitda:0,addbacks:0,netdebt:0,basemult:0,cm:30,mgrCost:150000,wc:0,horizon:18},f:{},lv:{},tr:[]};
-  FACTORS.forEach(([k])=>m.f[k]={now:"",tgt:""});LEVERS.forEach(([k])=>m.lv[k]=0);
+  FACTORS.forEach(([k])=>m.f[k]={now:"",tgt:""});m.th=defTh();LEVERS.forEach(([k])=>m.lv[k]=0);
   for(let i=0;i<MONTHS;i++)m.tr.push({m:"",e:"",d:""});return m}
 function sampleModel(){const m=blankModel();
   Object.assign(m.s,{company:"Sample: Manufacturer",revenue:18000000,ebitda:1350000,addbacks:150000,netdebt:2500000,basemult:5,cm:30,mgrCost:150000,wc:400000,horizon:18});
@@ -200,7 +204,8 @@ function hintTxt(e){if(e<=0)return"Enter EBITDA to see a reference multiple rang
   if(e<2000000)return"Reference range for $0.75–2M EBITDA in lower-middle-market manufacturing: about 4–6x.";
   if(e<5000000)return"Reference range for $2–5M EBITDA: about 4.5–6.5x.";return"Reference range for EBITDA above $5M: about 5.5–7.5x."}
 /* Sliding score: −0.25x at the weak level, +0.25x at the strong level, linear in between. Blank metric = average (0). */
-const score=(v,weak,strong)=>v==null?0:clamp(-STEP+2*STEP*(v-weak)/(strong-weak),-STEP,STEP);
+function defTh(){const t={};FACTORS.forEach(f=>t[f[0]]={weak:f[5],strong:f[6]});return t}
+const score=(v,weak,strong)=>v==null||weak===strong?0:clamp(-STEP+2*STEP*(v-weak)/(strong-weak),-STEP,STEP);
 const rating=x=>x>=STEP/2?"strong":x<=-STEP/2?"weak":"avg";
 
 function compute(m){const s=m.s,R=n(s.revenue),Er=n(s.ebitda),AB=n(s.addbacks),D=n(s.netdebt),wc=n(s.wc),H=n(s.horizon)||12,cm=n(s.cm)/100,cost=n(s.mgrCost);
@@ -216,11 +221,11 @@ function compute(m){const s=m.s,R=n(s.revenue),Er=n(s.ebitda),AB=n(s.addbacks),D
   const lev=LEVERS.reduce((a,[k])=>a+n(m.lv[k]),0);
   const E1=E0+lev+metricE,R1=R*(1+gT/100*H/12);
   const mg0=R?E0/R*100:null,mg1=R1?E1/R1*100:null;
-  const rows=FACTORS.map(([k,name,,metric,unit,weak,strong,link])=>{
+  const rows=FACTORS.map(([k,name,,metric,unit,w0,s0,link])=>{const th=(m.th&&m.th[k])||{},weak=has(th.weak)?n(th.weak):w0,strong=has(th.strong)?n(th.strong):s0;
     const a=k==="margin"?mg0:val(k,"now"),b=k==="margin"?mg1:(val(k,"tgt")??a);
     const sN=score(a,weak,strong),sT=score(b,weak,strong);
     let risk=null;if(link==="risk"&&R){risk=[R*(a??0)/100*cm,R*(b??0)/100*cm]}
-    return{k,name,a,b,sN,sT,e:eff[k]||0,link,risk}});
+    return{k,name,a,b,sN,sT,e:eff[k]||0,link,risk,weak,strong}});
   const adjN=clamp(rows.reduce((x,r)=>x+r.sN,0),-CAP,CAP),adjT=clamp(rows.reduce((x,r)=>x+r.sT,0),-CAP,CAP);
   const baseIn=n(s.basemult),base=baseIn||suggested(E0);
   const mNow=Math.max(0,base+adjN),mTgt=Math.max(0,base+adjT);
@@ -231,7 +236,7 @@ function compute(m){const s=m.s,R=n(s.revenue),Er=n(s.ebitda),AB=n(s.addbacks),D
   return{R,R1,Er,AB,E0,E1,lev,metricE,eff,rows,adjN,adjT,base,baseIn,mNow,mTgt,D,wc,evNow,evTgt,eqNow,eqTgt,stepL,stepF,stepM,stepD,vc:eqTgt-eqNow,mg0,mg1,H,cm,track}}
 
 let model,isSample=false;
-try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.s&&s.f&&s.lv&&s.tr)model=s}catch(e){}
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.s&&s.f&&s.lv&&s.tr){model=s;model.th=Object.assign(defTh(),s.th||{})}}catch(e){}
 if(!model){model=sampleModel();isSample=true}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(model))}catch(e){}};
 const $=id=>document.getElementById(id);
@@ -250,13 +255,14 @@ function touch(){if(isSample){isSample=false;$("sample").hidden=true}save()}
 function renderSettings(){$("settings").innerHTML=SET.map(([k,l,t])=>`<div class="field"><label class="label" for="set-${k}">${l}</label><input id="set-${k}" data-k="${k}" type="${t}" ${t==="number"?`class="num" inputmode="decimal" step="any" placeholder="${k==="basemult"?"auto":"0"}"`:""} value="${esc(t==="number"&&!n(model.s[k])&&!["horizon","cm"].includes(k)?"":model.s[k]??"")}"></div>`).join("")}
 $("settings").addEventListener("input",e=>{const k=e.target.dataset.k;if(!k)return;model.s[k]=e.target.value;touch();update()});
 
+const thInp=(k,w,def)=>{const v=model.th[k]&&has(model.th[k][w])?model.th[k][w]:"";return`<input class="num xs ${w}" type="number" step="any" inputmode="decimal" data-th="${k}" data-tw="${w}" value="${v}" placeholder="${def}" aria-label="${w} level">`};
 function renderTables(){
-  let h=`<thead><tr><th>Factor and metric</th><th class="r">Today</th><th class="r">After plan</th><th class="r">Weak → strong</th><th class="r">Multiple today</th><th class="r">Multiple after</th><th class="r">EBITDA effect, $/yr</th><th class="r">Equity value effect</th></tr></thead><tbody>`;
+  let h=`<thead><tr><th>Factor and metric</th><th class="r">Today</th><th class="r">After plan</th><th class="r">Weak → strong level</th><th class="r">Multiple today</th><th class="r">Multiple after</th><th class="r">EBITDA effect, $/yr</th><th class="r">Equity value effect</th></tr></thead><tbody>`;
   FACTORS.forEach(([k,name,desc,metric,unit,weak,strong,link])=>{
     const inp=w=>`<input class="num sm" type="number" step="any" inputmode="decimal" data-f="${k}" data-w="${w}" value="${has(model.f[k][w])?model.f[k][w]:""}" placeholder="${w==="tgt"?"= today":"avg"}" aria-label="${esc(metric)}: ${w==="now"?"today":"after plan"}">`;
     h+=`<tr><td class="lab">${name}<span class="sub">${metric}</span><span class="sub">${desc}</span></td>`+
       (link==="calc"?`<td class="c" id="fa-${k}"></td><td class="c" id="fb-${k}"></td>`:`<td class="r">${inp("now")}</td><td class="r">${inp("tgt")}</td>`)+
-      `<td class="c">${unitFmt(weak,unit)} → ${unitFmt(strong,unit)}</td><td class="c" id="fsn-${k}"></td><td class="c" id="fst-${k}"></td><td class="c" id="fe-${k}"></td><td class="c" id="fq-${k}"></td></tr>`});
+      `<td class="r th">${thInp(k,"weak",weak)}<span>→</span>${thInp(k,"strong",strong)}<span class="sub">${unit==="%"?"%":unit}</span></td><td class="c" id="fsn-${k}"></td><td class="c" id="fst-${k}"></td><td class="c" id="fe-${k}"></td><td class="c" id="fq-${k}"></td></tr>`});
   h+=`<tr class="tot"><td class="lab">Multiple adjustment<span class="sub">Sum of the factors, capped at ±${CAP}x</span></td><td></td><td></td><td></td><td class="c" id="o-adjNow"></td><td class="c" id="o-adjTgt"></td><td class="c" id="o-fE"></td><td class="c" id="o-fQ"></td></tr>`;
   h+=`<tr class="tot"><td class="lab">Multiple<span class="sub" id="o-baseTxt"></span></td><td></td><td></td><td></td><td class="c" id="o-mNow"></td><td class="c" id="o-mTgt"></td><td></td><td></td></tr></tbody>`;
   $("risk").innerHTML=h;
@@ -268,7 +274,7 @@ function renderTables(){
   model.tr.forEach((t,i)=>h+=`<tr><td><input type="month" data-t="m" data-i="${i}" value="${esc(t.m||"")}" aria-label="Month ${i+1}"></td><td class="r"><input class="num" type="number" step="any" inputmode="decimal" data-t="e" data-i="${i}" value="${has(t.e)?t.e:""}" placeholder="0" aria-label="LTM EBITDA, month ${i+1}"></td><td class="r"><input class="num" type="number" step="any" inputmode="decimal" data-t="d" data-i="${i}" value="${has(t.d)?t.d:""}" placeholder="baseline" aria-label="Net debt, month ${i+1}"></td><td class="c" id="tx-${i}">—</td><td class="c" id="tev-${i}">—</td><td class="c" id="teq-${i}">—</td></tr>`);
   $("track").innerHTML=h+"</tbody>";update()}
 document.addEventListener("input",e=>{const t=e.target,d=t.dataset;
-  if(d.f){model.f[d.f][d.w]=t.value}else if(d.l){model.lv[d.l]=n(t.value)}else if(d.t){model.tr[+d.i][d.t]=d.t==="m"?t.value:t.value}else return;touch();update()});
+  if(d.th){model.th[d.th][d.tw]=t.value}else if(d.f){model.f[d.f][d.w]=t.value}else if(d.l){model.lv[d.l]=n(t.value)}else if(d.t){model.tr[+d.i][d.t]=d.t==="m"?t.value:t.value}else return;touch();update()});
 
 function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
 const pal=()=>({fg:css("--fg"),muted:css("--muted"),line:css("--line"),good:css("--good"),bad:css("--bad"),accent:css("--accent"),steel:css("--steel"),mono:css("--mono")});
@@ -360,7 +366,7 @@ $("btnXlsx").onclick=async()=>{try{status("Loading module…");await lib();const
   A.push(["DeXM Value Creation Scorecard"],["Company",s.company||""],["Prepared",new Date().toLocaleDateString("en-US")],[],["Baseline","Value"]);
   SET.slice(1).forEach(([k,l])=>A.push([l,k==="basemult"?c.base:n(s[k])]));
   A.push(["EBITDA used for value today, $",Math.round(c.E0)],[],["Factor","Metric","Today","After plan","Weak level","Strong level","Multiple today, x","Multiple after, x","EBITDA effect, $/yr","Equity value effect, $"]);
-  c.rows.forEach(r=>{const F=FACTORS.find(f=>f[0]===r.k);A.push([r.name,F[3],r2(r.a),r2(r.b),F[5],F[6],r2(r.sN),r2(r.sT),Math.round(r.e),Math.round(r.eq)])});
+  c.rows.forEach(r=>{const F=FACTORS.find(f=>f[0]===r.k);A.push([r.name,F[3],r2(r.a),r2(r.b),r.weak,r.strong,r2(r.sN),r2(r.sT),Math.round(r.e),Math.round(r.eq)])});
   A.push(["Multiple adjustment (capped)","","","","","",r2(c.adjN),r2(c.adjT),Math.round(c.metricE),""],["Multiple","","","","","",r2(c.mNow),r2(c.mTgt)],[],["Lever","Typical actions","EBITDA added, $/yr"]);
   LEVERS.forEach(([k,l,d])=>A.push([l,d,n(model.lv[k])]));
   A.push(["Total from levers","",c.lev],[],["Result","Value, $"],
@@ -375,8 +381,9 @@ $("btnXlsx").onclick=async()=>{try{status("Loading module…");await lib();const
   const url=URL.createObjectURL(new Blob([XLSX.write(wb,{bookType:"xlsx",type:"array"})]));const a=document.createElement("a");a.href=url;a.download=fname("xlsx");document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);
   status("Excel file saved","ok")}catch(e){console.error(e);status("Could not create the file. Try again.","err")}};
 $("btnPdf").onclick=()=>window.print();
+$("btnTh").onclick=()=>{model.th=defTh();save();renderTables();status("Weak and strong levels reset to defaults","ok")};
 $("btnSample").onclick=()=>{model=sampleModel();isSample=true;save();renderSettings();renderTables();$("sample").hidden=false;status("")};
-$("btnReset").onclick=()=>{model=blankModel();isSample=false;$("sample").hidden=true;save();renderSettings();renderTables();status("Scorecard cleared","ok")};
+$("btnReset").onclick=()=>{const th=model.th;model=blankModel();model.th=th;isSample=false;$("sample").hidden=true;save();renderSettings();renderTables();status("Scorecard cleared","ok")};
 
 renderSettings();renderTables();$("sample").hidden=!isSample;
 })();
