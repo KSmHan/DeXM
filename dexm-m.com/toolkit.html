@@ -179,6 +179,9 @@ footer.site{border-top:1px solid var(--line);padding-block:14px 28px;font-size:1
 .step{display:inline-grid;place-items:center;width:22px;height:22px;padding:0;border-radius:50%;border:1px solid var(--line);font:600 11px/1 var(--mono);color:var(--muted)}
 .tab[aria-selected="true"] .step{background:var(--accent);border-color:var(--accent);color:var(--surface)}
 .tab .dot{width:7px;height:7px}
+/* All 9 tabs must be visible on desktop: wrap instead of hidden horizontal scroll; phones keep the swipeable row */
+@media (min-width:760px){.tabs{flex-wrap:wrap;overflow-x:visible;gap:0}.tab{padding:14px 9px 12px;gap:6px;font-size:13.5px}.tab .step{width:20px;height:20px}}
+@media (max-width:759px){.tabbar .wrap{position:relative}.tabbar .wrap::after{content:"";position:absolute;top:0;right:0;bottom:0;width:28px;pointer-events:none;background:linear-gradient(90deg,transparent,var(--surface))}}
 .panel{border-radius:4px;box-shadow:var(--shadow)}
 .overall h2,.pf-intro h2{font:600 clamp(23px,2.5vw,30px)/1.18 var(--display);letter-spacing:-.015em}
 .opp h3,.next h3{font:600 20px/1.25 var(--display);letter-spacing:-.01em}
