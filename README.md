@@ -13,7 +13,7 @@ Operating partner for PE sponsors, owners and management teams of manufacturing 
 | DeXM OS | https://www.dexm-m.com/dexm-os |
 | About | https://www.dexm-m.com/about |
 | Tools | https://www.dexm-m.com/tools |
-| Toolkit (5 tools + dashboard) | https://www.dexm-m.com/toolkit |
+| Toolkit (7 tools + dashboard) | https://www.dexm-m.com/toolkit |
 | Growth Constraint Diagnostic | https://www.dexm-m.com/bottleneck-diagnostic |
 | P&L Statement | https://www.dexm-m.com/pl |
 | 13-Week Cash Forecast | https://www.dexm-m.com/cash-forecast |

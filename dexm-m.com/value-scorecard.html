@@ -123,7 +123,7 @@ footer span{user-select:all}
   <button id="btnReset">Clear</button>
   <div class="status" id="status" role="status"></div>
 </div>
-<div class="notice" id="sample">This is a sample for an $18M-revenue manufacturer with $1.35M reported EBITDA. Select “Clear” to enter your own numbers.</div>
+<div class="notice" id="sample">This is a sample for the same $30M-revenue plant used across the toolkit, with $3.76M reported EBITDA. Select “Clear” to enter your own numbers.</div>
 
 <section class="panel">
   <div class="settings" id="settings"></div>
@@ -188,11 +188,11 @@ function blankModel(){const m={s:{company:"",revenue:0,ebitda:0,addbacks:0,netde
   FACTORS.forEach(([k])=>m.f[k]={now:"",tgt:""});m.th=defTh();LEVERS.forEach(([k])=>m.lv[k]=0);
   for(let i=0;i<MONTHS;i++)m.tr.push({m:"",e:"",d:""});return m}
 function sampleModel(){const m=blankModel();
-  Object.assign(m.s,{company:"Sample: Manufacturer",revenue:18000000,ebitda:1350000,addbacks:150000,netdebt:2500000,basemult:5,cm:30,mgrCost:150000,wc:400000,horizon:18});
+  Object.assign(m.s,{company:"Sample: Plant",revenue:30179000,ebitda:3755000,addbacks:250000,netdebt:9000000,basemult:5.5,cm:30,mgrCost:150000,wc:1500000,horizon:18});
   const F={cust:[28,22],owner:[60,35],mgmt:[2,3],fin:[60,100],recur:[45,50],backlog:[0.98,1.03],equip:[18,17],scrap:[4.5,3],growth:[3,4]};
   Object.entries(F).forEach(([k,[a,b]])=>m.f[k]={now:a,tgt:b});
-  Object.assign(m.lv,{price:120000,mix:50000,hf:80000,buy:40000,ovh:20000});
-  const e=[1440000,1470000,1500000,1550000,1590000,1640000],d=[2500000,2420000,2350000,2300000,2220000,2150000];
+  Object.assign(m.lv,{price:300000,mix:100000,hf:200000,buy:150000,ovh:50000});
+  const e=[3905000,3960000,4020000,4100000,4170000,4250000],d=[9000000,8800000,8550000,8300000,8100000,7850000];
   for(let i=0;i<6;i++)m.tr[i]={m:`2026-${String(i+1).padStart(2,"0")}`,e:e[i],d:d[i]};return m}
 
 const n=x=>{const v=parseFloat(x);return isFinite(v)?v:0};
@@ -304,8 +304,16 @@ function drawTrend(c){const cv=$("trend"),{g,w,h}=prep(cv,200),P=pal(),pts=c.tra
   pts.forEach((p,i)=>{g.fillStyle=P.accent;g.beginPath();g.arc(x(i),y(p.eq),3.5,0,7);g.fill();g.fillStyle=P.muted;g.font=`11px ${P.mono}`;g.textAlign="center";g.textBaseline="top";g.fillText(p.label,x(i),h-padB+8)});
   const l=pts[pts.length-1];g.fillStyle=P.fg;g.font=`600 11px ${P.mono}`;g.textAlign=pts.length>1?"right":"center";g.textBaseline="bottom";g.fillText(M$(l.eq),x(pts.length-1),y(l.eq)-6)}
 
+let lastV=null;
+/* Summary for the toolkit dashboard (/toolkit): saved locally and sent to the parent frame */
+function publish(c){try{const v=lastV||{sev:-1,h:"",notes:[],top:[]};
+  const act=v.weak&&v.weak.length?`Fix the weak factors first: ${v.weak.slice(0,3).join(", ")}`:v.top&&v.top.length?`Biggest gains: ${v.top.map(r=>r.name).join(", ")}`:"";
+  const out={id:"vs",ts:Date.now(),sample:!!isSample,company:model.s.company||"",units:"$",sev:v.sev,h:String(v.h||""),p:String((v.notes||[])[0]||""),act,
+    d:{E0:c.E0,E1:c.E1,mNow:c.mNow,mTgt:c.mTgt,evNow:c.evNow,evTgt:c.evTgt,eqNow:c.eqNow,eqTgt:c.eqTgt,vc:c.vc,steps:[c.stepL,c.stepF,c.stepM,c.stepD]}};
+  try{localStorage.setItem("dexm-dash-vs",JSON.stringify(out))}catch(e){}if(window.parent!==window)parent.postMessage({dexm:"summary",s:out},location.origin)}catch(e){console.error(e)}}
 const CTA="<strong>Test the plan against the facts</strong> with an operator: we review the scorecard with you in a free 30-minute call. info@dexm-m.com";
 function verdict(c){
+  if(!(c.E0>0)){lastV={sev:-1,h:"Enter reported EBITDA",notes:[],top:[]};}
   if(!(c.E0>0))return`<span class="label">Verdict</span><h2>Enter reported EBITDA</h2><p>Value today, value after the plan and the bridge appear right away.</p><p class="cta">${CTA}</p>`;
   const notes=[];let sev=0;
   const top=c.rows.filter(r=>Math.round(r.eq/1e3)>0).sort((a,b)=>b.eq-a.eq).slice(0,3);
@@ -320,6 +328,7 @@ function verdict(c){
   if(c.vc<=0)sev=2;
   const pctUp=c.eqNow>0?` (+${Math.round(c.vc/c.eqNow*100)}%)`:"";
   const head=c.vc>0?`The plan adds ${M$(c.vc)} of equity value${pctUp}, from ${M$(c.eqNow)} to ${M$(c.eqTgt)}`:`The plan does not add equity value yet`;
+  lastV={sev,h:head,notes,top,weak};
   return`<span class="label">Verdict</span> <span class="sev" style="background:${["var(--good)","var(--warn)","var(--bad)"][sev]}">${["strong plan","review","high risk"][sev]}</span><h2>${head}</h2>${notes.length?`<ul>${notes.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}<p class="cta">${CTA}</p>`}
 
 const LINK_TXT={none:"Multiple only",calc:"Result of EBITDA and revenue",
@@ -352,7 +361,7 @@ function update(){const c=compute(model);
     ["Equity value after plan",c.eqTgt,"Target EBITDA × target multiple − (net debt − cash released)",1]];
   $("bridge").innerHTML=`<thead><tr><th>Step</th><th class="r">Value, $</th><th>How it is calculated</th></tr></thead><tbody>${rows.map(([l,v,d,t])=>`<tr class="${t?"tot":""}"><td class="lab">${l}</td><td class="c ${!t&&Math.round(v)<0?"neg":""}">${ok?(t?fmt(v):sgn(v)):"—"}</td><td class="desc">${d}</td></tr>`).join("")}</tbody>`;
   c.track.forEach((p,i)=>{set(`tx-${i}`,p?X(c.mNow):"—");set(`tev-${i}`,p?fmt(p.ev):"—");set(`teq-${i}`,p?fmt(p.eq):"—",p&&p.eq<0?"neg":"")});
-  drawBridge(c);drawTrend(c);$("verdict").innerHTML=verdict(c)}
+  drawBridge(c);drawTrend(c);$("verdict").innerHTML=verdict(c);publish(c)}
 const redraw=()=>{const c=compute(model);drawBridge(c);drawTrend(c)};
 window.addEventListener("resize",redraw);
 const mq=window.matchMedia("(prefers-color-scheme: dark)");mq.addEventListener&&mq.addEventListener("change",redraw);
