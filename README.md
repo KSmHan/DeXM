@@ -16,6 +16,7 @@ Operating partner for PE sponsors, owners and management teams of manufacturing 
 | Toolkit (7 tools + dashboard) | https://www.dexm-m.com/toolkit |
 | Growth Constraint Diagnostic | https://www.dexm-m.com/bottleneck-diagnostic |
 | P&L Statement | https://www.dexm-m.com/pl |
+| Annual P&L and Break-Even | https://www.dexm-m.com/pl-annual |
 | 13-Week Cash Forecast | https://www.dexm-m.com/cash-forecast |
 | EBITDA Bridge | https://www.dexm-m.com/ebitda-bridge |
 | Hidden Factory | https://www.dexm-m.com/hidden-factory |
