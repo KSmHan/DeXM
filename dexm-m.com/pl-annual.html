@@ -169,10 +169,10 @@ const T={brand:"DeXM Management · financial analysis",h1:"Annual Profit and Los
  company:"Company",year:"Fiscal year",units:"Units",benchCM:"Contribution margin benchmark, %",benchE:"EBITDA benchmark, %",taxRate:"Income tax rate, %",
  unitsDef:"$000",companyDef:"Sample: Plant",
  fy:y=>`FY ${y}`,pcol:"% of revenue",line:"Line item",section:"Section",
- sec:{rev:"Revenue",var:"Variable costs",fix:"Fixed costs (operating expenses)",below:"Below EBITDA",be:"Break-even"},
+ sec:{rev:"Revenue",var:"Variable costs",fix:"Fixed costs (operating expenses)",below:"Below EBITDA",cash:"Cash items outside the P&L",be:"Break-even"},
  add:"+ Add line",newLine:"New line",del:"Delete line",toFix:"To fixed",toVar:"To variable",toFixT:"Move to fixed costs",toVarT:"Move to variable costs",
  r:{rev:"Net revenue",vc:"Total variable costs",cm:"Contribution margin",fix:"Total fixed costs",ebitda:"EBITDA",ebt:"Pre-tax income",tax:r=>`Income tax (${r} of pre-tax income)`,ni:"Net income",
-  cmr:"Contribution margin ratio",be:"Break-even revenue (EBITDA = 0)",mos:"Margin of safety (revenue above break-even)",bept:"Break-even revenue (pre-tax income = 0)",dol:"Operating leverage (contribution margin / EBITDA)"},
+  cmr:"Contribution margin ratio",be:"Break-even revenue (EBITDA = 0)",mos:"Margin of safety (revenue above break-even)",bept:"Break-even revenue (pre-tax income = 0)",bec:"Cash break-even revenue (after capex and debt repayment)",dol:"Operating leverage (contribution margin / EBITDA)"},
  calc:"Calculated",
  k:{rev:"Net revenue, FY",cm:"Contribution margin",ebitda:"EBITDA, FY",be:"Break-even revenue",mos:"Margin of safety",up:"EBITDA upside to benchmark",vsB:b=>`benchmark ${b}`,ofRev:p=>`${p} of revenue`,margin:(m,b)=>`margin ${m} · benchmark ${b}`,noBe:"contribution margin ≤ 0"},
  lg:{rev:"Revenue",cost:"Total costs (variable + fixed)",fix:"Fixed costs",be:"Break-even point",act:"Actual revenue"},
@@ -186,6 +186,8 @@ const T={brand:"DeXM Management · financial analysis",h1:"Annual Profit and Los
   mosOk:(p,a)=>`Revenue can fall ${p} (${a}) before EBITDA reaches zero.`,
   mosNeg:a=>`Revenue is ${a} short of break-even.`,
   noCm:"Variable costs exceed revenue: every extra sale loses money, so there is no break-even point.",
+  cashOk:(b,p)=>`Cash break-even, after capex and debt repayment, is ${b}; revenue is ${p} above it.`,
+  cashNeg:(b,g)=>`Cash break-even, after capex and debt repayment, is ${b}: the business burns cash and needs ${g} more revenue to cover it.`,
   dol:(x,y)=>`Operating leverage is ${x}: a 10% change in revenue moves EBITDA by about ${y}.`,
   matShare:x=>`Raw materials take ${x} of revenue.`,
   levers:"Levers",
@@ -197,13 +199,15 @@ const T={brand:"DeXM Management · financial analysis",h1:"Annual Profit and Los
   imported:(n,m,s,mo)=>`Imported ${n} line items${m?`, added ${m} new lines`:""}${s?`, settings: ${s}`:""}${mo?". Monthly columns were added up to annual totals":""}.`,unrec:l=>` Not recognized: ${l}.`,
   noData:"Could not find any amounts. Use one column of annual amounts next to the line items, or a 12-month P&L. Download the template to see the format.",cleared:"Table cleared",readFail:"Could not read the file. Check that it is .xlsx, .xls or .csv."},
  sheetTitle:"Annual Profit and Loss Statement",prepared:"Prepared",chartAria:"Break-even chart: revenue against total costs",
- lines:{sales:"Product sales",svc:"Services and other revenue",disc:"Discounts, rebates and returns",mat:"Raw materials",lab:"Direct labor",ener:"Plant energy",frt:"Freight and logistics",moh:"Other manufacturing overhead",sm:"Sales and marketing",ga:"General and administrative",rent:"Rent",oopex:"Other operating expenses",da:"Depreciation and amortization",int:"Interest expense",oth:"Other income / (expense)"}};
-const SECS=["rev","var","fix","below"];
-const BUILT=[["sales","rev"],["svc","rev"],["disc","rev"],["mat","var"],["lab","var"],["ener","var"],["frt","var"],["moh","fix"],["sm","fix"],["ga","fix"],["rent","fix"],["oopex","fix"],["da","below"],["int","below"],["oth","below"]];
+ lines:{sales:"Product sales",svc:"Services and other revenue",disc:"Discounts, rebates and returns",mat:"Raw materials",lab:"Direct labor",ener:"Plant energy",frt:"Freight and logistics",moh:"Other manufacturing overhead",sm:"Sales and marketing",ga:"General and administrative",rent:"Rent",oopex:"Other operating expenses",da:"Depreciation and amortization",int:"Interest expense",oth:"Other income / (expense)",capex:"Maintenance capex",debt:"Debt principal repayment"}};
+const SECS=["rev","var","fix","below","cash"];
+const BUILT=[["sales","rev"],["svc","rev"],["disc","rev"],["mat","var"],["lab","var"],["ener","var"],["frt","var"],["moh","fix"],["sm","fix"],["ga","fix"],["rent","fix"],["oopex","fix"],["da","below"],["int","below"],["oth","below"],["capex","cash"],["debt","cash"]];
 // sign of a line in the P&L: +1 adds, -1 subtracts
 const signOf=l=>l.id==="disc"?-1:l.id==="oth"?1:l.sec==="rev"?1:-1;
 const SIGNED=id=>id==="oth";
 const ALIAS=[
+ ["capex",/(capex|capital expend)/i],
+ ["debt",/(principal|debt repay|loan repay)/i],
  ["disc",/(discount|rebate|return|allowance)/i],
  ["sm",/(marketing|selling|sales exp)/i],
  ["svc",/(service|other revenue|other sales)/i],
@@ -219,7 +223,7 @@ const ALIAS=[
  ["moh",/(overhead|manufacturing)/i],
  ["ga",/(general|admin|g&a|office)/i],
  ["sales",/(sales|revenue)/i]];
-const SEC_RE=[["var",/(variable|cost of|cogs)/i],["fix",/(fixed|operating exp|opex|sg&a)/i],["below",/(below|non-?operat|other income|financ)/i],["rev",/(revenue|sales)/i]];
+const SEC_RE=[["cash",/(cash items|outside the p&l)/i],["var",/(variable|cost of|cogs)/i],["fix",/(fixed|operating exp|opex|sg&a)/i],["below",/(below|non-?operat|other income|financ)/i],["rev",/(revenue|sales)/i]];
 const CALC_RE=/(^total|gross profit|gross margin|contribution|ebitda|\bebit\b|\bebt\b|pre-?tax|net income|margin|net revenue|operating income|break-?even|safety|leverage|benchmark)/i;
 const TAX_RE=/(income tax|\btax\b|taxes)/i;
 const SET_RE=[["taxRate",/(tax rate)/i],["benchCM",/(contribution margin bench)/i],["benchE",/(ebitda bench)/i],["year",/(fiscal year|^year$)/i],["company",/^company/i],["units",/^units/i]];
@@ -231,7 +235,7 @@ const AMT_RE=/^((fy|fiscal year)\s*'?\d{2,4}|fy|fy total|total|total year|amount
 const thisYear=()=>new Date().getFullYear();
 function blankModel(){return{settings:{company:"",year:thisYear(),units:T.unitsDef,benchCM:30,benchE:12,taxRate:25},lines:BUILT.map(([id,sec])=>({id,sec,v:0}))}}
 function sampleModel(){const m=blankModel();m.settings.company=T.companyDef;m.settings.benchCM=32;m.settings.benchE=14;
-  const V={sales:30370,svc:720,disc:911,mat:15185,lab:4031,ener:1215,frt:911,moh:1320,sm:1063,ga:1800,rent:540,oopex:360,da:840,int:420,oth:-5};
+  const V={sales:30370,svc:720,disc:911,mat:15185,lab:4031,ener:1215,frt:911,moh:1320,sm:1063,ga:1800,rent:540,oopex:360,da:840,int:420,oth:-5,capex:600,debt:500};
   m.lines.forEach(l=>l.v=V[l.id]);return m}
 const labelOf=l=>l.id?T.lines[l.id]:(l.label||T.newLine);
 
@@ -244,10 +248,11 @@ function compute(m){
   const ebt=ebitda-da+fin,taxRate=+m.settings.taxRate||0,tax=Math.max(0,ebt)*taxRate/100,ni=ebt-tax;
   const P=x=>rev?x/rev*100:null;
   const cmr=rev?cm/rev:null;
-  const be=cmr>0?fix/cmr:null,mos=be!=null?rev-be:null,bept=cmr>0?(fix+da-fin)/cmr:null;
+  const cashOut=-sumSec("cash");
+  const be=cmr>0?fix/cmr:null,mos=be!=null?rev-be:null,bept=cmr>0?(fix+da-fin)/cmr:null,bec=cmr>0?(fix-fin+cashOut)/cmr:null;
   const dol=ebitda>0?cm/ebitda:null;
   const bE=+m.settings.benchE||0,bC=+m.settings.benchCM||0;
-  return{rev,vc,cm,fix,ebitda,da,fin,ebt,tax,taxRate,ni,cmY:P(cm),emY:P(ebitda),nmY:P(ni),cmr,be,mos,bept,dol,bE,bC,
+  return{rev,vc,cm,fix,ebitda,da,fin,ebt,tax,taxRate,ni,cmY:P(cm),emY:P(ebitda),nmY:P(ni),cmr,be,mos,bept,bec,cashOut,dol,bE,bC,
     upside:Math.max(0,bE/100*rev-ebitda),matShare:rev?val("mat")/rev*100:null,P}
 }
 
@@ -318,7 +323,7 @@ function exportPlan(m,blank){
   push([T.section,T.line,T.fy(s.year||thisYear()),T.pcol]);
   const PCT=r=>[3,`IF(AND(ISNUMBER(C${r}),C{REV}<>0),C${r}/C{REV},"")`,"pct"];
   const calc=(label,fx,opt={})=>{const r=rows.length+1;const fs=[];if(fx)fs.push([2,fx,opt.kind||"num"]);if(opt.pct)fs.push([3,opt.pct,"pct"]);else if(!opt.noPct)fs.push(PCT(r));push([T.calc,label,null,null],fs);return r};
-  const L={rev:[],var:[],fix:[],below:[]},R={};
+  const L={rev:[],var:[],fix:[],below:[],cash:[]},R={};
   const sum=(list,signed)=>list.length?list.map(([r,sg],j)=>`${signed&&sg<0?"-":(j?"+":"")}C${r}`).join(""):"0";
   SECS.forEach(sec=>{push([T.sec[sec]]);
     m.lines.filter(l=>l.sec===sec).forEach(l=>{const r=rows.length+1;push([T.sec[sec],labelOf(l),blank?0:(+l.v||0),null],[PCT(r)]);L[sec].push([r,signOf(l),l.id])});
@@ -336,6 +341,8 @@ function exportPlan(m,blank){
   calc(T.r.mos,`IF(ISNUMBER(C${be}),C{REV}-C${be},"n/a")`);
   const fixedPt=`C${R.fix}`+R.da.map(([r])=>`+C${r}`).join("")+R.finList.map(([r,sg])=>`${sg<0?"+":"-"}C${r}`).join("");
   calc(T.r.bept,`IF(C${R.cm}<=0,"n/a",(${fixedPt})/(C${R.cm}/C{REV}))`);
+  const fixedCash=`C${R.fix}`+R.finList.map(([r,sg])=>`${sg<0?"+":"-"}C${r}`).join("")+L.cash.map(([r])=>`+C${r}`).join("");
+  calc(T.r.bec,`IF(C${R.cm}<=0,"n/a",(${fixedCash})/(C${R.cm}/C{REV}))`);
   calc(T.r.dol,`IF(C${R.ebitda}<=0,"n/a",C${R.cm}/C${R.ebitda})`,{kind:"x",noPct:true});
   F.forEach(([,fs])=>fs.forEach(x=>x[1]=x[1].replace(/\{REV\}/g,R.rev)));
   return{rows,f:F};
@@ -345,7 +352,7 @@ function exportPlan(m,blank){
 if(typeof document!=="undefined"){(function(){
 const KEY="dexm-pl-annual-v1";
 let model,isSample=false;
-try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.lines){s.lines=s.lines.filter(l=>l.id!=="tax");if(s.settings.taxRate==null)s.settings.taxRate=25;model=s}}catch(e){}
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.lines){s.lines=s.lines.filter(l=>l.id!=="tax");if(s.settings.taxRate==null)s.settings.taxRate=25;if(!s.lines.some(l=>l.sec==="cash"))s.lines.push({id:"capex",sec:"cash",v:0},{id:"debt",sec:"cash",v:0});model=s}}catch(e){}
 if(!model){model=sampleModel();isSample=true}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(model))}catch(e){}};
 const loc="en-US";
@@ -384,7 +391,7 @@ function renderGrid(){
     if(sec==="var")h+=calcRow("vc")+calcRow("cm","key");
     if(sec==="fix")h+=calcRow("fix")+calcRow("ebitda","key");
     if(sec==="below")h+=calcRow("ebt")+calcRow("tax","be")+calcRow("ni","key")});
-  h+=`<tr class="sec"><td class="lab">${T.sec.be}</td><td colspan="2"></td></tr>`+["cmr","be","mos","bept","dol"].map(k=>calcRow(k,k==="be"?"key":"be")).join("");
+  h+=`<tr class="sec"><td class="lab">${T.sec.be}</td><td colspan="2"></td></tr>`+["cmr","be","mos","bept","bec","dol"].map(k=>calcRow(k,k==="be"?"key":"be")).join("");
   $("grid").innerHTML=h+"</tbody>";update()}
 
 $("grid").addEventListener("input",e=>{const t=e.target;
@@ -431,6 +438,7 @@ function verdictData(c){const gap=(c.emY||0)-c.bE,notes=[];
   if(c.cmY!=null)notes.push(c.cmY<c.bC?T.v.cmLow(pct(c.cmY),pct(c.bC)):T.v.cmOk(pct(c.cmY),pct(c.bC)));
   if(c.rev&&!(c.cmr>0))notes.push(T.v.noCm);
   else if(c.mos!=null)notes.push(c.mos>=0?T.v.mosOk(pct(c.P(c.mos)),fmtU(c.mos)):T.v.mosNeg(fmtU(-c.mos)));
+  if(c.bec!=null&&c.cashOut>0)notes.push(c.rev>=c.bec?T.v.cashOk(fmtU(c.bec),pct(c.P(c.rev-c.bec))):T.v.cashNeg(fmtU(c.bec),fmtU(c.bec-c.rev)));
   if(c.dol!=null)notes.push(T.v.dol(xf(c.dol),pct(c.dol*10)));
   if(c.matShare)notes.push(T.v.matShare(pct(c.matShare)));
   const levers=c.cmY!=null&&c.cmY<c.bC?T.v.Lcm:T.v.Lfix;
@@ -452,7 +460,7 @@ function update(){const c=compute(model);
   ["rev","vc","cm","fix","ebitda","ebt","tax","ni"].forEach(k=>{set(`c-${k}`,c[k]);set(`p-${k}`,c.P(c[k]),"pct")});
   $("p-cm").classList.toggle("below",c.cmY!=null&&c.cmY<c.bC);$("p-ebitda").classList.toggle("below",c.emY!=null&&c.emY<c.bE);
   set("c-cmr",null);set("p-cmr",c.cmY,"pct");
-  ["be","mos","bept"].forEach(k=>{const el=$(`c-${k}`);el.textContent=fmt(c[k]);el.classList.toggle("neg",c[k]!=null&&c[k]<0);set(`p-${k}`,c[k]==null?null:c.P(c[k]),"pct")});
+  ["be","mos","bept","bec"].forEach(k=>{const el=$(`c-${k}`);el.textContent=fmt(c[k]);el.classList.toggle("neg",c[k]!=null&&c[k]<0);set(`p-${k}`,c[k]==null?null:c.P(c[k]),"pct")});
   $("c-be").classList.toggle("below",c.be==null&&!!c.rev||c.be>c.rev);
   set("c-dol",c.dol,"x");set("p-dol",null);
   model.lines.forEach((l,li)=>set(`lp-${li}`,c.P(+l.v||0),"pct"));
@@ -530,7 +538,7 @@ function reportPages(){
     if(sec==="below"){r(T.r.ebt,c.ebt,"sub",c.P(c.ebt));r(T.r.tax(`${c.taxRate}%`),c.tax,"",c.P(c.tax));r(T.r.ni,c.ni,"key",c.nmY)}});
   rows.push({lab:T.sec.be,kind:"sec"});
   r(T.r.cmr,null,"",c.cmY,false,"");r(T.r.be,c.be,"key",c.be==null?null:c.P(c.be));r(T.r.mos,c.mos,"",c.mos==null?null:c.P(c.mos));
-  r(T.r.bept,c.bept,"",c.bept==null?null:c.P(c.bept));r(T.r.dol,null,"",null,false,xf(c.dol));
+  r(T.r.bept,c.bept,"",c.bept==null?null:c.P(c.bept));r(T.r.bec,c.bec,"",c.bec==null?null:c.P(c.bec));r(T.r.dol,null,"",null,false,xf(c.dol));
   const TW=Math.min(CW,1000),LW=TW-360,VW=180,RH=24,HH=40,top=M+40,per=Math.floor((PH-top-HH-70)/RH);
   for(let start=0,pn=2;start<rows.length;start+=per,pn++){
     g=newPage();g.fillStyle=P.fg;g.font=`700 18px ${F.disp}`;g.fillText(T.sheetTitle+(s.company?` · ${s.company}`:""),M,M+14);
