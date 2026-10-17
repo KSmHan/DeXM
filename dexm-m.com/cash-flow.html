@@ -1,0 +1,562 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Annual Cash Flow Statement — DeXM Management</title>
+<meta name="description" content="Free annual cash flow statement template for manufacturers: operating, investing and financing cash flows, free cash flow, cash conversion of EBITDA and ending cash against your minimum. Data stays in your browser.">
+<link rel="icon" href="img/dexm-mark.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: header + toolbar, settings strip, summary (KPIs + cash waterfall + verdict), then the annual cash flow statement with a % of revenue column and the free cash flow block */
+:root{
+  --bg:#f3f4f2; --surface:#ffffff; --fg:#1b2224; --muted:#5d686b; --line:#d6dbd9;
+  --accent:#0e6b6b; --accent-soft:#dcecea; --steel:#3c4a4f; --band:#eef1ef;
+  --good:#2f7d4f; --warn:#b7791f; --bad:#b4442d; --bad-soft:#f6e3de;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131819; --surface:#1b2224; --fg:#e6ebea; --muted:#9aa6a8; --line:#2e3739;
+  --accent:#4fb3ad; --accent-soft:#1f3534; --steel:#b9c5c7; --band:#20292b;
+  --good:#5fbf86; --warn:#e0a84a; --bad:#e2765f; --bad-soft:#3a2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131819; --surface:#1b2224; --fg:#e6ebea; --muted:#9aa6a8; --line:#2e3739;
+  --accent:#4fb3ad; --accent-soft:#1f3534; --steel:#b9c5c7; --band:#20292b;
+  --good:#5fbf86; --warn:#e0a84a; --bad:#e2765f; --bad-soft:#3a2420; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:20px;padding-block:28px 48px;display:flex;flex-direction:column;gap:20px}
+header{border-bottom:2px solid var(--fg);padding-bottom:14px}
+.brand{font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font:800 clamp(26px,4vw,38px)/1.1 var(--display);margin:6px 0 0;text-wrap:balance;letter-spacing:-.01em}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,.filebtn{font:500 14px var(--body);border-radius:4px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg);display:inline-flex;align-items:center}
+button.primary,.filebtn{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,.filebtn:focus-within,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.filebtn input{position:absolute;width:1px;height:1px;opacity:0}
+.status{font-size:13px;color:var(--muted);min-height:1.2em;flex-basis:100%}
+.status.ok{color:var(--good)} .status.err{color:var(--bad)}
+.notice{font-size:13px;background:var(--accent-soft);padding:10px 12px;border-radius:4px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px}
+.label{font:500 11px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 16px}
+.field{display:flex;flex-direction:column;justify-content:flex-end;gap:4px;min-width:0}
+.field input{font:15px var(--body);padding:7px 9px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);width:100%;min-width:0}
+.field input.num{font-family:var(--mono);text-align:right}
+.summary{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px}
+@media (max-width:900px){.summary{grid-template-columns:1fr}}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-bottom:14px}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi b{font:600 20px/1.2 var(--mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.kpi small{font-size:12px;color:var(--muted)}
+.kpi.bad b{color:var(--bad)}
+canvas{width:100%;height:260px;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:12px;height:10px;margin-right:5px;vertical-align:-1px;border-radius:2px}
+.verdict h2{font:700 21px/1.25 var(--display);margin:8px 0 6px;text-wrap:balance}
+.verdict p{margin:0 0 8px;font-size:14px;color:var(--muted)}
+.verdict ul{margin:4px 0 10px;padding-left:18px;font-size:14px;display:grid;gap:3px}
+.sev{display:inline-block;font:500 12px var(--mono);padding:2px 8px;border-radius:3px;color:var(--surface)}
+.cta{border-top:1px solid var(--line);padding-top:10px;font-size:14px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface);max-width:860px}
+table{border-collapse:separate;border-spacing:0;font-size:13px;width:100%}
+th,td{padding:0;border-bottom:1px solid var(--line);white-space:nowrap}
+thead th{font:500 11px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:10px 10px;text-align:right;background:var(--surface);position:sticky;top:0}
+thead th small{display:block;font-size:11px;letter-spacing:0;text-transform:none}
+th.lab,td.lab{position:sticky;left:0;z-index:1;background:var(--surface);text-align:left;padding:6px 10px;min-width:250px;border-right:1px solid var(--line)}
+thead th.lab{z-index:2}
+td.lab{white-space:normal}
+td.lab .row{display:flex;align-items:center;gap:4px}
+td.lab .row>span{flex:1}
+td.lab input{font:13px var(--body);border:1px dashed var(--line);border-radius:3px;padding:3px 6px;background:var(--bg);color:var(--fg);flex:1;min-width:0}
+td.lab .del,td.lab .mv{padding:0 6px;font-size:14px;line-height:1.4;border:0;background:none;color:var(--muted)}
+td.lab .mv{font:500 10px var(--mono);letter-spacing:.04em;border:1px solid var(--line);border-radius:3px;padding:1px 5px;text-transform:uppercase}
+td.lab .mv:hover{color:var(--accent);border-color:var(--accent)}
+td.v{text-align:right;padding:0 4px;width:150px}
+td.v input{width:130px;font:13px var(--mono);text-align:right;border:1px solid transparent;border-radius:3px;padding:5px 6px;background:var(--bg);color:var(--fg);font-variant-numeric:tabular-nums}
+td.v input:hover{border-color:var(--line)}
+td.c{text-align:right;padding:6px 10px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+td.p{width:120px;color:var(--muted);background:var(--band)}
+tr.sec td{background:var(--band);font:600 12px var(--body);letter-spacing:.04em;text-transform:uppercase;padding:8px 10px}
+tr.sec td.lab{background:var(--band)}
+tr.sub td{font-weight:600}
+tr.key td{font-weight:600;background:var(--accent-soft)}
+tr.key td.lab{background:var(--accent-soft)}
+tr.key td.p{color:var(--fg)}
+tr.be td{font-weight:500}
+td.neg{color:var(--bad)}
+td.below{background:var(--bad-soft)!important;color:var(--bad)!important}
+tr.add td{padding:4px 10px;border-bottom:1px solid var(--line)}
+tr.add button{font-size:12px;padding:3px 8px;border-style:dashed;background:none;color:var(--accent)}
+@media (max-width:600px){
+  th.lab,td.lab{min-width:0;padding:6px 6px;font-size:12px}
+  td.lab .row{flex-wrap:wrap}
+  td.v{width:auto;padding:0 2px} td.v input{width:84px;padding:5px 4px}
+  td.c{padding:6px 6px} td.p{width:auto}
+  thead th{padding:10px 6px}
+}
+input[type=number]{-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+footer{padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+footer span{user-select:all}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Inter:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/site-header.css">
+<link rel="stylesheet" href="css/toolkit-theme.css">
+<script>if(/[?&]embed\b/.test(location.search))document.documentElement.classList.add("embed")</script>
+<style>.embed .dxh,.embed .wrap>footer{display:none}.embed body{background:transparent}.embed .wrap{padding-block:20px 32px}.embed #t-brand{pointer-events:none}</style>
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</head><body>
+<div class="dxh" id="dxh">
+  <div class="dxh-wrap">
+    <a href="/" class="dxh-logo"><img src="img/dexm-mark.png" alt=""><span>DeXM Management</span></a>
+    <nav class="dxh-nav" id="dxhNav" aria-label="Site">
+      <a href="/solutions">Solutions</a>
+      <a href="/dexm-os">DeXM OS</a>
+      <a href="/about">About</a>
+      <a href="/#contact" class="dxh-cta">Book an Intro Call</a>
+    </nav>
+    <a href="/#contact" class="dxh-cta">Book an Intro Call</a>
+    <button class="dxh-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="dxhNav"><span></span><span></span><span></span></button>
+  </div>
+</div>
+
+
+<div class="wrap">
+<header>
+  <a href="/" class="brand" id="t-brand" style="display:block;text-decoration:none"></a>
+  <h1 id="t-h1"></h1>
+</header>
+
+<div class="toolbar">
+  <label class="filebtn" id="importLbl"><span id="t-import"></span><input type="file" id="importFile" accept=".xlsx,.xls,.xlsm,.csv"></label>
+  <button id="btnTemplate"></button>
+  <button id="btnXlsx"></button>
+  <button id="btnPdf"></button>
+  <button id="btnReset"></button>
+  <div class="status" id="status" role="status"></div>
+</div>
+<div class="notice" id="sample"></div>
+
+<section class="panel">
+  <div class="settings" id="settings"></div>
+</section>
+
+<section class="summary">
+  <div class="panel">
+    <div class="kpis" id="kpis"></div>
+    <canvas id="chart" aria-label=""></canvas>
+    <div class="legend" id="legend"></div>
+  </div>
+  <div class="panel verdict" id="verdict" aria-live="polite"></div>
+</section>
+
+<div class="tablewrap"><table id="grid"></table></div>
+
+<footer>
+  <span>DeXM Management</span><span>info@dexm-m.com</span><span>+1 917 523 0461</span><span>dexm-m.com</span>
+</footer>
+</div>
+
+<script>
+const T={brand:"DeXM Management · financial analysis",h1:"Annual Cash Flow Statement",
+ imp:"Import from Excel",tpl:"Download Excel template",xlsx:"Download Excel",pdf:"Download PDF to print",reset:"Clear",
+ sample:"This is a sample for a plant with about $30M in annual revenue. Select “Clear” or import your own Excel file.",
+ company:"Company",year:"Fiscal year",units:"Units",rev:"Net revenue, FY",ebitda:"EBITDA, FY",begin:"Opening cash",minCash:"Minimum cash",bench:"FCF conversion benchmark, % of EBITDA",
+ unitsDef:"$000",companyDef:"Sample: Plant",
+ fy:y=>`FY ${y}`,sign:"inflow + / outflow −",pcol:"% of revenue",line:"Line item",section:"Section",
+ sec:{op:"Operating activities",invest:"Investing activities",fin:"Financing activities",cash:"Cash",fcf:"Free cash flow"},
+ add:"+ Add line",newLine:"New line",del:"Delete line",
+ r:{cfo:"Net cash from operating activities",cfi:"Net cash from investing activities",cff:"Net cash from financing activities",
+  net:"Net change in cash",open:"Opening cash",end:"Ending cash",
+  cfo2:"Net cash from operating activities",capex:"Capital expenditures",fcf:"Free cash flow",conv:"FCF conversion (free cash flow / EBITDA)",ocf:"Operating cash flow / EBITDA",
+  wc:"Working capital impact",fcfa:"FCF after debt repayment and leases",capda:"Capex / depreciation and amortization"},
+ calc:"Calculated",
+ k:{cfo:"Cash from operations",fcf:"Free cash flow",conv:"FCF conversion",wc:"Working capital impact",net:"Net change in cash",end:"Ending cash",
+  ofE:p=>`${p} of EBITDA`,margin:p=>`margin ${p}`,vsB:b=>`benchmark ${b}`,ofRev:p=>`${p} of revenue`,min:m=>`minimum ${m}`,noE:"enter EBITDA"},
+ wf:["Opening cash","Cash earnings","Working capital","Capex","Other investing","Financing","Ending cash"],
+ wfShort:["Open","Earn.","WC","Capex","Inv.","Fin.","End"],
+ lg:{tot:"Cash balance",up:"Inflow",down:"Outflow",min:"Minimum cash"},
+ v:{label:"Verdict",sev:["on track","watch","critical"],
+  low:"Ending cash is below the minimum",lowP:(e,g,m)=>`Ending cash of ${e} is ${g} below the ${m} minimum. The plan needs more cash from operations, less capex or new financing.`,
+  neg:"Free cash flow is negative",negP:(f,c)=>`The business consumed ${f} after capex${c}.`,negFin:f=>`; financing added ${f}`,
+  conv:g=>`Cash conversion is ${g} below the benchmark`,convP:(c,b,u)=>`Free cash flow is ${c} of EBITDA against a ${b} benchmark. Reaching the benchmark would add about ${u} of free cash flow a year.`,
+  ok:"Cash generation is on track",okP:(c,b)=>`Free cash flow is ${c} of EBITDA against a ${b} benchmark. Next: decide how much goes to debt, growth capex and owners.`,
+  okP2:(f,p)=>`Free cash flow is ${f} (${p} of revenue). Enter EBITDA to compare cash conversion with the benchmark.`,
+  wcAbs:(a,p)=>`Working capital absorbed ${a} (${p} of revenue).`,wcRel:(a)=>`Working capital released ${a}.`,
+  capLow:x=>`Capex is ${x} of D&A: the asset base may be underfunded.`,capOk:x=>`Capex is ${x} of D&A.`,
+  ocf:p=>`Operating cash flow is ${p} of EBITDA.`,
+  finOut:a=>`Debt repayment, leases and distributions took ${a} net of new financing.`,finIn:a=>`Financing added ${a}.`,
+  head:a=>`Ending cash is ${a} above the minimum.`,
+  levers:"Levers",
+  Lwc:["Collect overdue receivables and tighten credit terms.","Cut slow-moving inventory and reset reorder points.","Extend supplier payment terms to industry norms."],
+  Lcap:["Rank capex projects by payback and defer the weakest.","Sell idle equipment and surplus property.","Align distributions and debt repayment with free cash flow."],
+  cta:"<strong>Want a cash review?</strong> DeXM finds the cash tied up in working capital and capex and builds the plan to release it in 2 weeks. info@dexm-m.com"},
+ st:{tpl:"Template ready to save",xlsx:"Excel file ready to save",pdf:"PDF ready to save",saved:"File saved",declined:"Save cancelled",
+  noDl:"Downloads are not available in this view. Open the page from its link in a browser.",fail:"Could not create the file. Try again.",loading:"Loading module…",
+  imported:(n,m,s,mo)=>`Imported ${n} line items${m?`, added ${m} new lines`:""}${s?`, settings: ${s}`:""}${mo?". Monthly columns were added up to annual totals":""}.`,unrec:l=>` Not recognized: ${l}.`,
+  noData:"Could not find any amounts. Use one column of annual amounts next to the line items, or 12 monthly columns. Download the template to see the format.",cleared:"Table cleared",readFail:"Could not read the file. Check that it is .xlsx, .xls or .csv."},
+ sheetTitle:"Annual Cash Flow Statement",prepared:"Prepared",chartAria:"Cash waterfall from opening to ending cash",
+ lines:{ni:"Net income",da:"Depreciation and amortization",noncash:"Other non-cash items",ar:"(Increase) / decrease in receivables",invt:"(Increase) / decrease in inventory",ap:"Increase / (decrease) in payables",owc:"Other working capital changes",
+  capexM:"Capital expenditures, maintenance",capexG:"Capital expenditures, growth",sale:"Proceeds from asset sales",acq:"Acquisitions",
+  debtIn:"New borrowings",debtOut:"Debt principal repayment",equity:"Equity raised",divs:"Dividends and distributions",lease:"Lease principal payments"}};
+const SECS=["op","invest","fin"];
+const BUILT=[["ni","op"],["da","op"],["noncash","op"],["ar","op"],["invt","op"],["ap","op"],["owc","op"],["capexM","invest"],["capexG","invest"],["sale","invest"],["acq","invest"],["debtIn","fin"],["debtOut","fin"],["equity","fin"],["divs","fin"],["lease","fin"]];
+const WC=["ar","invt","ap","owc"],CAPEX=["capexM","capexG"];
+// lines that are always outflows / inflows: a positive number typed into an outflow line is stored as negative
+const OUT=new Set(["capexM","capexG","acq","debtOut","divs","lease"]),IN=new Set(["da","sale","debtIn","equity"]);
+const norm=(id,v)=>OUT.has(id)?-Math.abs(v):IN.has(id)?Math.abs(v):v;
+const ALIAS=[
+ ["capexG",/(growth capex|expansion capex|growth capital)/i],
+ ["capexM",/(maintenance capex|capital expend|capex|purchase[s]? of (property|pp&e|plant|equipment|fixed assets)|pp&e)/i],
+ ["noncash",/(non-?cash|stock[- ]based|share[- ]based|impairment|deferred tax|provision|(gain|loss) on)/i],
+ ["da",/(depreciation|amortization|\bd&a\b)/i],
+ ["ni",/(net income|net profit|net earnings|profit for the (year|period)|net loss)/i],
+ ["ar",/(receivable|debtors)/i],
+ ["invt",/(inventor|\bstock\b)/i],
+ ["ap",/(payable|creditors)/i],
+ ["owc",/(working capital|accrued|accrual|prepaid|other current|deferred revenue)/i],
+ ["sale",/(sale of (assets|property|equipment)|proceeds from (the )?(sale|disposal)|disposal)/i],
+ ["acq",/(acquisition|purchase of (a )?business)/i],
+ ["lease",/(lease)/i],
+ ["debtIn",/(proceeds from (debt|borrow|loan|notes)|new borrowing|borrowings|debt drawn|loan drawn|drawdown)/i],
+ ["debtOut",/(repayment|repaid|principal)/i],
+ ["divs",/(dividend|distribution)/i],
+ ["equity",/(equity|issu(e|ance) of (shares|stock)|capital contribution)/i]];
+const SEC_RE=[["op",/(operating activit|from operations)/i],["invest",/(investing)/i],["fin",/(financing)/i]];
+const CALC_RE=/(^total|net cash|net change|net increase|net decrease|cash at|ending cash|closing cash|free cash|conversion|ebitda|benchmark|^capital expenditures$|working capital impact|after debt)/i;
+const SET_RE=[["bench",/(conversion bench)/i],["minCash",/(minimum cash)/i],["begin",/(opening cash|beginning cash|cash at (the )?beginning)/i],["ebitda",/^ebitda/i],["rev",/^(net revenue|revenue|net sales|sales)/i],["year",/(fiscal year|^year$)/i],["company",/^company/i],["units",/^units/i]];
+const ALL_LABELS={};Object.entries(T.lines).forEach(([k,v])=>ALL_LABELS[v.toLowerCase()]=k);
+const MONTH_RE=[/^jan/i,/^feb/i,/^mar/i,/^apr/i,/^may/i,/^jun/i,/^jul/i,/^aug/i,/^sep/i,/^oct/i,/^nov/i,/^dec/i];
+const PER_RE=/^(month|mon|m|p|period)\.?\s*(\d{1,2})\b/i;
+const AMT_RE=/^((fy|fiscal year)\s*'?\d{2,4}|fy|fy total|total|total year|amount|annual|annual total|year|full year|\d{4})$/i;
+
+const thisYear=()=>new Date().getFullYear();
+function blankModel(){return{settings:{company:"",year:thisYear(),units:T.unitsDef,rev:0,ebitda:0,begin:0,minCash:0,bench:45},lines:BUILT.map(([id,sec])=>({id,sec,v:0}))}}
+function sampleModel(){const m=blankModel();Object.assign(m.settings,{company:T.companyDef,rev:30179,ebitda:3754,begin:1200,minCash:1000,bench:40});
+  const V={ni:1867,da:840,noncash:60,ar:-350,invt:-420,ap:180,owc:-40,capexM:-600,capexG:-400,sale:50,acq:0,debtIn:0,debtOut:-500,equity:0,divs:-300,lease:-120};
+  m.lines.forEach(l=>l.v=V[l.id]);return m}
+const labelOf=l=>l.id?T.lines[l.id]:(l.label||T.newLine);
+
+function compute(m){const S=m.settings;
+  const sum=sec=>m.lines.filter(l=>l.sec===sec).reduce((a,l)=>a+(+l.v||0),0);
+  const val=id=>m.lines.filter(l=>l.id===id).reduce((a,l)=>a+(+l.v||0),0);
+  const ids=a=>a.reduce((s,id)=>s+val(id),0);
+  const rev=+S.rev||0,ebitda=+S.ebitda||0,begin=+S.begin||0,minCash=+S.minCash||0,bench=+S.bench||0;
+  const cfo=sum("op"),cfi=sum("invest"),cff=sum("fin"),net=cfo+cfi+cff,end=begin+net;
+  const wc=ids(WC),capex=ids(CAPEX),fcf=cfo+capex,da=val("da");
+  const P=x=>rev?x/rev*100:null;
+  const conv=ebitda>0?fcf/ebitda*100:null,ocf=ebitda>0?cfo/ebitda*100:null;
+  return{rev,ebitda,begin,minCash,bench,cfo,cfi,cff,net,end,wc,capex,fcf,da,conv,ocf,
+    earn:cfo-wc,othInv:cfi-capex,fcfa:fcf+val("debtOut")+val("lease"),capda:da>0?-capex/da:null,
+    upside:conv!=null?Math.max(0,bench/100*ebitda-fcf):0,P,
+    any:m.lines.some(l=>+l.v)}
+}
+
+function parseNum(x){if(typeof x==="number")return isFinite(x)?x:null;if(x==null)return null;
+  let s=String(x).trim().replace(/[\s $€£₽]/g,"");if(!s||s==="-"||s==="—")return null;
+  let neg=false;if(/^\(.*\)$/.test(s)){neg=true;s=s.slice(1,-1)}
+  if(/^[−–]/.test(s)){neg=!neg;s=s.slice(1)}
+  if(s.includes(",")&&s.includes("."))s=s.lastIndexOf(",")>s.lastIndexOf(".")?s.replace(/\./g,"").replace(",","."):s.replace(/,/g,"");
+  else if(s.includes(","))s=/,\d{3}$/.test(s)&&!/,\d{3},?\d{1,2}$/.test(s)?s.replace(/,/g,""):s.replace(",",".");
+  const n=parseFloat(s);return isFinite(n)?(neg?-n:n):null}
+
+function perCell(c){
+  if(c instanceof Date&&!isNaN(c))return{m:c.getMonth(),y:c.getFullYear()};
+  const t=String(c==null?"":c).trim();if(!t)return null;
+  let mm=t.match(PER_RE);if(mm){const n=+mm[2];return n>=1&&n<=12?{n}:null}
+  mm=t.match(/^(\d{4})-(\d{2})/);if(mm)return{m:+mm[2]-1,y:+mm[1]};
+  for(let i=0;i<12;i++)if(MONTH_RE[i].test(t)){const y=t.match(/(\d{4})/);return{m:i,y:y?+y[1]:null}}
+  return null}
+
+// Reads an annual sheet (one amount column) or 12 monthly columns (added up)
+function importAOA(rows){
+  const txt=c=>c==null?"":String(c).trim();
+  let hdr=-1,cols=null,monthly=false,year=null;
+  for(let r=0;r<Math.min(rows.length,60)&&hdr<0;r++){const row=rows[r]||[];
+    const hits=[];row.forEach((c,ci)=>{const p=perCell(c);if(p)hits.push([ci,p])});
+    if(hits.length>=6){hdr=r;monthly=true;cols=hits.slice(0,12).map(h=>h[0]);const f=hits.find(h=>h[1].y);if(f)year=f[1].y;break}
+    row.forEach((c,ci)=>{if(hdr>=0||typeof c!=="string")return;const t=c.trim();if(AMT_RE.test(t)&&!/%/.test(t)){hdr=r;cols=[ci];const y=t.match(/(\d{4})/);if(y)year=+y[1]}})}
+  const model=blankModel();model.settings.units="";const found=[];
+  if(year){model.settings.year=year;found.push("year")}
+  let curSec=null,n=0,added=0;const unrec=[],hit=new Set();
+  const secOf=t=>{for(const [k,re] of SEC_RE)if(re.test(t))return k;return null};
+  const amountOf=(row,lastLabelCol)=>{if(cols)return cols.reduce((a,ci)=>{const v=parseNum(row[ci]);return v==null?a:(a??0)+v},null);
+    for(let ci=lastLabelCol+1;ci<row.length;ci++){const v=parseNum(row[ci]);if(v!=null)return v}return null};
+  for(let r=0;r<rows.length;r++){if(r===hdr)continue;const row=rows[r]||[];
+    const firstNum=cols?Math.min(...cols):row.findIndex(c=>typeof c==="number"||(parseNum(c)!=null&&!/[a-z]/i.test(txt(c))));
+    const left=row.slice(0,firstNum<0?row.length:firstNum).map(txt);const nonEmpty=left.filter(Boolean);if(!nonEmpty.length)continue;
+    let li=left.length-1;while(li>=0&&!left[li])li--;const label=left[li];const secText=nonEmpty.length>1?nonEmpty[0]:"";
+    if(left.some(t=>/^calc/i.test(t)))continue;
+    // settings: before the header row, or an opening-cash row anywhere
+    const setK=SET_RE.find(([k,re])=>re.test(label));
+    if(setK&&!found.includes(setK[0])&&(hdr<0||r<hdr||setK[0]==="begin")&&!ALL_LABELS[label.toLowerCase()]){const k=setK[0];
+      let v=null;if(hdr>=0&&r>hdr&&cols)v=amountOf(row,li);else{const at=row.findIndex(c=>txt(c)===label);const rest=row.slice(at+1).filter(x=>txt(x)!=="");if(rest.length)v=rest[0]}
+      if(v!=null&&v!==""){if(k==="company"||k==="units")v=txt(v);else{v=parseNum(v);if(v!=null&&k==="bench"&&Math.abs(v)<=1&&v!==0)v*=100}
+        if(v!=null&&v!==""){model.settings[k]=v;found.push(k)}}continue}
+    if(hdr>=0&&r<hdr)continue;
+    const amt=amountOf(row,li);
+    if(amt==null){const s=secOf(label);if(s)curSec=s;continue}
+    if(CALC_RE.test(label)&&!ALL_LABELS[label.toLowerCase()])continue;
+    const sec=(secText&&secOf(secText))||curSec;
+    let id=ALL_LABELS[label.toLowerCase()];
+    if(!id)for(const [k,re] of ALIAS)if(re.test(label)){id=k;break}
+    if(id){const line=model.lines.find(l=>l.id===id);line.v+=norm(id,amt);if(!hit.has(id)){hit.add(id);n++}}
+    else if(sec){model.lines.push({id:null,sec,label,v:amt});added++}
+    else if(amt)unrec.push(label)}
+  if(!n&&!added)return{error:"noData"};
+  if(!model.settings.units)model.settings.units=T.unitsDef;
+  model.lines.sort((a,b)=>SECS.indexOf(a.sec)-SECS.indexOf(b.sec));
+  return{model,n,added,unrec,settings:found,monthly}
+}
+
+// Excel export: rows + formulas. Columns: A section, B line item, C FY amount, D % of revenue
+function exportPlan(m,blank){
+  const rows=[],F=[];const s=m.settings;const S={};
+  const push=(r,fs)=>{rows.push(r);if(fs)F.push([rows.length,fs]);return rows.length};
+  push([T.sheetTitle]);push([T.company,"",blank?"":s.company]);push([T.units,"",s.units]);push([T.year,"",+s.year||thisYear()]);
+  S.rev=push([T.rev,"",blank?0:+s.rev||0]);S.ebitda=push([T.ebitda,"",blank?0:+s.ebitda||0]);S.begin=push([T.begin,"",blank?0:+s.begin||0]);
+  S.min=push([T.minCash,"",blank?0:+s.minCash||0]);push([T.bench,"",+s.bench||0]);push([]);
+  push([T.section,T.line,T.fy(s.year||thisYear()),T.pcol]);
+  const PCT=r=>[3,`IF(AND(ISNUMBER(C${r}),C${S.rev}<>0),C${r}/C${S.rev},"")`,"pct"];
+  const calc=(label,fx,opt={})=>{const r=rows.length+1;const fs=[];if(fx)fs.push([2,fx,opt.kind||"num"]);if(opt.pct)fs.push([3,opt.pct,"pct"]);else if(!opt.noPct)fs.push(PCT(r));push([T.calc,label,null,null],fs);return r};
+  const L={op:[],invest:[],fin:[]},byId={},R={};
+  const sum=list=>list.length?list.map(r=>`C${r}`).join("+"):"0";
+  SECS.forEach(sec=>{push([T.sec[sec]]);
+    m.lines.filter(l=>l.sec===sec).forEach(l=>{const r=rows.length+1;push([T.sec[sec],labelOf(l),blank?0:(+l.v||0),null],[PCT(r)]);L[sec].push(r);if(l.id)(byId[l.id]=byId[l.id]||[]).push(r)});
+    if(sec==="op")R.cfo=calc(T.r.cfo,sum(L.op));
+    if(sec==="invest")R.cfi=calc(T.r.cfi,sum(L.invest));
+    if(sec==="fin")R.cff=calc(T.r.cff,sum(L.fin))});
+  const ids=a=>sum(a.flatMap(id=>byId[id]||[]));
+  push([T.sec.cash]);
+  R.net=calc(T.r.net,`C${R.cfo}+C${R.cfi}+C${R.cff}`);R.open=calc(T.r.open,`C${S.begin}`);calc(T.r.end,`C${R.open}+C${R.net}`);
+  push([T.sec.fcf]);
+  calc(T.r.cfo2,`C${R.cfo}`);R.capex=calc(T.r.capex,ids(CAPEX));R.fcf=calc(T.r.fcf,`C${R.cfo}+C${R.capex}`);
+  calc(T.r.conv,null,{pct:`IF(C${S.ebitda}<=0,"",C${R.fcf}/C${S.ebitda})`});
+  calc(T.r.ocf,null,{pct:`IF(C${S.ebitda}<=0,"",C${R.cfo}/C${S.ebitda})`});
+  calc(T.r.wc,ids(WC));
+  calc(T.r.fcfa,`C${R.fcf}+${ids(["debtOut","lease"])}`);
+  calc(T.r.capda,`IF(${ids(["da"])}<=0,"n/a",-C${R.capex}/(${ids(["da"])}))`,{kind:"x",noPct:true});
+  return{rows,f:F,firstLine:12};
+}
+</script>
+<script>
+if(typeof document!=="undefined"){(function(){
+const KEY="dexm-cf-annual-v1";
+let model,isSample=false;
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.lines){model=s}}catch(e){}
+if(!model){model=sampleModel();isSample=true}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(model))}catch(e){}};
+const loc="en-US";
+const nf=new Intl.NumberFormat(loc,{maximumFractionDigits:0}),pf=new Intl.NumberFormat(loc,{minimumFractionDigits:1,maximumFractionDigits:1});
+const fmt=v=>{if(v==null||!isFinite(v))return "—";v=Math.round(v);if(!v)return "0";return v<0?`(${nf.format(-v)})`:nf.format(v)};
+const pct=v=>v==null||!isFinite(v)?"—":`${pf.format(Math.abs(v)<.05?0:v)}%`;
+const pp=v=>`${pf.format(v)} pts`;
+const xf=v=>v==null||!isFinite(v)?"—":`${pf.format(v)}x`;
+const fmtU=v=>`${fmt(v)} ${model.settings.units||""}`.trim();
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function status(msg,cls){const s=$("status");s.textContent=msg||"";s.className="status"+(cls?" "+cls:"")}
+
+function texts(){$("t-brand").textContent=T.brand;$("t-h1").textContent=T.h1;
+  $("t-import").textContent=T.imp;$("btnTemplate").textContent=T.tpl;$("btnXlsx").textContent=T.xlsx;$("btnPdf").textContent=T.pdf;$("btnReset").textContent=T.reset;
+  $("sample").textContent=T.sample;$("chart").setAttribute("aria-label",T.chartAria);
+  $("legend").innerHTML=`<span><i style="background:var(--accent)"></i>${T.lg.tot}</span><span><i style="background:var(--good)"></i>${T.lg.up}</span><span><i style="background:var(--bad)"></i>${T.lg.down}</span><span><i style="background:var(--warn);height:2px"></i>${T.lg.min}</span>`}
+
+const NUMSET=["year","rev","ebitda","begin","minCash","bench"];
+function renderSettings(){const s=model.settings;
+  const f=(k,lab,type,cls)=>`<div class="field"><label class="label" for="set-${k}">${lab}</label><input id="set-${k}" data-k="${k}" type="${type}" ${cls?`class="${cls}" inputmode="decimal" step="any"`:""} value="${esc(s[k]??"")}"></div>`;
+  $("settings").innerHTML=f("company",T.company,"text")+f("year",T.year,"number","num")+f("units",T.units,"text")+f("rev",T.rev,"number","num")+f("ebitda",T.ebitda,"number","num")+f("begin",T.begin,"number","num")+f("minCash",T.minCash,"number","num")+f("bench",T.bench,"number","num")}
+$("settings").addEventListener("input",e=>{const k=e.target.dataset.k;if(!k)return;
+  model.settings[k]=NUMSET.includes(k)?(parseFloat(e.target.value)||0):e.target.value;touch();
+  if(k==="year"||k==="units")renderGrid();else update()});
+
+function renderGrid(){
+  const s=model.settings;let h=`<thead><tr><th class="lab">${T.line}</th><th>${T.fy(s.year||thisYear())}<small>${esc(s.units||"")} · ${T.sign}</small></th><th>${T.pcol}</th></tr></thead><tbody>`;
+  const calcRow=(key,cls)=>`<tr class="${cls||"sub"}"><td class="lab">${T.r[key]}</td><td class="c" id="c-${key}"></td><td class="c p" id="p-${key}"></td></tr>`;
+  const secRow=lab=>`<tr class="sec"><td class="lab">${lab}</td><td colspan="2"></td></tr>`;
+  SECS.forEach(sec=>{h+=secRow(T.sec[sec]);
+    model.lines.forEach((l,li)=>{if(l.sec!==sec)return;
+      h+=`<tr><td class="lab"><div class="row">${l.id?`<span>${esc(labelOf(l))}</span>`:`<input id="lab-${li}" data-li="${li}" class="labin" value="${esc(l.label||"")}" placeholder="${T.newLine}"><button class="del" data-del="${li}" aria-label="${T.del}">×</button>`}</div></td>`;
+      h+=`<td class="v"><input type="number" step="any" inputmode="decimal" id="in-${li}" data-li="${li}" data-amt="1" value="${l.v===0?"":l.v}" placeholder="0" aria-label="${esc(labelOf(l))}, ${T.fy(s.year)}"></td><td class="c p" id="lp-${li}"></td></tr>`});
+    h+=`<tr class="add"><td class="lab"><button data-add="${sec}">${T.add}</button></td><td colspan="2"></td></tr>`;
+    h+=calcRow({op:"cfo",invest:"cfi",fin:"cff"}[sec],sec==="op"?"key":"sub")});
+  h+=secRow(T.sec.cash)+calcRow("net")+calcRow("open","be")+calcRow("end","key");
+  h+=secRow(T.sec.fcf)+calcRow("cfo2","be")+calcRow("capex","be")+calcRow("fcf","key")+["conv","ocf","wc","fcfa","capda"].map(k=>calcRow(k,"be")).join("");
+  $("grid").innerHTML=h+"</tbody>";update()}
+
+$("grid").addEventListener("input",e=>{const t=e.target;
+  if(t.dataset.amt){model.lines[+t.dataset.li].v=parseFloat(t.value)||0;touch();update()}
+  else if(t.classList.contains("labin")){model.lines[+t.dataset.li].label=t.value;touch()}});
+// outflow lines: a positive number becomes negative once the field is left
+$("grid").addEventListener("change",e=>{const t=e.target;if(!t.dataset.amt)return;const l=model.lines[+t.dataset.li];if(!l.id)return;
+  const v=norm(l.id,+l.v||0);if(v!==l.v){l.v=v;t.value=v===0?"":v;save();update()}});
+$("grid").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const a=b.dataset.add,d=b.dataset.del;
+  if(a){const idx=model.lines.map(l=>l.sec).lastIndexOf(a);model.lines.splice(idx+1,0,{id:null,sec:a,label:"",v:0});touch();renderGrid();const inp=$(`lab-${idx+1}`);inp&&inp.focus()}
+  if(d!=null){model.lines.splice(+d,1);touch();renderGrid()}});
+$("grid").addEventListener("paste",e=>{const t=e.target;if(!t.dataset.amt)return;const txt=e.clipboardData?e.clipboardData.getData("text"):"";
+  if(!/\n/.test(txt.trim()))return;e.preventDefault();const li0=+t.dataset.li;
+  txt.replace(/\r/g,"").split("\n").filter(r=>r!=="").forEach((r,ri)=>{const l=model.lines[li0+ri];if(!l)return;const cells=r.split("\t");const v=parseNum(cells[cells.length-1]);l.v=v==null?0:(l.id?norm(l.id,v):v)});
+  touch();renderGrid()});
+function touch(){if(isSample){isSample=false;$("sample").hidden=true}save()}
+
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function niceStep(r){const p=Math.pow(10,Math.floor(Math.log10(Math.max(r,1e-9))));const n=r/p;return(n<1.5?1:n<3?2:n<7?5:10)*p}
+// Cash waterfall: opening cash, the flows, ending cash, with the minimum cash line
+function drawChart(cv,c,pal,wpx,hpx,scale){
+  const dpr=scale||window.devicePixelRatio||1;const w=wpx||cv.clientWidth||600,hgt=hpx||cv.clientHeight||260;
+  cv.width=w*dpr;cv.height=hgt*dpr;const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,hgt);
+  const steps=[c.earn,c.wc,c.capex,c.othInv,c.cff];const bars=[];let run=c.begin;
+  bars.push({a:0,b:run,tot:1,v:run});steps.forEach(v=>{bars.push({a:run,b:run+v,v});run+=v});bars.push({a:0,b:run,tot:1,v:run});
+  const narrow=w<520;const padL=60,padR=12,padT=18,padB=narrow?40:34,H=hgt-padT-padB,Wd=w-padL-padR;
+  let lo=Math.min(0,...bars.map(x=>Math.min(x.a,x.b))),hi=Math.max(c.minCash,1,...bars.map(x=>Math.max(x.a,x.b)));const sp=hi-lo;hi+=sp*.08;if(lo<0)lo-=sp*.08;
+  const Y=v=>padT+(hi-v)/(hi-lo)*H,bw=Wd/bars.length,X=i=>padL+bw*i;
+  g.font=`11px ${pal.mono}`;g.lineWidth=1;g.textBaseline="middle";g.textAlign="right";
+  const st=niceStep((hi-lo)/4);for(let t=Math.ceil(lo/st)*st;t<=hi+1e-9;t+=st){g.strokeStyle=pal.line;g.beginPath();g.moveTo(padL,Y(t)+.5);g.lineTo(w-padR,Y(t)+.5);g.stroke();g.fillStyle=pal.muted;g.fillText(fmt(t),padL-6,Y(t))}
+  bars.forEach((x,i)=>{const col=x.tot?pal.accent:x.v>=0?pal.good:pal.bad;g.fillStyle=col;g.globalAlpha=x.tot?.85:.6;
+    const y0=Y(Math.max(x.a,x.b)),y1=Y(Math.min(x.a,x.b));g.fillRect(X(i)+bw*.18,y0,bw*.64,Math.max(1,y1-y0));g.globalAlpha=1;
+    if(i<bars.length-1){g.strokeStyle=pal.muted;g.setLineDash([2,2]);g.beginPath();g.moveTo(X(i)+bw*.82,Y(x.b)+.5);g.lineTo(X(i+1)+bw*.18,Y(x.b)+.5);g.stroke();g.setLineDash([])}
+    g.fillStyle=pal.fg;g.textAlign="center";g.textBaseline="bottom";g.font=`${narrow?9:11}px ${pal.mono}`;g.fillText(fmt(x.v),X(i)+bw/2,y0-3)});
+  if(c.minCash){g.strokeStyle=pal.warn;g.setLineDash([5,4]);g.lineWidth=1.5;g.beginPath();g.moveTo(padL,Y(c.minCash));g.lineTo(w-padR,Y(c.minCash));g.stroke();g.setLineDash([])}
+  g.fillStyle=pal.muted;g.textAlign="center";g.textBaseline="top";g.font=`${narrow?10:11}px ${pal.mono}`;
+  const fitsAll=T.wf.every(t=>t.split(" ").every(p=>g.measureText(p).width+4<=bw));
+  (fitsAll?T.wf:T.wfShort).forEach((t,i)=>{const parts=t.split(" ");if(g.measureText(t).width+4<=bw)g.fillText(t,X(i)+bw/2,hgt-padB+8);else parts.forEach((p,j)=>g.fillText(p,X(i)+bw/2,hgt-padB+6+j*12))})}
+const pagePal=()=>({fg:css("--fg"),muted:css("--muted"),line:css("--line"),good:css("--good"),bad:css("--bad"),warn:css("--warn"),accent:css("--accent"),surface:css("--surface"),mono:css("--mono")});
+
+function verdictData(c){const notes=[];
+  if(c.wc<0)notes.push(T.v.wcAbs(fmtU(-c.wc),pct(c.P(-c.wc))));else if(c.wc>0)notes.push(T.v.wcRel(fmtU(c.wc)));
+  if(c.capda!=null)notes.push(c.capda<.8?T.v.capLow(xf(c.capda)):T.v.capOk(xf(c.capda)));
+  if(c.ocf!=null)notes.push(T.v.ocf(pct(c.ocf)));
+  if(c.cff<0)notes.push(T.v.finOut(fmtU(-c.cff)));else if(c.cff>0)notes.push(T.v.finIn(fmtU(c.cff)));
+  if(c.minCash&&c.end>=c.minCash)notes.push(T.v.head(fmtU(c.end-c.minCash)));
+  const levers=c.wc<0&&-c.wc>=-c.capex*.5?T.v.Lwc:T.v.Lcap;
+  if(!c.any)return{sev:0,h:"—",p:"",notes:[],levers:[]};
+  if(c.minCash&&c.end<c.minCash)return{sev:2,h:T.v.low,p:T.v.lowP(fmtU(c.end),fmtU(c.minCash-c.end),fmtU(c.minCash)),notes,levers};
+  if(c.fcf<0)return{sev:2,h:T.v.neg,p:T.v.negP(fmtU(-c.fcf),c.cff>0?T.v.negFin(fmtU(c.cff)):""),notes,levers};
+  if(c.conv!=null&&c.conv<c.bench){const gap=c.bench-c.conv;return{sev:gap>15?2:1,h:T.v.conv(pp(gap)),p:T.v.convP(pct(c.conv),pct(c.bench),fmtU(c.upside)),notes,levers}}
+  return{sev:0,h:T.v.ok,p:c.conv!=null?T.v.okP(pct(c.conv),pct(c.bench)):T.v.okP2(fmtU(c.fcf),pct(c.P(c.fcf))),notes,levers:[]}}
+function kpiData(c){const u=model.settings.units;return[
+  [T.k.cfo,fmt(c.cfo),c.ocf!=null?T.k.ofE(pct(c.ocf)):u,c.cfo<0],
+  [T.k.fcf,fmt(c.fcf),c.rev?T.k.margin(pct(c.P(c.fcf))):u,c.fcf<0],
+  [T.k.conv,pct(c.conv),c.conv!=null?T.k.vsB(pct(c.bench)):T.k.noE,c.conv!=null&&c.conv<c.bench],
+  [T.k.wc,fmt(c.wc),c.rev?T.k.ofRev(pct(c.P(c.wc))):u,c.wc<0],
+  [T.k.net,fmt(c.net),u,c.net<0],
+  [T.k.end,fmt(c.end),c.minCash?T.k.min(fmt(c.minCash)):u,c.minCash&&c.end<c.minCash]]}
+
+function update(){const c=compute(model);
+  const set=(id,v,kind)=>{const el=$(id);if(!el)return;el.textContent=kind==="pct"?pct(v):kind==="x"?xf(v):v==null?"":fmt(v);el.classList.toggle("neg",v!=null&&v<0)};
+  const V={cfo:c.cfo,cfi:c.cfi,cff:c.cff,net:c.net,open:c.begin,end:c.end,cfo2:c.cfo,capex:c.capex,fcf:c.fcf,wc:c.wc,fcfa:c.fcfa};
+  Object.entries(V).forEach(([k,v])=>{set(`c-${k}`,v);set(`p-${k}`,c.P(v),"pct")});
+  set("c-conv",null);set("p-conv",c.conv,"pct");set("c-ocf",null);set("p-ocf",c.ocf,"pct");set("c-capda",c.capda,"x");set("p-capda",null);
+  $("c-end").classList.toggle("below",!!c.minCash&&c.end<c.minCash);$("p-conv").classList.toggle("below",c.conv!=null&&c.conv<c.bench);
+  $("c-capda").classList.toggle("below",c.capda!=null&&c.capda<.8);
+  model.lines.forEach((l,li)=>set(`lp-${li}`,c.P(+l.v||0),"pct"));
+  $("kpis").innerHTML=kpiData(c).map(([l,v,s,bad])=>`<div class="kpi${bad?" bad":""}"><span class="label">${l}</span><b>${v}</b><small>${esc(s||"")}</small></div>`).join("");
+  drawChart($("chart"),c,pagePal());
+  const v=verdictData(c);const sevC=["var(--good)","var(--warn)","var(--bad)"][v.sev];
+  $("verdict").innerHTML=`<span class="label">${T.v.label}</span> <span class="sev" style="background:${sevC}">${T.v.sev[v.sev]}</span><h2>${v.h}</h2><p>${v.p}</p>${v.notes.length?`<ul>${v.notes.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}${v.levers.length?`<span class="label">${T.v.levers}</span><ul>${v.levers.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}<p class="cta">${T.v.cta}</p>`}
+const redraw=()=>drawChart($("chart"),compute(model),pagePal());
+window.addEventListener("resize",redraw);
+const mq=window.matchMedia("(prefers-color-scheme: dark)");mq.addEventListener&&mq.addEventListener("change",redraw);
+new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+const LIBS={xlsx:"https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",jspdf:"https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"};
+const loaded={};function lib(k){return loaded[k]||(loaded[k]=new Promise((res,rej)=>{const s=document.createElement("script");s.src=LIBS[k];s.onload=res;s.onerror=()=>{loaded[k]=null;rej(new Error("load"))};document.head.appendChild(s)}))}
+const browserDl={save:async({filename,data})=>{const url=URL.createObjectURL(new Blob([data]));const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);return{status:"saved"}}};
+let dl=null;const dlReady=window.claude&&window.claude.use?window.claude.use("downloads").then(d=>{dl=d||browserDl}).catch(()=>{dl=browserDl}):(dl=browserDl,Promise.resolve());
+async function offer(filename,data,okMsg){await dlReady;if(!dl){status(T.st.noDl,"err");return}
+  status(okMsg);try{await dl.save({filename,data});status(T.st.saved,"ok")}
+  catch(e){const code=e&&e.code;status(code==="declined"?T.st.declined:code==="unavailable"||code==="not_granted"?T.st.noDl:T.st.fail,code==="declined"?"":"err")}}
+const fname=ext=>`${(model.settings.company||"DeXM").replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-|-$/g,"")||"DeXM"}-Cash-Flow-FY${model.settings.year||""}.${ext}`;
+
+async function buildXlsx(blank){status(T.st.loading);await lib("xlsx");
+  const m=blank?blankModel():model;const {rows,f}=exportPlan(m,blank);
+  const ws=XLSX.utils.aoa_to_sheet(rows);const Z={num:"#,##0;(#,##0)",pct:"0.0%",x:'0.0"x"'};
+  f.forEach(([r,list])=>list.forEach(([ci,fx,kind])=>{ws[XLSX.utils.encode_cell({r:r-1,c:ci})]={t:"n",f:fx,z:Z[kind]}}));
+  rows.forEach((row,ri)=>{const cell=ws[XLSX.utils.encode_cell({r:ri,c:2})];if(cell&&cell.t==="n"&&!cell.f&&ri>3)cell.z=Z.num});
+  ws["!cols"]=[{wch:22},{wch:48},{wch:14},{wch:14}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Cash Flow");
+  return XLSX.write(wb,{bookType:"xlsx",type:"array"})}
+$("btnTemplate").onclick=async()=>{try{const b=await buildXlsx(true);await offer("DeXM-Annual-Cash-Flow-template.xlsx",new Uint8Array(b),T.st.tpl)}catch(e){console.error(e);status(T.st.fail,"err")}};
+$("btnXlsx").onclick=async()=>{try{const b=await buildXlsx(false);await offer(fname("xlsx"),new Uint8Array(b),T.st.xlsx)}catch(e){console.error(e);status(T.st.fail,"err")}};
+
+$("importFile").addEventListener("change",async e=>{const file=e.target.files[0];e.target.value="";if(!file)return;
+  try{status(T.st.loading);await lib("xlsx");const wb=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:true});
+    let best=null;for(const name of wb.SheetNames){const r=importAOA(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null}));if(!r.error){best=r;break}}
+    if(!best){status(T.st.noData,"err");return}
+    model=best.model;isSample=false;$("sample").hidden=true;save();renderSettings();renderGrid();
+    const setNames=best.settings.map(k=>({bench:T.bench,minCash:T.minCash,begin:T.begin,ebitda:T.ebitda,rev:T.rev,year:T.year,company:T.company,units:T.units}[k])).join(", ");
+    status(T.st.imported(best.n,best.added,setNames,best.monthly)+(best.unrec.length?T.st.unrec(best.unrec.slice(0,6).join("; ")):""),best.unrec.length?"":"ok")}
+  catch(err){console.error(err);status(T.st.readFail,"err")}});
+$("btnReset").onclick=()=>{model=blankModel();isSample=false;$("sample").hidden=true;save();renderSettings();renderGrid();status(T.st.cleared,"ok")};
+
+function reportPages(){
+  const c=compute(model),s=model.settings,v=verdictData(c),PW=1500,PH=1060,SC=2,M=50,CW=PW-2*M;
+  const F={sans:'"Inter","Segoe UI",Arial,sans-serif',mono:'"IBM Plex Mono",Menlo,monospace',disp:'"Source Serif 4",Georgia,serif'};
+  const P={fg:"#0f1a2b",muted:"#5a6476",line:"#dcdad2",band:"#f3f1eb",acc:"#1d3a63",accSoft:"#f8f1e2",bad:"#b23f2a",good:"#2e7a4e",warn:"#b07418"};
+  const pages=[];
+  const newPage=()=>{const cv=document.createElement("canvas");cv.width=PW*SC;cv.height=PH*SC;const g=cv.getContext("2d");g.scale(SC,SC);g.fillStyle="#fff";g.fillRect(0,0,PW,PH);pages.push(cv);return g};
+  const foot=(g,n)=>{g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.textAlign="left";g.fillText("DeXM Management · info@dexm-m.com · +1 917 523 0461 · dexm-m.com",M,PH-28);g.textAlign="right";g.fillText(String(n),PW-M,PH-28);g.textAlign="left"};
+  const wrap=(g,text,x,y,maxW,lh)=>{const words=String(text).replace(/<[^>]+>/g,"").split(" ");let line="";for(const w of words){const t=line?line+" "+w:w;if(g.measureText(t).width>maxW&&line){g.fillText(line,x,y);y+=lh;line=w}else line=t}if(line){g.fillText(line,x,y);y+=lh}return y};
+  const clip=(g,text,maxW)=>{text=String(text);if(g.measureText(text).width<=maxW)return text;while(text.length>1&&g.measureText(text+"…").width>maxW)text=text.slice(0,-1);return text+"…"};
+  let g=newPage(),y=M+24;
+  g.fillStyle=P.fg;g.font=`800 30px ${F.disp}`;g.fillText(T.sheetTitle,M,y);y+=28;
+  g.font=`14px ${F.sans}`;g.fillStyle=P.muted;g.fillText([s.company,`${T.units}: ${s.units||""}`,T.fy(s.year),`${T.prepared}: ${new Date().toLocaleDateString(loc)}`].filter(Boolean).join("   ·   "),M,y);y+=14;
+  g.fillStyle=P.fg;g.fillRect(M,y,CW,2);y+=22;
+  const kw=(CW-5*12)/6;kpiData(c).forEach(([l,val,sub,bad],i)=>{const x=M+i*(kw+12);g.strokeStyle=P.line;g.lineWidth=1;g.strokeRect(x+.5,y+.5,kw,78);
+    g.font=`500 11px ${F.mono}`;g.fillStyle=P.muted;g.fillText(clip(g,l.toUpperCase(),kw-20),x+10,y+20);
+    g.font=`600 24px ${F.mono}`;g.fillStyle=bad?P.bad:P.fg;g.fillText(val,x+10,y+50);g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.fillText(clip(g,sub||"",kw-20),x+10,y+68)});
+  y+=104;const vy=y;
+  g.font=`700 19px ${F.disp}`;g.fillStyle=P.fg;y=wrap(g,v.h,M+18,y+18,CW-30,24);g.font=`14px ${F.sans}`;g.fillStyle=P.muted;y=wrap(g,v.p,M+18,y+2,CW-30,20);
+  g.font=`13px ${F.sans}`;g.fillStyle=P.fg;v.notes.forEach(t=>{y=wrap(g,"•  "+t,M+18,y+2,CW-40,19)});
+  if(v.levers.length){g.font=`600 13px ${F.sans}`;g.fillText(T.v.levers,M+18,y+8);y+=28;g.font=`13px ${F.sans}`;v.levers.forEach(t=>{y=wrap(g,"•  "+t,M+18,y,CW-40,19)})}
+  g.fillStyle=[P.good,P.warn,P.bad][v.sev];g.fillRect(M,vy,5,y-vy);y+=20;
+  const ch=Math.max(220,PH-y-70),cc=document.createElement("canvas");
+  drawChart(cc,c,{fg:P.fg,muted:P.muted,line:P.line,good:P.good,bad:P.bad,warn:P.warn,accent:P.acc,surface:"#fff",mono:F.mono},CW,ch,SC);
+  g.drawImage(cc,M,y,CW,ch);y+=ch+8;
+  g.font=`12px ${F.sans}`;let lx=M;[[P.acc,T.lg.tot,10],[P.good,T.lg.up,10],[P.bad,T.lg.down,10],[P.warn,T.lg.min,2]].forEach(([col,txt,h])=>{g.fillStyle=col;g.fillRect(lx,y+4-h/2,14,h);g.fillStyle=P.muted;g.fillText(txt,lx+20,y+8);lx+=g.measureText(txt).width+48});
+  foot(g,1);
+  const rows=[];const r=(lab,val,kind,p,red,valTxt)=>rows.push({lab,val,kind,p,red,valTxt});
+  SECS.forEach(sec=>{rows.push({lab:T.sec[sec],kind:"sec"});model.lines.filter(l=>l.sec===sec).forEach(l=>r(labelOf(l),+l.v||0,"",c.P(+l.v||0)));
+    const k={op:"cfo",invest:"cfi",fin:"cff"}[sec];r(T.r[k],c[k],sec==="op"?"key":"sub",c.P(c[k]))});
+  rows.push({lab:T.sec.cash,kind:"sec"});r(T.r.net,c.net,"sub",c.P(c.net));r(T.r.open,c.begin,"",c.P(c.begin));r(T.r.end,c.end,"key",c.P(c.end));
+  rows.push({lab:T.sec.fcf,kind:"sec"});r(T.r.cfo2,c.cfo,"",c.P(c.cfo));r(T.r.capex,c.capex,"",c.P(c.capex));r(T.r.fcf,c.fcf,"key",c.P(c.fcf));
+  r(T.r.conv,null,"",c.conv,c.conv!=null&&c.conv<c.bench,"");r(T.r.ocf,null,"",c.ocf,false,"");r(T.r.wc,c.wc,"",c.P(c.wc));r(T.r.fcfa,c.fcfa,"",c.P(c.fcfa));r(T.r.capda,null,"",null,false,xf(c.capda));
+  const TW=Math.min(CW,1000),LW=TW-360,VW=180,RH=22,HH=40,top=M+40,per=Math.floor((PH-top-HH-70)/RH);
+  for(let start=0,pn=2;start<rows.length;start+=per,pn++){
+    g=newPage();g.fillStyle=P.fg;g.font=`700 18px ${F.disp}`;g.fillText(T.sheetTitle+(s.company?` · ${s.company}`:""),M,M+14);
+    g.font=`12px ${F.sans}`;g.fillStyle=P.muted;g.fillText(`${T.units}: ${s.units||""} · ${T.sign}`,M,M+32);
+    let ty=top;g.font=`500 11px ${F.mono}`;g.fillStyle=P.muted;g.textAlign="left";g.fillText(T.line.toUpperCase(),M+6,ty+24);g.textAlign="right";
+    g.fillText(T.fy(s.year).toUpperCase(),M+LW+VW-8,ty+24);g.fillText(T.pcol.toUpperCase(),M+LW+2*VW-8,ty+24);
+    g.fillStyle=P.fg;g.fillRect(M,ty+HH-1,TW,1.5);ty+=HH;
+    rows.slice(start,start+per).forEach(row=>{
+      if(row.kind==="sec"){g.fillStyle=P.band;g.fillRect(M,ty,TW,RH);g.fillStyle=P.fg;g.font=`600 12px ${F.sans}`;g.textAlign="left";g.fillText(row.lab.toUpperCase(),M+6,ty+15);ty+=RH;return}
+      if(row.kind==="key"){g.fillStyle=P.accSoft;g.fillRect(M,ty,TW,RH)}
+      const bold=row.kind==="sub"||row.kind==="key";g.fillStyle=P.fg;g.textAlign="left";g.font=`${bold?"600 ":""}12.5px ${F.sans}`;g.fillText(clip(g,row.lab,LW-12),M+6,ty+15);
+      g.textAlign="right";g.font=`${bold?"600 ":""}12px ${F.mono}`;
+      const vt=row.valTxt!=null?row.valTxt:fmt(row.val);g.fillStyle=row.val!=null&&row.val<0?P.bad:P.fg;g.fillText(vt,M+LW+VW-8,ty+15);
+      g.fillStyle=row.red?P.bad:(row.p!=null&&row.p<0?P.bad:P.muted);g.fillText(pct(row.p),M+LW+2*VW-8,ty+15);
+      g.fillStyle=P.line;g.fillRect(M,ty+RH-1,TW,1);ty+=RH});
+    g.textAlign="left";foot(g,pn)}
+  return pages}
+$("btnPdf").onclick=async()=>{try{status(T.st.loading);await lib("jspdf");if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+  const pages=reportPages();const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:"landscape",unit:"pt",format:"a4"});
+  const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+  pages.forEach((cv,i)=>{if(i)pdf.addPage();pdf.addImage(cv.toDataURL("image/jpeg",.92),"JPEG",0,0,pw,ph)});
+  await offer(fname("pdf"),pdf.output("arraybuffer"),T.st.pdf)}catch(e){console.error(e);status(T.st.fail,"err")}};
+
+texts();renderSettings();renderGrid();$("sample").hidden=!isSample;
+})()}
+
+</script>
+<script>
+// Inside the toolkit: report page height so the parent can size the frame
+if(document.documentElement.classList.contains("embed")&&window.parent!==window){let last=0;const post=()=>{const h=Math.ceil(document.body.scrollHeight);if(h!==last){last=h;parent.postMessage({dexm:"height",h},location.origin)}};
+  new ResizeObserver(post).observe(document.body);addEventListener("load",post);post()}
+</script>
+<script src="js/site-header.js"></script>
+</body></html>
