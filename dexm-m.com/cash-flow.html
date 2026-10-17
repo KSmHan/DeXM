@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
 <title>Annual Cash Flow Statement — DeXM Management</title>
-<meta name="description" content="Free annual cash flow statement template for manufacturers: operating, investing and financing cash flows, free cash flow, cash conversion of EBITDA and ending cash against your minimum. Data stays in your browser.">
+<meta name="description" content="Free annual cash flow statement template for manufacturers, direct method: cash received from customers and paid to suppliers and staff, investing and financing cash flows, free cash flow, cash conversion of EBITDA and ending cash against your minimum. Data stays in your browser.">
 <link rel="icon" href="img/dexm-mark.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -166,7 +166,7 @@ footer span{user-select:all}
 const T={brand:"DeXM Management · financial analysis",h1:"Annual Cash Flow Statement",
  imp:"Import from Excel",tpl:"Download Excel template",xlsx:"Download Excel",pdf:"Download PDF to print",reset:"Clear",
  sample:"This is a sample for a plant with about $30M in annual revenue. Select “Clear” or import your own Excel file.",
- company:"Company",year:"Fiscal year",units:"Units",rev:"Net revenue, FY",ebitda:"EBITDA, FY",begin:"Opening cash",minCash:"Minimum cash",bench:"FCF conversion benchmark, % of EBITDA",
+ company:"Company",year:"Fiscal year",units:"Units",rev:"Net revenue, FY",ebitda:"EBITDA, FY",da:"Depreciation and amortization, FY",begin:"Opening cash",minCash:"Minimum cash",bench:"FCF conversion benchmark, % of EBITDA",
  unitsDef:"$000",companyDef:"Sample: Plant",
  fy:y=>`FY ${y}`,sign:"inflow + / outflow −",pcol:"% of revenue",line:"Line item",section:"Section",
  sec:{op:"Operating activities",invest:"Investing activities",fin:"Financing activities",cash:"Cash",fcf:"Free cash flow"},
@@ -174,12 +174,12 @@ const T={brand:"DeXM Management · financial analysis",h1:"Annual Cash Flow Stat
  r:{cfo:"Net cash from operating activities",cfi:"Net cash from investing activities",cff:"Net cash from financing activities",
   net:"Net change in cash",open:"Opening cash",end:"Ending cash",
   cfo2:"Net cash from operating activities",capex:"Capital expenditures",fcf:"Free cash flow",conv:"FCF conversion (free cash flow / EBITDA)",ocf:"Operating cash flow / EBITDA",
-  wc:"Working capital impact",fcfa:"FCF after debt repayment and leases",capda:"Capex / depreciation and amortization"},
+  coll:"Cash collected from customers / net revenue",fcfa:"FCF after debt repayment and leases",capda:"Capex / depreciation and amortization"},
  calc:"Calculated",
- k:{cfo:"Cash from operations",fcf:"Free cash flow",conv:"FCF conversion",wc:"Working capital impact",net:"Net change in cash",end:"Ending cash",
-  ofE:p=>`${p} of EBITDA`,margin:p=>`margin ${p}`,vsB:b=>`benchmark ${b}`,ofRev:p=>`${p} of revenue`,min:m=>`minimum ${m}`,noE:"enter EBITDA"},
- wf:["Opening cash","Cash earnings","Working capital","Capex","Other investing","Financing","Ending cash"],
- wfShort:["Open","Earn.","WC","Capex","Inv.","Fin.","End"],
+ k:{cfo:"Cash from operations",fcf:"Free cash flow",conv:"FCF conversion",coll:"Cash collection",net:"Net change in cash",end:"Ending cash",
+  ofE:p=>`${p} of EBITDA`,margin:p=>`margin ${p}`,vsB:b=>`benchmark ${b}`,ofRev:p=>`${p} of revenue`,ofNet:"of net revenue",min:m=>`minimum ${m}`,noE:"enter EBITDA"},
+ wf:["Opening cash","Operating cash flow","Capex","Other investing","Financing","Ending cash"],
+ wfShort:["Open","Oper.","Capex","Inv.","Fin.","End"],
  lg:{tot:"Cash balance",up:"Inflow",down:"Outflow",min:"Minimum cash"},
  v:{label:"Verdict",sev:["on track","watch","critical"],
   low:"Ending cash is below the minimum",lowP:(e,g,m)=>`Ending cash of ${e} is ${g} below the ${m} minimum. The plan needs more cash from operations, less capex or new financing.`,
@@ -187,7 +187,8 @@ const T={brand:"DeXM Management · financial analysis",h1:"Annual Cash Flow Stat
   conv:g=>`Cash conversion is ${g} below the benchmark`,convP:(c,b,u)=>`Free cash flow is ${c} of EBITDA against a ${b} benchmark. Reaching the benchmark would add about ${u} of free cash flow a year.`,
   ok:"Cash generation is on track",okP:(c,b)=>`Free cash flow is ${c} of EBITDA against a ${b} benchmark. Next: decide how much goes to debt, growth capex and owners.`,
   okP2:(f,p)=>`Free cash flow is ${f} (${p} of revenue). Enter EBITDA to compare cash conversion with the benchmark.`,
-  wcAbs:(a,p)=>`Working capital absorbed ${a} (${p} of revenue).`,wcRel:(a)=>`Working capital released ${a}.`,
+  collLow:(p,a)=>`Customers paid ${p} of revenue in cash: about ${a} stayed in receivables.`,collHigh:a=>`Collections exceeded revenue by ${a}: receivables came down.`,
+  pay:p=>`Payroll takes ${p} of cash received from customers.`,
   capLow:x=>`Capex is ${x} of D&A: the asset base may be underfunded.`,capOk:x=>`Capex is ${x} of D&A.`,
   ocf:p=>`Operating cash flow is ${p} of EBITDA.`,
   finOut:a=>`Debt repayment, leases and distributions took ${a} net of new financing.`,finIn:a=>`Financing added ${a}.`,
@@ -201,44 +202,44 @@ const T={brand:"DeXM Management · financial analysis",h1:"Annual Cash Flow Stat
   imported:(n,m,s,mo)=>`Imported ${n} line items${m?`, added ${m} new lines`:""}${s?`, settings: ${s}`:""}${mo?". Monthly columns were added up to annual totals":""}.`,unrec:l=>` Not recognized: ${l}.`,
   noData:"Could not find any amounts. Use one column of annual amounts next to the line items, or 12 monthly columns. Download the template to see the format.",cleared:"Table cleared",readFail:"Could not read the file. Check that it is .xlsx, .xls or .csv."},
  sheetTitle:"Annual Cash Flow Statement",prepared:"Prepared",chartAria:"Cash waterfall from opening to ending cash",
- lines:{ni:"Net income",da:"Depreciation and amortization",noncash:"Other non-cash items",ar:"(Increase) / decrease in receivables",invt:"(Increase) / decrease in inventory",ap:"Increase / (decrease) in payables",owc:"Other working capital changes",
+ lines:{custRec:"Cash received from customers",othRec:"Other operating receipts",supp:"Payments to suppliers",payroll:"Payroll, benefits and payroll taxes",oper:"Rent, utilities and other operating payments",intPaid:"Interest paid",taxPaid:"Income taxes paid",
   capexM:"Capital expenditures, maintenance",capexG:"Capital expenditures, growth",sale:"Proceeds from asset sales",acq:"Acquisitions",
   debtIn:"New borrowings",debtOut:"Debt principal repayment",equity:"Equity raised",divs:"Dividends and distributions",lease:"Lease principal payments"}};
 const SECS=["op","invest","fin"];
-const BUILT=[["ni","op"],["da","op"],["noncash","op"],["ar","op"],["invt","op"],["ap","op"],["owc","op"],["capexM","invest"],["capexG","invest"],["sale","invest"],["acq","invest"],["debtIn","fin"],["debtOut","fin"],["equity","fin"],["divs","fin"],["lease","fin"]];
-const WC=["ar","invt","ap","owc"],CAPEX=["capexM","capexG"];
+const BUILT=[["custRec","op"],["othRec","op"],["supp","op"],["payroll","op"],["oper","op"],["intPaid","op"],["taxPaid","op"],["capexM","invest"],["capexG","invest"],["sale","invest"],["acq","invest"],["debtIn","fin"],["debtOut","fin"],["equity","fin"],["divs","fin"],["lease","fin"]];
+const CAPEX=["capexM","capexG"];
 // lines that are always outflows / inflows: a positive number typed into an outflow line is stored as negative
-const OUT=new Set(["capexM","capexG","acq","debtOut","divs","lease"]),IN=new Set(["da","sale","debtIn","equity"]);
+const OUT=new Set(["supp","payroll","oper","intPaid","taxPaid","capexM","capexG","acq","debtOut","divs","lease"]),IN=new Set(["custRec","othRec","sale","debtIn","equity"]);
 const norm=(id,v)=>OUT.has(id)?-Math.abs(v):IN.has(id)?Math.abs(v):v;
 const ALIAS=[
  ["capexG",/(growth capex|expansion capex|growth capital)/i],
  ["capexM",/(maintenance capex|capital expend|capex|purchase[s]? of (property|pp&e|plant|equipment|fixed assets)|pp&e)/i],
- ["noncash",/(non-?cash|stock[- ]based|share[- ]based|impairment|deferred tax|provision|(gain|loss) on)/i],
- ["da",/(depreciation|amortization|\bd&a\b)/i],
- ["ni",/(net income|net profit|net earnings|profit for the (year|period)|net loss)/i],
- ["ar",/(receivable|debtors)/i],
- ["invt",/(inventor|\bstock\b)/i],
- ["ap",/(payable|creditors)/i],
- ["owc",/(working capital|accrued|accrual|prepaid|other current|deferred revenue)/i],
+ ["custRec",/(from customers|customer receipts|collections|cash receipts|receipts from sales)/i],
+ ["othRec",/(other (operating )?receipts|other income received)/i],
  ["sale",/(sale of (assets|property|equipment)|proceeds from (the )?(sale|disposal)|disposal)/i],
  ["acq",/(acquisition|purchase of (a )?business)/i],
  ["lease",/(lease)/i],
+ ["intPaid",/(interest)/i],
+ ["taxPaid",/(tax)/i],
+ ["payroll",/(payroll|wage|salar|employee|staff|benefit)/i],
+ ["supp",/(supplier|vendor|purchase|material|subcontract)/i],
+ ["oper",/(rent|utilit|energy|operating (payments|expenses)|other payments|overhead)/i],
  ["debtIn",/(proceeds from (debt|borrow|loan|notes)|new borrowing|borrowings|debt drawn|loan drawn|drawdown)/i],
  ["debtOut",/(repayment|repaid|principal)/i],
  ["divs",/(dividend|distribution)/i],
  ["equity",/(equity|issu(e|ance) of (shares|stock)|capital contribution)/i]];
 const SEC_RE=[["op",/(operating activit|from operations)/i],["invest",/(investing)/i],["fin",/(financing)/i]];
-const CALC_RE=/(^total|net cash|net change|net increase|net decrease|cash at|ending cash|closing cash|free cash|conversion|ebitda|benchmark|^capital expenditures$|working capital impact|after debt)/i;
-const SET_RE=[["bench",/(conversion bench)/i],["minCash",/(minimum cash)/i],["begin",/(opening cash|beginning cash|cash at (the )?beginning)/i],["ebitda",/^ebitda/i],["rev",/^(net revenue|revenue|net sales|sales)/i],["year",/(fiscal year|^year$)/i],["company",/^company/i],["units",/^units/i]];
+const CALC_RE=/(^total|net cash|net change|net increase|net decrease|cash at|ending cash|closing cash|free cash|conversion|ebitda|benchmark|^capital expenditures$|collection|after debt)/i;
+const SET_RE=[["bench",/(conversion bench)/i],["da",/^(depreciation|d&a)/i],["minCash",/(minimum cash)/i],["begin",/(opening cash|beginning cash|cash at (the )?beginning)/i],["ebitda",/^ebitda/i],["rev",/^(net revenue|revenue|net sales|sales)/i],["year",/(fiscal year|^year$)/i],["company",/^company/i],["units",/^units/i]];
 const ALL_LABELS={};Object.entries(T.lines).forEach(([k,v])=>ALL_LABELS[v.toLowerCase()]=k);
 const MONTH_RE=[/^jan/i,/^feb/i,/^mar/i,/^apr/i,/^may/i,/^jun/i,/^jul/i,/^aug/i,/^sep/i,/^oct/i,/^nov/i,/^dec/i];
 const PER_RE=/^(month|mon|m|p|period)\.?\s*(\d{1,2})\b/i;
 const AMT_RE=/^((fy|fiscal year)\s*'?\d{2,4}|fy|fy total|total|total year|amount|annual|annual total|year|full year|\d{4})$/i;
 
 const thisYear=()=>new Date().getFullYear();
-function blankModel(){return{settings:{company:"",year:thisYear(),units:T.unitsDef,rev:0,ebitda:0,begin:0,minCash:0,bench:45},lines:BUILT.map(([id,sec])=>({id,sec,v:0}))}}
-function sampleModel(){const m=blankModel();Object.assign(m.settings,{company:T.companyDef,rev:30179,ebitda:3754,begin:1200,minCash:1000,bench:40});
-  const V={ni:1867,da:840,noncash:60,ar:-350,invt:-420,ap:180,owc:-40,capexM:-600,capexG:-400,sale:50,acq:0,debtIn:0,debtOut:-500,equity:0,divs:-300,lease:-120};
+function blankModel(){return{settings:{company:"",year:thisYear(),units:T.unitsDef,rev:0,ebitda:0,da:0,begin:0,minCash:0,bench:45},lines:BUILT.map(([id,sec])=>({id,sec,v:0}))}}
+function sampleModel(){const m=blankModel();Object.assign(m.settings,{company:T.companyDef,rev:30179,ebitda:3754,da:840,begin:1200,minCash:1000,bench:40});
+  const V={custRec:29829,othRec:0,supp:-16800,payroll:-6900,oper:-3100,intPaid:-420,taxPaid:-472,capexM:-600,capexG:-400,sale:50,acq:0,debtIn:0,debtOut:-500,equity:0,divs:-300,lease:-120};
   m.lines.forEach(l=>l.v=V[l.id]);return m}
 const labelOf=l=>l.id?T.lines[l.id]:(l.label||T.newLine);
 
@@ -248,11 +249,11 @@ function compute(m){const S=m.settings;
   const ids=a=>a.reduce((s,id)=>s+val(id),0);
   const rev=+S.rev||0,ebitda=+S.ebitda||0,begin=+S.begin||0,minCash=+S.minCash||0,bench=+S.bench||0;
   const cfo=sum("op"),cfi=sum("invest"),cff=sum("fin"),net=cfo+cfi+cff,end=begin+net;
-  const wc=ids(WC),capex=ids(CAPEX),fcf=cfo+capex,da=val("da");
+  const capex=ids(CAPEX),fcf=cfo+capex,da=+S.da||0,cust=val("custRec");
   const P=x=>rev?x/rev*100:null;
   const conv=ebitda>0?fcf/ebitda*100:null,ocf=ebitda>0?cfo/ebitda*100:null;
-  return{rev,ebitda,begin,minCash,bench,cfo,cfi,cff,net,end,wc,capex,fcf,da,conv,ocf,
-    earn:cfo-wc,othInv:cfi-capex,fcfa:fcf+val("debtOut")+val("lease"),capda:da>0?-capex/da:null,
+  return{rev,ebitda,begin,minCash,bench,cfo,cfi,cff,net,end,capex,fcf,da,conv,ocf,cust,coll:rev&&cust?cust/rev*100:null,payroll:-val("payroll"),
+    othInv:cfi-capex,fcfa:fcf+val("debtOut")+val("lease"),capda:da>0?-capex/da:null,
     upside:conv!=null?Math.max(0,bench/100*ebitda-fcf):0,P,
     any:m.lines.some(l=>+l.v)}
 }
@@ -319,7 +320,7 @@ function exportPlan(m,blank){
   const rows=[],F=[];const s=m.settings;const S={};
   const push=(r,fs)=>{rows.push(r);if(fs)F.push([rows.length,fs]);return rows.length};
   push([T.sheetTitle]);push([T.company,"",blank?"":s.company]);push([T.units,"",s.units]);push([T.year,"",+s.year||thisYear()]);
-  S.rev=push([T.rev,"",blank?0:+s.rev||0]);S.ebitda=push([T.ebitda,"",blank?0:+s.ebitda||0]);S.begin=push([T.begin,"",blank?0:+s.begin||0]);
+  S.rev=push([T.rev,"",blank?0:+s.rev||0]);S.ebitda=push([T.ebitda,"",blank?0:+s.ebitda||0]);S.da=push([T.da,"",blank?0:+s.da||0]);S.begin=push([T.begin,"",blank?0:+s.begin||0]);
   S.min=push([T.minCash,"",blank?0:+s.minCash||0]);push([T.bench,"",+s.bench||0]);push([]);
   push([T.section,T.line,T.fy(s.year||thisYear()),T.pcol]);
   const PCT=r=>[3,`IF(AND(ISNUMBER(C${r}),C${S.rev}<>0),C${r}/C${S.rev},"")`,"pct"];
@@ -338,15 +339,15 @@ function exportPlan(m,blank){
   calc(T.r.cfo2,`C${R.cfo}`);R.capex=calc(T.r.capex,ids(CAPEX));R.fcf=calc(T.r.fcf,`C${R.cfo}+C${R.capex}`);
   calc(T.r.conv,null,{pct:`IF(C${S.ebitda}<=0,"",C${R.fcf}/C${S.ebitda})`});
   calc(T.r.ocf,null,{pct:`IF(C${S.ebitda}<=0,"",C${R.cfo}/C${S.ebitda})`});
-  calc(T.r.wc,ids(WC));
+  calc(T.r.coll,null,{pct:`IF(C${S.rev}=0,"",(${ids(["custRec"])})/C${S.rev})`});
   calc(T.r.fcfa,`C${R.fcf}+${ids(["debtOut","lease"])}`);
-  calc(T.r.capda,`IF(${ids(["da"])}<=0,"n/a",-C${R.capex}/(${ids(["da"])}))`,{kind:"x",noPct:true});
-  return{rows,f:F,firstLine:12};
+  calc(T.r.capda,`IF(C${S.da}<=0,"n/a",-C${R.capex}/C${S.da})`,{kind:"x",noPct:true});
+  return{rows,f:F};
 }
 </script>
 <script>
 if(typeof document!=="undefined"){(function(){
-const KEY="dexm-cf-annual-v1";
+const KEY="dexm-cf-annual-v2";
 let model,isSample=false;
 try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.lines){model=s}}catch(e){}
 if(!model){model=sampleModel();isSample=true}
@@ -367,10 +368,10 @@ function texts(){$("t-brand").textContent=T.brand;$("t-h1").textContent=T.h1;
   $("sample").textContent=T.sample;$("chart").setAttribute("aria-label",T.chartAria);
   $("legend").innerHTML=`<span><i style="background:var(--accent)"></i>${T.lg.tot}</span><span><i style="background:var(--good)"></i>${T.lg.up}</span><span><i style="background:var(--bad)"></i>${T.lg.down}</span><span><i style="background:var(--warn);height:2px"></i>${T.lg.min}</span>`}
 
-const NUMSET=["year","rev","ebitda","begin","minCash","bench"];
+const NUMSET=["year","rev","ebitda","da","begin","minCash","bench"];
 function renderSettings(){const s=model.settings;
   const f=(k,lab,type,cls)=>`<div class="field"><label class="label" for="set-${k}">${lab}</label><input id="set-${k}" data-k="${k}" type="${type}" ${cls?`class="${cls}" inputmode="decimal" step="any"`:""} value="${esc(s[k]??"")}"></div>`;
-  $("settings").innerHTML=f("company",T.company,"text")+f("year",T.year,"number","num")+f("units",T.units,"text")+f("rev",T.rev,"number","num")+f("ebitda",T.ebitda,"number","num")+f("begin",T.begin,"number","num")+f("minCash",T.minCash,"number","num")+f("bench",T.bench,"number","num")}
+  $("settings").innerHTML=f("company",T.company,"text")+f("year",T.year,"number","num")+f("units",T.units,"text")+f("rev",T.rev,"number","num")+f("ebitda",T.ebitda,"number","num")+f("da",T.da,"number","num")+f("begin",T.begin,"number","num")+f("minCash",T.minCash,"number","num")+f("bench",T.bench,"number","num")}
 $("settings").addEventListener("input",e=>{const k=e.target.dataset.k;if(!k)return;
   model.settings[k]=NUMSET.includes(k)?(parseFloat(e.target.value)||0):e.target.value;touch();
   if(k==="year"||k==="units")renderGrid();else update()});
@@ -386,7 +387,7 @@ function renderGrid(){
     h+=`<tr class="add"><td class="lab"><button data-add="${sec}">${T.add}</button></td><td colspan="2"></td></tr>`;
     h+=calcRow({op:"cfo",invest:"cfi",fin:"cff"}[sec],sec==="op"?"key":"sub")});
   h+=secRow(T.sec.cash)+calcRow("net")+calcRow("open","be")+calcRow("end","key");
-  h+=secRow(T.sec.fcf)+calcRow("cfo2","be")+calcRow("capex","be")+calcRow("fcf","key")+["conv","ocf","wc","fcfa","capda"].map(k=>calcRow(k,"be")).join("");
+  h+=secRow(T.sec.fcf)+calcRow("cfo2","be")+calcRow("capex","be")+calcRow("fcf","key")+["conv","ocf","coll","fcfa","capda"].map(k=>calcRow(k,"be")).join("");
   $("grid").innerHTML=h+"</tbody>";update()}
 
 $("grid").addEventListener("input",e=>{const t=e.target;
@@ -410,7 +411,7 @@ function niceStep(r){const p=Math.pow(10,Math.floor(Math.log10(Math.max(r,1e-9))
 function drawChart(cv,c,pal,wpx,hpx,scale){
   const dpr=scale||window.devicePixelRatio||1;const w=wpx||cv.clientWidth||600,hgt=hpx||cv.clientHeight||260;
   cv.width=w*dpr;cv.height=hgt*dpr;const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,hgt);
-  const steps=[c.earn,c.wc,c.capex,c.othInv,c.cff];const bars=[];let run=c.begin;
+  const steps=[c.cfo,c.capex,c.othInv,c.cff];const bars=[];let run=c.begin;
   bars.push({a:0,b:run,tot:1,v:run});steps.forEach(v=>{bars.push({a:run,b:run+v,v});run+=v});bars.push({a:0,b:run,tot:1,v:run});
   const narrow=w<520;const padL=60,padR=12,padT=18,padB=narrow?40:34,H=hgt-padT-padB,Wd=w-padL-padR;
   let lo=Math.min(0,...bars.map(x=>Math.min(x.a,x.b))),hi=Math.max(c.minCash,1,...bars.map(x=>Math.max(x.a,x.b)));const sp=hi-lo;hi+=sp*.08;if(lo<0)lo-=sp*.08;
@@ -423,17 +424,21 @@ function drawChart(cv,c,pal,wpx,hpx,scale){
     g.fillStyle=pal.fg;g.textAlign="center";g.textBaseline="bottom";g.font=`${narrow?9:11}px ${pal.mono}`;g.fillText(fmt(x.v),X(i)+bw/2,y0-3)});
   if(c.minCash){g.strokeStyle=pal.warn;g.setLineDash([5,4]);g.lineWidth=1.5;g.beginPath();g.moveTo(padL,Y(c.minCash));g.lineTo(w-padR,Y(c.minCash));g.stroke();g.setLineDash([])}
   g.fillStyle=pal.muted;g.textAlign="center";g.textBaseline="top";g.font=`${narrow?10:11}px ${pal.mono}`;
-  const fitsAll=T.wf.every(t=>t.split(" ").every(p=>g.measureText(p).width+4<=bw));
-  (fitsAll?T.wf:T.wfShort).forEach((t,i)=>{const parts=t.split(" ");if(g.measureText(t).width+4<=bw)g.fillText(t,X(i)+bw/2,hgt-padB+8);else parts.forEach((p,j)=>g.fillText(p,X(i)+bw/2,hgt-padB+6+j*12))})}
+  // a label goes on one line, or on two lines split where the longer line is shortest
+  const W_=t=>g.measureText(t).width,lines=t=>{if(W_(t)+4<=bw)return[t];const w=t.split(" ");let best=[t];let bm=Infinity;
+    for(let k=1;k<w.length;k++){const l=[w.slice(0,k).join(" "),w.slice(k).join(" ")],m=Math.max(...l.map(W_));if(m<bm){bm=m;best=l}}return best};
+  const fitsAll=T.wf.every(t=>lines(t).every(p=>W_(p)+4<=bw));
+  (fitsAll?T.wf:T.wfShort).forEach((t,i)=>{const ls=lines(t);ls.forEach((p,j)=>g.fillText(p,X(i)+bw/2,hgt-padB+(ls.length>1?6:8)+j*12))})}
 const pagePal=()=>({fg:css("--fg"),muted:css("--muted"),line:css("--line"),good:css("--good"),bad:css("--bad"),warn:css("--warn"),accent:css("--accent"),surface:css("--surface"),mono:css("--mono")});
 
 function verdictData(c){const notes=[];
-  if(c.wc<0)notes.push(T.v.wcAbs(fmtU(-c.wc),pct(c.P(-c.wc))));else if(c.wc>0)notes.push(T.v.wcRel(fmtU(c.wc)));
+  if(c.coll!=null)notes.push(c.coll<100?T.v.collLow(pct(c.coll),fmtU(c.rev-c.cust)):T.v.collHigh(fmtU(c.cust-c.rev)));
+  if(c.cust&&c.payroll>0)notes.push(T.v.pay(pct(c.payroll/c.cust*100)));
   if(c.capda!=null)notes.push(c.capda<.8?T.v.capLow(xf(c.capda)):T.v.capOk(xf(c.capda)));
   if(c.ocf!=null)notes.push(T.v.ocf(pct(c.ocf)));
   if(c.cff<0)notes.push(T.v.finOut(fmtU(-c.cff)));else if(c.cff>0)notes.push(T.v.finIn(fmtU(c.cff)));
   if(c.minCash&&c.end>=c.minCash)notes.push(T.v.head(fmtU(c.end-c.minCash)));
-  const levers=c.wc<0&&-c.wc>=-c.capex*.5?T.v.Lwc:T.v.Lcap;
+  const levers=c.coll!=null&&c.coll<98?T.v.Lwc:T.v.Lcap;
   if(!c.any)return{sev:0,h:"—",p:"",notes:[],levers:[]};
   if(c.minCash&&c.end<c.minCash)return{sev:2,h:T.v.low,p:T.v.lowP(fmtU(c.end),fmtU(c.minCash-c.end),fmtU(c.minCash)),notes,levers};
   if(c.fcf<0)return{sev:2,h:T.v.neg,p:T.v.negP(fmtU(-c.fcf),c.cff>0?T.v.negFin(fmtU(c.cff)):""),notes,levers};
@@ -443,15 +448,15 @@ function kpiData(c){const u=model.settings.units;return[
   [T.k.cfo,fmt(c.cfo),c.ocf!=null?T.k.ofE(pct(c.ocf)):u,c.cfo<0],
   [T.k.fcf,fmt(c.fcf),c.rev?T.k.margin(pct(c.P(c.fcf))):u,c.fcf<0],
   [T.k.conv,pct(c.conv),c.conv!=null?T.k.vsB(pct(c.bench)):T.k.noE,c.conv!=null&&c.conv<c.bench],
-  [T.k.wc,fmt(c.wc),c.rev?T.k.ofRev(pct(c.P(c.wc))):u,c.wc<0],
+  [T.k.coll,pct(c.coll),T.k.ofNet,c.coll!=null&&c.coll<98],
   [T.k.net,fmt(c.net),u,c.net<0],
   [T.k.end,fmt(c.end),c.minCash?T.k.min(fmt(c.minCash)):u,c.minCash&&c.end<c.minCash]]}
 
 function update(){const c=compute(model);
   const set=(id,v,kind)=>{const el=$(id);if(!el)return;el.textContent=kind==="pct"?pct(v):kind==="x"?xf(v):v==null?"":fmt(v);el.classList.toggle("neg",v!=null&&v<0)};
-  const V={cfo:c.cfo,cfi:c.cfi,cff:c.cff,net:c.net,open:c.begin,end:c.end,cfo2:c.cfo,capex:c.capex,fcf:c.fcf,wc:c.wc,fcfa:c.fcfa};
+  const V={cfo:c.cfo,cfi:c.cfi,cff:c.cff,net:c.net,open:c.begin,end:c.end,cfo2:c.cfo,capex:c.capex,fcf:c.fcf,fcfa:c.fcfa};
   Object.entries(V).forEach(([k,v])=>{set(`c-${k}`,v);set(`p-${k}`,c.P(v),"pct")});
-  set("c-conv",null);set("p-conv",c.conv,"pct");set("c-ocf",null);set("p-ocf",c.ocf,"pct");set("c-capda",c.capda,"x");set("p-capda",null);
+  set("c-conv",null);set("p-conv",c.conv,"pct");set("c-ocf",null);set("p-ocf",c.ocf,"pct");set("c-coll",null);set("p-coll",c.coll,"pct");$("p-coll").classList.toggle("below",c.coll!=null&&c.coll<98);set("c-capda",c.capda,"x");set("p-capda",null);
   $("c-end").classList.toggle("below",!!c.minCash&&c.end<c.minCash);$("p-conv").classList.toggle("below",c.conv!=null&&c.conv<c.bench);
   $("c-capda").classList.toggle("below",c.capda!=null&&c.capda<.8);
   model.lines.forEach((l,li)=>set(`lp-${li}`,c.P(+l.v||0),"pct"));
@@ -489,7 +494,7 @@ $("importFile").addEventListener("change",async e=>{const file=e.target.files[0]
     let best=null;for(const name of wb.SheetNames){const r=importAOA(XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null}));if(!r.error){best=r;break}}
     if(!best){status(T.st.noData,"err");return}
     model=best.model;isSample=false;$("sample").hidden=true;save();renderSettings();renderGrid();
-    const setNames=best.settings.map(k=>({bench:T.bench,minCash:T.minCash,begin:T.begin,ebitda:T.ebitda,rev:T.rev,year:T.year,company:T.company,units:T.units}[k])).join(", ");
+    const setNames=best.settings.map(k=>({da:T.da,bench:T.bench,minCash:T.minCash,begin:T.begin,ebitda:T.ebitda,rev:T.rev,year:T.year,company:T.company,units:T.units}[k])).join(", ");
     status(T.st.imported(best.n,best.added,setNames,best.monthly)+(best.unrec.length?T.st.unrec(best.unrec.slice(0,6).join("; ")):""),best.unrec.length?"":"ok")}
   catch(err){console.error(err);status(T.st.readFail,"err")}});
 $("btnReset").onclick=()=>{model=blankModel();isSample=false;$("sample").hidden=true;save();renderSettings();renderGrid();status(T.st.cleared,"ok")};
@@ -525,7 +530,7 @@ function reportPages(){
     const k={op:"cfo",invest:"cfi",fin:"cff"}[sec];r(T.r[k],c[k],sec==="op"?"key":"sub",c.P(c[k]))});
   rows.push({lab:T.sec.cash,kind:"sec"});r(T.r.net,c.net,"sub",c.P(c.net));r(T.r.open,c.begin,"",c.P(c.begin));r(T.r.end,c.end,"key",c.P(c.end));
   rows.push({lab:T.sec.fcf,kind:"sec"});r(T.r.cfo2,c.cfo,"",c.P(c.cfo));r(T.r.capex,c.capex,"",c.P(c.capex));r(T.r.fcf,c.fcf,"key",c.P(c.fcf));
-  r(T.r.conv,null,"",c.conv,c.conv!=null&&c.conv<c.bench,"");r(T.r.ocf,null,"",c.ocf,false,"");r(T.r.wc,c.wc,"",c.P(c.wc));r(T.r.fcfa,c.fcfa,"",c.P(c.fcfa));r(T.r.capda,null,"",null,false,xf(c.capda));
+  r(T.r.conv,null,"",c.conv,c.conv!=null&&c.conv<c.bench,"");r(T.r.ocf,null,"",c.ocf,false,"");r(T.r.coll,null,"",c.coll,c.coll!=null&&c.coll<98,"");r(T.r.fcfa,c.fcfa,"",c.P(c.fcfa));r(T.r.capda,null,"",null,false,xf(c.capda));
   const TW=Math.min(CW,1000),LW=TW-360,VW=180,RH=22,HH=40,top=M+40,per=Math.floor((PH-top-HH-70)/RH);
   for(let start=0,pn=2;start<rows.length;start+=per,pn++){
     g=newPage();g.fillStyle=P.fg;g.font=`700 18px ${F.disp}`;g.fillText(T.sheetTitle+(s.company?` · ${s.company}`:""),M,M+14);
