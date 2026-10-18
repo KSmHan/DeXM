@@ -193,7 +193,7 @@ const T={brand:"DeXM Management · financial analysis",h1:"Annual Profit and Los
   levers:"Levers",
   Lcm:["Reprice customers and SKUs with below-average contribution margin.","Cut material cost through purchasing, usage standards and scrap.","Raise labor productivity and OEE at the bottleneck."],
   Lfix:["Resize fixed costs to current sales volume.","Drop loss-making SKUs and customers from the portfolio.","Tie management bonuses to EBITDA margin."],
-  cta:"<strong>Want a P&L review?</strong> DeXM finds EBITDA upside line by line and builds the plan to capture it in 2 weeks. info@dexm-m.com"},
+  },
  st:{tpl:"Template ready to save",xlsx:"Excel file ready to save",pdf:"PDF ready to save",saved:"File saved",declined:"Save cancelled",
   noDl:"Downloads are not available in this view. Open the page from its link in a browser.",fail:"Could not create the file. Try again.",loading:"Loading module…",
   imported:(n,m,s,mo)=>`Imported ${n} line items${m?`, added ${m} new lines`:""}${s?`, settings: ${s}`:""}${mo?". Monthly columns were added up to annual totals":""}.`,unrec:l=>` Not recognized: ${l}.`,
@@ -467,7 +467,7 @@ function update(){const c=compute(model);
   $("kpis").innerHTML=kpiData(c).map(([l,v,s,bad])=>`<div class="kpi${bad?" bad":""}"><span class="label">${l}</span><b>${v}</b><small>${esc(s||"")}</small></div>`).join("");
   drawChart($("chart"),c,pagePal());
   const v=verdictData(c);const sevC=["var(--good)","var(--warn)","var(--bad)"][v.sev];
-  $("verdict").innerHTML=`<span class="label">${T.v.label}</span> <span class="sev" style="background:${sevC}">${T.v.sev[v.sev]}</span><h2>${v.h}</h2><p>${v.p}</p>${v.notes.length?`<ul>${v.notes.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}${v.levers.length?`<span class="label">${T.v.levers}</span><ul>${v.levers.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}<p class="cta">${T.v.cta}</p>`}
+  $("verdict").innerHTML=`<span class="label">${T.v.label}</span> <span class="sev" style="background:${sevC}">${T.v.sev[v.sev]}</span><h2>${v.h}</h2><p>${v.p}</p>${v.notes.length?`<ul>${v.notes.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}${v.levers.length?`<span class="label">${T.v.levers}</span><ul>${v.levers.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}`}
 const redraw=()=>drawChart($("chart"),compute(model),pagePal());
 window.addEventListener("resize",redraw);
 const mq=window.matchMedia("(prefers-color-scheme: dark)");mq.addEventListener&&mq.addEventListener("change",redraw);
